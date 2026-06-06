@@ -1,18 +1,20 @@
 from datetime import datetime, timedelta, timezone
 
-import bcrypt
 from fastapi import HTTPException
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.core.config import settings
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    return pwd_context.verify(plain, hashed)
 
 
 def hash_password(plain: str) -> str:
-    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    return pwd_context.hash(plain)
 
 
 def create_access_token(user_id: int, home_id: int | None = None) -> str:
