@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+.mypy_cache/
+.ruff_cache/
+
+# Node.js
+node_modules/
+.vite/
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Media uploads
+media/
+
+# Firebase credentials
+firebase_service_account.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
