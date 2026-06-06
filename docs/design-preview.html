@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tomo-sumi デザインプレビュー</title>
+<style>
+  /* === CSS Variables === */
+  :root {
+    --background:  hsl(40, 20%, 97%);
+    --foreground:  hsl(220, 15%, 12%);
+    --card:        hsl(0, 0%, 100%);
+    --card-border: hsl(173, 15%, 88%);
+    --primary:     hsl(173, 51%, 44%);   /* #37ab9d */
+    --primary-lt:  hsl(173, 48%, 53%);   /* #4dc0b2 */
+    --primary-fg:  hsl(0, 0%, 100%);
+    --secondary:   hsl(173, 20%, 92%);
+    --muted:       hsl(189, 10%, 90%);
+    --muted-fg:    hsl(189, 7%, 37%);    /* #586365 */
+    --accent:      hsl(40, 100%, 63%);   /* #ffc042 */
+    --accent-fg:   hsl(40, 60%, 15%);
+    --destructive: hsl(0, 72%, 51%);
+    --border:      hsl(173, 15%, 88%);
+    --ring:        hsl(173, 48%, 53%);
+    --radius:      0.625rem;
+    --status-home: hsl(142, 71%, 45%);
+    --status-away: hsl(189, 7%, 37%);
+    --sidebar:     hsl(0, 0%, 100%);
+  }
+
+  .dark {
+    --background:  hsl(189, 20%, 8%);
+    --foreground:  hsl(173, 15%, 94%);
+    --card:        hsl(189, 20%, 12%);
+    --card-border: hsl(189, 15%, 20%);
+    --primary:     hsl(173, 48%, 53%);   /* #4dc0b2 lighter for dark */
+    --primary-lt:  hsl(173, 51%, 60%);
+    --primary-fg:  hsl(189, 20%, 8%);
+    --secondary:   hsl(189, 15%, 18%);
+    --muted:       hsl(189, 15%, 16%);
+    --muted-fg:    hsl(189, 7%, 55%);
+    --accent:      hsl(40, 100%, 63%);
+    --accent-fg:   hsl(40, 60%, 10%);
+    --destructive: hsl(0, 62%, 40%);
+    --border:      hsl(189, 15%, 20%);
+    --ring:        hsl(173, 48%, 53%);
+    --status-home: hsl(142, 71%, 45%);
+    --status-away: hsl(189, 7%, 55%);
+    --sidebar:     hsl(189, 20%, 10%);
+  }
+
+  /* === Reset === */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 14px;
+    line-height: 1.6;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  /* === Layout === */
+  .preview-root { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px; flex-shrink: 0;
+    background: var(--sidebar);
+    border-right: 1px solid var(--card-border);
+    padding: 20px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; margin-bottom: 8px;
+  }
+  .sidebar-logo .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--primary-fg); font-size: 16px;
+  }
+  .sidebar-logo .logo-text { font-weight: 600; font-size: 15px; }
+  .sidebar-logo .home-name { font-size: 11px; color: var(--muted-fg); }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: var(--radius);
+    cursor: pointer; font-size: 13px; color: var(--foreground);
+    text-decoration: none; transition: background 0.15s;
+  }
+  .nav-item:hover { background: var(--muted); }
+  .nav-item.active { background: var(--secondary); color: var(--primary); font-weight: 500; }
+  .nav-item .nav-icon { width: 18px; text-align: center; }
+
+  /* User area at bottom of sidebar */
+  .sidebar-user {
+    margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; padding: 12px;
+  }
+  .avatar-wrap { position: relative; display: inline-block; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--primary); color: var(--primary-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 14px;
+  }
+  .avatar.lg { width: 44px; height: 44px; font-size: 18px; }
+  .status-dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--background);
+  }
+  .status-dot.home { background: var(--status-home); }
+  .status-dot.away { background: var(--status-away); }
+  .user-info .user-name { font-size: 13px; font-weight: 500; }
+  .user-info .user-status { font-size: 11px; color: var(--muted-fg); }
+
+  /* Main Content */
+  .main { flex: 1; padding: 32px; max-width: 900px; }
+
+  /* Dark toggle */
+  .toggle-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 100;
+    padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--card); color: var(--foreground);
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all 0.15s; box-shadow: 0 1px 4px rgba(0,0,0,.1);
+  }
+  .toggle-btn:hover { background: var(--muted); }
+
+  /* Sections */
+  .section { margin-bottom: 48px; }
+  .section-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .section-desc { font-size: 12px; color: var(--muted-fg); margin-bottom: 20px; }
+  .divider { height: 1px; background: var(--border); margin-bottom: 48px; }
+
+  /* Color Swatches */
+  .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+  .swatch {
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+    width: 100px;
+  }
+  .swatch-block {
+    width: 100%; height: 64px; border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .swatch-label { font-size: 11px; color: var(--muted-fg); text-align: center; }
+  .swatch-hex { font-size: 11px; font-weight: 500; text-align: center; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1px solid transparent; transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--primary); color: var(--primary-fg); border-color: var(--primary);
+  }
+  .btn-primary:hover { opacity: 0.9; transform: scale(1.01); }
+  .btn-secondary {
+    background: var(--secondary); color: var(--foreground); border-color: var(--card-border);
+  }
+  .btn-secondary:hover { background: var(--muted); }
+  .btn-outline {
+    background: transparent; color: var(--primary); border-color: var(--primary);
+  }
+  .btn-outline:hover { background: var(--secondary); }
+  .btn-destructive {
+    background: var(--destructive); color: white; border-color: var(--destructive);
+  }
+  .btn-ghost {
+    background: transparent; color: var(--foreground); border-color: transparent;
+  }
+  .btn-ghost:hover { background: var(--muted); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-icon { padding: 8px; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge-home { background: hsl(142, 71%, 90%); color: hsl(142, 71%, 30%); }
+  .dark .badge-home { background: hsl(142, 71%, 15%); color: hsl(142, 71%, 60%); }
+  .badge-away { background: var(--muted); color: var(--muted-fg); }
+  .badge-high { background: hsl(0, 72%, 92%); color: hsl(0, 72%, 40%); }
+  .dark .badge-high { background: hsl(0, 72%, 20%); color: hsl(0, 72%, 65%); }
+  .badge-medium { background: hsl(40, 100%, 90%); color: hsl(40, 80%, 35%); }
+  .dark .badge-medium { background: hsl(40, 100%, 20%); color: hsl(40, 100%, 65%); }
+  .badge-low { background: var(--muted); color: var(--muted-fg); }
+  .badge-teal { background: hsl(173, 51%, 90%); color: hsl(173, 51%, 30%); }
+  .dark .badge-teal { background: hsl(173, 51%, 15%); color: hsl(173, 48%, 60%); }
+  .badge-amber { background: hsl(40, 100%, 90%); color: hsl(40, 60%, 30%); }
+
+  /* Form */
+  .form-group { display: flex; flex-direction: column; gap: 6px; max-width: 320px; }
+  .form-label { font-size: 13px; font-weight: 500; }
+  .form-input {
+    padding: 9px 12px; border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card); color: var(--foreground);
+    font-size: 14px; outline: none; transition: border 0.15s, box-shadow 0.15s;
+  }
+  .form-input:focus { border-color: var(--ring); box-shadow: 0 0 0 3px hsl(173, 48%, 53%, 0.2); }
+  .form-input.error { border-color: var(--destructive); }
+  .form-error { font-size: 12px; color: var(--destructive); }
+  .form-hint { font-size: 12px; color: var(--muted-fg); }
+
+  /* Cards */
+  .card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: calc(var(--radius) * 1.5);
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .dark .card { box-shadow: none; }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .card-desc { font-size: 12px; color: var(--muted-fg); margin-bottom: 16px; }
+
+  /* Member list */
+  .member-list { display: flex; flex-direction: column; gap: 12px; }
+  .member-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-radius: var(--radius); background: var(--background);
+    border: 1px solid var(--border);
+  }
+  .member-info { display: flex; align-items: center; gap: 10px; }
+  .member-name { font-size: 13px; font-weight: 500; }
+  .member-time { font-size: 11px; color: var(--muted-fg); }
+
+  /* Schedule item */
+  .schedule-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .schedule-item:last-child { border-bottom: none; }
+  .schedule-time { font-size: 12px; color: var(--muted-fg); width: 60px; flex-shrink: 0; }
+  .schedule-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+  .schedule-title { font-size: 13px; font-weight: 500; }
+  .schedule-who { font-size: 11px; color: var(--muted-fg); }
+
+  /* Announce item */
+  .announce-item {
+    display: flex; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .announce-item:last-child { border-bottom: none; }
+  .announce-bar { width: 3px; border-radius: 2px; flex-shrink: 0; }
+  .announce-bar.high { background: var(--destructive); }
+  .announce-bar.medium { background: var(--accent); }
+  .announce-bar.low { background: var(--muted-fg); }
+  .announce-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .announce-body { font-size: 12px; color: var(--muted-fg); }
+
+  /* Grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) {
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+
+  /* Login card */
+  .login-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 400px; padding: 32px;
+    background: var(--background);
+  }
+  .login-card { width: 360px; max-width: 100%; }
+  .login-logo {
+    display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 24px;
+  }
+  .login-logo-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--primary); color: var(--primary-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 700;
+  }
+  .login-logo-title { font-size: 22px; font-weight: 700; }
+  .login-logo-sub { font-size: 13px; color: var(--muted-fg); }
+  .login-form { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Mobile frame */
+  .mobile-frame {
+    width: 320px; height: 580px;
+    border: 2px solid var(--card-border);
+    border-radius: 32px; overflow: hidden;
+    background: var(--background);
+    display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,.12);
+    position: relative;
+  }
+  .mobile-header {
+    height: 56px; background: var(--card);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px;
+    font-size: 15px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .mobile-content { flex: 1; overflow-y: auto; padding: 16px; }
+  .mobile-tab {
+    height: 64px; background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-around;
+    flex-shrink: 0;
+  }
+  .tab-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: 10px; color: var(--muted-fg);
+    padding: 8px 12px; cursor: pointer; border-radius: 8px;
+    transition: color 0.15s;
+  }
+  .tab-item.active { color: var(--primary); }
+  .tab-item svg { width: 20px; height: 20px; }
+
+  /* Home select items */
+  .home-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--card-border);
+    margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .home-item:hover { border-color: var(--primary); }
+  .home-item.selected { border-color: var(--primary); background: hsl(173, 51%, 96%); }
+  .dark .home-item.selected { background: hsl(173, 51%, 10%); }
+  .home-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--primary); color: var(--primary-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .home-name { font-size: 13px; font-weight: 600; }
+  .home-member { font-size: 11px; color: var(--muted-fg); }
+
+  /* Typography */
+  .typo-display { font-size: 30px; font-weight: 700; }
+  .typo-h1 { font-size: 24px; font-weight: 600; }
+  .typo-h2 { font-size: 20px; font-weight: 600; }
+  .typo-h3 { font-size: 16px; font-weight: 500; }
+  .typo-body { font-size: 14px; }
+  .typo-caption { font-size: 12px; color: var(--muted-fg); }
+</style>
+</head>
+<body>
+<button class="toggle-btn" onclick="document.documentElement.classList.toggle('dark');document.body.classList.toggle('dark')">
+  ダーク切替
+</button>
+
+<div class="preview-root">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <div class="logo-text">Tomo-sumi</div>
+        <div class="home-name">田中家</div>
+      </div>
+    </div>
+
+    <a class="nav-item active">
+      <span class="nav-icon">🏠</span> ホーム
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">💬</span> チャット
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">📰</span> 投稿
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">📅</span> カレンダー
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">🔔</span> お知らせ
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">✅</span> TODO
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">⏰</span> リマインダー
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">💰</span> 家計
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">🖼️</span> アルバム
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">📊</span> アクティビティ
+    </a>
+
+    <div class="sidebar-user">
+      <div class="avatar-wrap">
+        <div class="avatar">山</div>
+        <span class="status-dot home"></span>
+      </div>
+      <div class="user-info">
+        <div class="user-name">山田 太郎</div>
+        <div class="user-status">在宅</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- カラーパレット -->
+    <div class="section">
+      <div class="section-title">カラーパレット</div>
+      <div class="section-desc">ブランドカラー 4色 + セマンティックカラー</div>
+      <div class="swatches">
+        <div class="swatch">
+          <div class="swatch-block" style="background:#37ab9d;"></div>
+          <div class="swatch-hex">#37ab9d</div>
+          <div class="swatch-label">Primary</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-block" style="background:#4dc0b2;"></div>
+          <div class="swatch-hex">#4dc0b2</div>
+          <div class="swatch-label">Primary Light / Ring</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-block" style="background:#ffc042;"></div>
+          <div class="swatch-hex">#ffc042</div>
+          <div class="swatch-label">Accent (Amber)</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-block" style="background:#586365;"></div>
+          <div class="swatch-hex">#586365</div>
+          <div class="swatch-label">Muted / Away</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-block" style="background:hsl(142,71%,45%);"></div>
+          <div class="swatch-hex">status-home</div>
+          <div class="swatch-label">在宅</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-block" style="background:hsl(0,72%,51%);"></div>
+          <div class="swatch-hex">destructive</div>
+          <div class="swatch-label">削除/エラー</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ボタン -->
+    <div class="section">
+      <div class="section-title">ボタン</div>
+      <div class="section-desc">variant × size</div>
+      <div class="row" style="margin-bottom:12px;">
+        <button class="btn btn-primary">送信</button>
+        <button class="btn btn-secondary">キャンセル</button>
+        <button class="btn btn-outline">詳細</button>
+        <button class="btn btn-destructive">削除</button>
+        <button class="btn btn-ghost">閉じる</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary btn-sm">小ボタン</button>
+        <button class="btn btn-outline btn-sm">小アウトライン</button>
+        <button class="btn btn-primary" style="border-radius:999px;">
+          <span>＋</span> 作成
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- バッジ -->
+    <div class="section">
+      <div class="section-title">バッジ</div>
+      <div class="section-desc">ステータス・優先度・カテゴリ</div>
+      <div class="row">
+        <span class="badge badge-home">
+          <span class="badge-dot" style="background:hsl(142,71%,45%)"></span>在宅
+        </span>
+        <span class="badge badge-away">
+          <span class="badge-dot" style="background:var(--status-away)"></span>外出
+        </span>
+        <span class="badge badge-high">優先度：高</span>
+        <span class="badge badge-medium">優先度：中</span>
+        <span class="badge badge-low">優先度：低</span>
+        <span class="badge badge-teal">新規</span>
+        <span class="badge badge-amber">注目</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- フォーム -->
+    <div class="section">
+      <div class="section-title">フォームコンポーネント</div>
+      <div class="section-desc">入力・フォーカス・エラー状態</div>
+      <div class="row" style="align-items:flex-start; flex-wrap:wrap; gap:24px;">
+        <div class="form-group">
+          <label class="form-label">メールアドレス</label>
+          <input class="form-input" type="email" placeholder="name@example.com">
+          <span class="form-hint">ログインに使用するメールアドレス</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">パスワード</label>
+          <input class="form-input error" type="password" value="short">
+          <span class="form-error">8文字以上で入力してください</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- タイポグラフィ -->
+    <div class="section">
+      <div class="section-title">タイポグラフィ</div>
+      <div class="section-desc">6段階のフォントスケール</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div><span style="font-size:11px;color:var(--muted-fg);width:80px;display:inline-block;">Display</span><span class="typo-display">家族の温かみ</span></div>
+        <div><span style="font-size:11px;color:var(--muted-fg);width:80px;display:inline-block;">H1</span><span class="typo-h1">ホームダッシュボード</span></div>
+        <div><span style="font-size:11px;color:var(--muted-fg);width:80px;display:inline-block;">H2</span><span class="typo-h2">メンバーステータス</span></div>
+        <div><span style="font-size:11px;color:var(--muted-fg);width:80px;display:inline-block;">H3</span><span class="typo-h3">本日のスケジュール</span></div>
+        <div><span style="font-size:11px;color:var(--muted-fg);width:80px;display:inline-block;">Body</span><span class="typo-body">今日はみんな在宅の予定です。18:00に夕食を準備します。</span></div>
+        <div><span style="font-size:11px;color:var(--muted-fg);width:80px;display:inline-block;">Caption</span><span class="typo-caption">2026年6月6日 09:15 更新</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ダッシュボード -->
+    <div class="section">
+      <div class="section-title">ダッシュボードカード</div>
+      <div class="section-desc">メンバーステータス / スケジュール / お知らせ</div>
+
+      <div class="grid3">
+        <!-- Member Status Card -->
+        <div class="card">
+          <div class="card-title">メンバー状況</div>
+          <div class="card-desc">田中家 · 3人</div>
+          <div class="member-list">
+            <div class="member-row">
+              <div class="member-info">
+                <div class="avatar-wrap">
+                  <div class="avatar" style="width:32px;height:32px;font-size:13px;">山</div>
+                  <span class="status-dot home"></span>
+                </div>
+                <div>
+                  <div class="member-name">山田 太郎</div>
+                  <div class="member-time">在宅</div>
+                </div>
+              </div>
+              <span class="badge badge-home"><span class="badge-dot" style="background:hsl(142,71%,45%)"></span>在宅</span>
+            </div>
+            <div class="member-row">
+              <div class="member-info">
+                <div class="avatar-wrap">
+                  <div class="avatar" style="width:32px;height:32px;font-size:13px;background:var(--accent);color:var(--accent-fg);">花</div>
+                  <span class="status-dot away"></span>
+                </div>
+                <div>
+                  <div class="member-name">山田 花子</div>
+                  <div class="member-time">19:00 帰宅予定</div>
+                </div>
+              </div>
+              <span class="badge badge-away"><span class="badge-dot" style="background:var(--status-away)"></span>外出</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule Card -->
+        <div class="card">
+          <div class="card-title">本日のスケジュール</div>
+          <div class="card-desc">6月6日（金）</div>
+          <div>
+            <div class="schedule-item">
+              <span class="schedule-time">09:00</span>
+              <span class="schedule-dot"></span>
+              <div>
+                <div class="schedule-title">朝食の用意</div>
+                <div class="schedule-who">太郎</div>
+              </div>
+            </div>
+            <div class="schedule-item">
+              <span class="schedule-time">18:00</span>
+              <span class="schedule-dot" style="background:var(--accent)"></span>
+              <div>
+                <div class="schedule-title">夕食（鍋）</div>
+                <div class="schedule-who">全員</div>
+              </div>
+            </div>
+            <div class="schedule-item">
+              <span class="schedule-time">21:00</span>
+              <span class="schedule-dot" style="background:var(--muted-fg)"></span>
+              <div>
+                <div class="schedule-title">ゴミ出し準備</div>
+                <div class="schedule-who">花子</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Announce Card -->
+        <div class="card">
+          <div class="card-title">お知らせ</div>
+          <div class="card-desc">未読 2件</div>
+          <div>
+            <div class="announce-item">
+              <div class="announce-bar high"></div>
+              <div>
+                <div class="announce-title">冷蔵庫の在庫確認</div>
+                <div class="announce-body">牛乳と卵がなくなりそうです</div>
+              </div>
+            </div>
+            <div class="announce-item">
+              <div class="announce-bar medium"></div>
+              <div>
+                <div class="announce-title">今週末の掃除当番</div>
+                <div class="announce-body">土曜日は太郎の担当です</div>
+              </div>
+            </div>
+            <div class="announce-item">
+              <div class="announce-bar low"></div>
+              <div>
+                <div class="announce-title">図書館の本の返却</div>
+                <div class="announce-body">6月10日までに返却してください</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Login + Mobile -->
+    <div class="section">
+      <div class="section-title">ログイン画面 / モバイルフレーム</div>
+      <div class="section-desc">認証画面とモバイルのホーム選択画面</div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
+
+        <!-- Login Card -->
+        <div class="card" style="width:340px;">
+          <div class="login-logo">
+            <div class="login-logo-icon">T</div>
+            <div class="login-logo-title">Tomo-sumi</div>
+            <div class="login-logo-sub">家族の暮らしを、ひとつに。</div>
+          </div>
+          <div class="login-form">
+            <div class="form-group" style="max-width:100%;">
+              <label class="form-label">メールアドレス</label>
+              <input class="form-input" type="email" placeholder="name@example.com">
+            </div>
+            <div class="form-group" style="max-width:100%;">
+              <label class="form-label">パスワード</label>
+              <input class="form-input" type="password" placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;">
+              ログイン
+            </button>
+            <div style="text-align:center;font-size:12px;color:var(--muted-fg);">
+              アカウントをお持ちでない方は
+              <a href="#" style="color:var(--primary);text-decoration:none;">新規登録</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Frame -->
+        <div class="mobile-frame">
+          <div class="mobile-header">
+            <span>ホームを選択</span>
+          </div>
+          <div class="mobile-content">
+            <div style="font-size:13px;color:var(--muted-fg);margin-bottom:16px;">
+              参加しているホームを選択してください
+            </div>
+            <div class="home-item selected">
+              <div class="home-icon">🏠</div>
+              <div>
+                <div class="home-name">田中家</div>
+                <div class="home-member">メンバー 3人</div>
+              </div>
+            </div>
+            <div class="home-item">
+              <div class="home-icon" style="background:var(--accent);color:var(--accent-fg);">🌸</div>
+              <div>
+                <div class="home-name">実家（大阪）</div>
+                <div class="home-member">メンバー 4人</div>
+              </div>
+            </div>
+            <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:16px;">
+              ＋ 新しいホームを作成
+            </button>
+          </div>
+          <nav class="mobile-tab">
+            <div class="tab-item active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+              ホーム
+            </div>
+            <div class="tab-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              チャット
+            </div>
+            <div class="tab-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              メニュー
+            </div>
+          </nav>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>
