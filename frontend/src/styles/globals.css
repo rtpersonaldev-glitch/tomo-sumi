@@ -4,7 +4,8 @@
 
 @layer base {
   :root {
-    /* #37ab9d → primary, #4dc0b2 → ring, #ffc042 → accent, #586365 → muted-fg */
+    /* Primary: #37ab9d (173 51% 44%) / Ring: #4dc0b2 (173 48% 53%) */
+    /* Accent: #ffc042 (40 100% 63%) / Muted-fg: #586365 (189 7% 37%) */
     --background: 40 20% 97%;
     --foreground: 220 15% 12%;
     --card: 0 0% 100%;
@@ -30,12 +31,8 @@
     --chart-4: 173 48% 53%;
     --chart-5: 0 72% 51%;
     --radius: 0.625rem;
-
-    /* ステータス */
     --status-at-home: 142 71% 45%;
     --status-away: 189 7% 37%;
-
-    /* 優先度 */
     --priority-high: 0 72% 51%;
     --priority-medium: 40 100% 63%;
     --priority-low: 189 7% 37%;
@@ -66,7 +63,6 @@
     --chart-3: 189 7% 55%;
     --chart-4: 173 51% 44%;
     --chart-5: 0 62% 50%;
-
     --status-at-home: 142 71% 45%;
     --status-away: 189 7% 55%;
   }

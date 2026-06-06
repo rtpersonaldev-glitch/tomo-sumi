@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ワイヤーフレーム: Issue #5 認証画面</title>
+<style>
+  :root {
+    --bg:       hsl(40, 20%, 97%);
+    --fg:       hsl(220, 15%, 12%);
+    --card:     hsl(0, 0%, 100%);
+    --border:   hsl(173, 15%, 88%);
+    --primary:  hsl(173, 51%, 44%);   /* #37ab9d */
+    --primary-lt: hsl(173, 48%, 53%); /* #4dc0b2 */
+    --primary-fg: hsl(0, 0%, 100%);
+    --muted:    hsl(189, 10%, 90%);
+    --muted-fg: hsl(189, 7%, 37%);    /* #586365 */
+    --accent:   hsl(40, 100%, 63%);   /* #ffc042 */
+    --danger:   hsl(0, 72%, 51%);
+    --radius:   0.625rem;
+  }
+  .dark {
+    --bg:       hsl(189, 20%, 8%);
+    --fg:       hsl(173, 15%, 94%);
+    --card:     hsl(189, 20%, 12%);
+    --border:   hsl(189, 15%, 20%);
+    --primary:  hsl(173, 48%, 53%);
+    --primary-fg: hsl(189, 20%, 8%);
+    --muted:    hsl(189, 15%, 16%);
+    --muted-fg: hsl(189, 7%, 55%);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+    background: var(--bg); color: var(--fg);
+    font-size: 14px; line-height: 1.6;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .toolbar h1 { font-size: 15px; font-weight: 600; flex: 1; }
+  .tab-btn {
+    padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--border); background: transparent; color: var(--fg);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+  .dark-btn {
+    padding: 6px 14px; border-radius: 999px; font-size: 12px;
+    border: 1px solid var(--border); background: transparent; color: var(--muted-fg);
+    cursor: pointer; margin-left: auto;
+  }
+
+  /* Page containers */
+  .page { display: none; }
+  .page.active { display: flex; }
+  .page-wrap {
+    min-height: calc(100vh - 57px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 16px;
+    background: var(--bg);
+  }
+
+  /* Auth card */
+  .auth-card {
+    width: 400px; max-width: 100%;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    padding: 36px 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+  }
+  .dark .auth-card { box-shadow: none; }
+
+  /* Logo */
+  .logo-area {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; margin-bottom: 32px;
+  }
+  .logo-icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    background: var(--primary); color: var(--primary-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700;
+  }
+  .logo-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 13px; color: var(--muted-fg); }
+
+  /* Form */
+  .form { display: flex; flex-direction: column; gap: 18px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 13px; font-weight: 500; }
+  .field input {
+    padding: 10px 12px; border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card); color: var(--fg);
+    font-size: 14px; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus {
+    border-color: var(--primary-lt);
+    box-shadow: 0 0 0 3px hsla(173, 48%, 53%, 0.18);
+  }
+  .field input.error { border-color: var(--danger); }
+  .field .hint { font-size: 12px; color: var(--muted-fg); }
+  .field .err-msg { font-size: 12px; color: var(--danger); display: flex; align-items: center; gap: 4px; }
+
+  /* Btn */
+  .btn-primary {
+    width: 100%; padding: 11px;
+    background: var(--primary); color: var(--primary-fg);
+    border: none; border-radius: var(--radius);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-primary:hover { opacity: 0.92; transform: scale(1.01); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .btn-primary.loading { opacity: 0.8; }
+
+  /* Spinner */
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: white;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Link */
+  .link-row {
+    text-align: center; margin-top: 4px;
+    font-size: 13px; color: var(--muted-fg);
+  }
+  .link-row a { color: var(--primary); text-decoration: none; font-weight: 500; }
+  .link-row a:hover { text-decoration: underline; }
+
+  /* Divider */
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted-fg); font-size: 12px;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* Annotation layer */
+  .anno-area {
+    width: 400px; max-width: 100%;
+    margin-top: 20px; padding: 16px 20px;
+    background: hsl(40, 100%, 97%); border: 1px solid hsl(40, 80%, 80%);
+    border-radius: var(--radius); font-size: 12px; color: hsl(40, 50%, 30%);
+    line-height: 1.8;
+  }
+  .dark .anno-area {
+    background: hsl(40, 30%, 12%); border-color: hsl(40, 30%, 25%); color: hsl(40, 80%, 70%);
+  }
+  .anno-title { font-weight: 600; margin-bottom: 6px; }
+  .anno-area ul { padding-left: 16px; }
+
+  /* States toggle */
+  .state-tabs {
+    display: flex; gap: 8px; margin: 0 0 16px;
+    padding: 0 16px;
+  }
+  .state-tab {
+    padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 500;
+    border: 1px solid var(--border); background: transparent; color: var(--muted-fg);
+    cursor: pointer;
+  }
+  .state-tab.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+
+  /* Password strength */
+  .pw-strength { display: flex; gap: 4px; margin-top: 4px; }
+  .pw-bar {
+    height: 3px; flex: 1; border-radius: 2px; background: var(--muted);
+    transition: background 0.2s;
+  }
+  .pw-bar.weak { background: var(--danger); }
+  .pw-bar.medium { background: var(--accent); }
+  .pw-bar.strong { background: var(--primary); }
+  .pw-label { font-size: 11px; color: var(--muted-fg); }
+
+  /* Error banner */
+  .error-banner {
+    padding: 10px 14px; border-radius: var(--radius);
+    background: hsl(0, 72%, 96%); border: 1px solid hsl(0, 72%, 85%);
+    color: hsl(0, 72%, 40%); font-size: 13px; display: flex; gap: 8px; align-items: flex-start;
+  }
+  .dark .error-banner {
+    background: hsl(0, 30%, 15%); border-color: hsl(0, 40%, 30%); color: hsl(0, 70%, 65%);
+  }
+
+  /* Two-col layout for annotations */
+  .two-col {
+    display: flex; gap: 24px; align-items: flex-start;
+    flex-wrap: wrap; max-width: 900px; margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <h1>🔧 ワイヤーフレーム — Issue #5 認証フロントエンド</h1>
+  <button class="tab-btn active" onclick="showPage('login', this)">ログイン</button>
+  <button class="tab-btn" onclick="showPage('login-error', this)">ログイン（エラー）</button>
+  <button class="tab-btn" onclick="showPage('signup', this)">ユーザー登録</button>
+  <button class="tab-btn" onclick="showPage('signup-error', this)">登録（バリデーション）</button>
+  <button class="dark-btn" onclick="document.documentElement.classList.toggle('dark');document.body.classList.toggle('dark')">ダーク切替</button>
+</div>
+
+<!-- ===== LOGIN (Normal) ===== -->
+<div id="page-login" class="page active">
+  <div class="two-col" style="padding:32px 16px;">
+    <div>
+      <div class="page-wrap" style="min-height:auto;padding:0;">
+        <div class="auth-card">
+          <div class="logo-area">
+            <div class="logo-icon">T</div>
+            <div class="logo-title">Tomo-sumi</div>
+            <div class="logo-sub">家族の暮らしを、ひとつに。</div>
+          </div>
+
+          <div class="form">
+            <div class="field">
+              <label>メールアドレス</label>
+              <input type="email" placeholder="name@example.com" value="">
+            </div>
+            <div class="field">
+              <label>パスワード</label>
+              <input type="password" placeholder="••••••••" value="">
+            </div>
+            <button class="btn-primary">ログイン</button>
+            <div class="link-row">
+              アカウントをお持ちでない方は <a href="#">新規登録</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anno-area" style="max-width:360px;">
+      <div class="anno-title">📋 LoginPage — 通常状態</div>
+      <ul>
+        <li>ロゴ + アプリ名 + キャッチコピー</li>
+        <li>メールアドレス入力（type="email"）</li>
+        <li>パスワード入力（type="password"）</li>
+        <li>「ログイン」ボタン → POST /api/auth/login → GET /api/auth/me → /home-select へ遷移</li>
+        <li>「新規登録」リンク → /sign-up へ遷移</li>
+        <li>バリデーション：空欄・メール形式は送信時にフォームエラー表示</li>
+        <li>送信中はボタンにスピナー + disabled</li>
+        <li>エラー時はフォーム上部にバナー表示</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOGIN (Error) ===== -->
+<div id="page-login-error" class="page">
+  <div class="two-col" style="padding:32px 16px;">
+    <div>
+      <div class="page-wrap" style="min-height:auto;padding:0;">
+        <div class="auth-card">
+          <div class="logo-area">
+            <div class="logo-icon">T</div>
+            <div class="logo-title">Tomo-sumi</div>
+            <div class="logo-sub">家族の暮らしを、ひとつに。</div>
+          </div>
+
+          <div class="form">
+            <!-- APIエラーバナー -->
+            <div class="error-banner">
+              <span>⚠</span>
+              <span>メールアドレスまたはパスワードが正しくありません</span>
+            </div>
+
+            <div class="field">
+              <label>メールアドレス</label>
+              <input type="email" class="error" value="wrong@example.com">
+              <span class="err-msg">⚠ 有効なメールアドレスを入力してください</span>
+            </div>
+            <div class="field">
+              <label>パスワード</label>
+              <input type="password" class="error" value="abc">
+              <span class="err-msg">⚠ 8文字以上で入力してください</span>
+            </div>
+            <button class="btn-primary loading" disabled>
+              <span class="spinner"></span>
+              ログイン中...
+            </button>
+            <div class="link-row">
+              アカウントをお持ちでない方は <a href="#">新規登録</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anno-area" style="max-width:360px;">
+      <div class="anno-title">📋 LoginPage — エラー状態</div>
+      <ul>
+        <li>APIエラー（401）→ フォーム上部に赤いバナーで表示</li>
+        <li>バリデーションエラー → 各フィールド下に赤いエラーメッセージ + フィールドに赤ボーダー</li>
+        <li>送信中 → ボタンをスピナー付きに変更、disabled</li>
+        <li>zod スキーマ：email（必須・メール形式）、password（必須・8文字以上）</li>
+        <li>react-hook-form + zodResolver で制御</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SIGNUP (Normal) ===== -->
+<div id="page-signup" class="page">
+  <div class="two-col" style="padding:32px 16px;">
+    <div>
+      <div class="page-wrap" style="min-height:auto;padding:0;">
+        <div class="auth-card">
+          <div class="logo-area">
+            <div class="logo-icon">T</div>
+            <div class="logo-title">アカウント作成</div>
+            <div class="logo-sub">家族と一緒に使い始めましょう</div>
+          </div>
+
+          <div class="form">
+            <div class="field">
+              <label>ニックネーム</label>
+              <input type="text" placeholder="例：太郎" value="">
+              <span class="hint">家族に表示される名前です（2〜20文字）</span>
+            </div>
+            <div class="field">
+              <label>メールアドレス</label>
+              <input type="email" placeholder="name@example.com" value="">
+            </div>
+            <div class="field">
+              <label>パスワード</label>
+              <input type="password" placeholder="8文字以上" value="">
+              <div class="pw-strength">
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+              </div>
+              <span class="pw-label hint">英数字を組み合わせてください</span>
+            </div>
+            <button class="btn-primary">アカウントを作成</button>
+            <div class="link-row">
+              すでにアカウントをお持ちですか？ <a href="#">ログイン</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anno-area" style="max-width:360px;">
+      <div class="anno-title">📋 SignupPage — 通常状態</div>
+      <ul>
+        <li>ニックネーム（2〜20文字）+ ヒントテキスト</li>
+        <li>メールアドレス</li>
+        <li>パスワード（8文字以上）+ 強度バー</li>
+        <li>「アカウントを作成」ボタン → POST /api/auth/register → POST /api/auth/login → GET /api/auth/me → /home-select</li>
+        <li>「ログイン」リンク → /login へ遷移</li>
+        <li>パスワード強度バー：0/1バー=弱(赤)、2バー=中(アンバー)、3-4バー=強(primary)</li>
+        <li>送信後は自動ログイン（登録 → ログイン → me取得）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SIGNUP (Validation) ===== -->
+<div id="page-signup-error" class="page">
+  <div class="two-col" style="padding:32px 16px;">
+    <div>
+      <div class="page-wrap" style="min-height:auto;padding:0;">
+        <div class="auth-card">
+          <div class="logo-area">
+            <div class="logo-icon">T</div>
+            <div class="logo-title">アカウント作成</div>
+            <div class="logo-sub">家族と一緒に使い始めましょう</div>
+          </div>
+
+          <div class="form">
+            <!-- APIエラー（メール重複など） -->
+            <div class="error-banner">
+              <span>⚠</span>
+              <span>このメールアドレスはすでに使用されています</span>
+            </div>
+
+            <div class="field">
+              <label>ニックネーム</label>
+              <input type="text" class="error" value="A">
+              <span class="err-msg">⚠ 2文字以上で入力してください</span>
+            </div>
+            <div class="field">
+              <label>メールアドレス</label>
+              <input type="email" class="error" value="not-an-email">
+              <span class="err-msg">⚠ 有効なメールアドレスを入力してください</span>
+            </div>
+            <div class="field">
+              <label>パスワード</label>
+              <input type="password" class="error" placeholder="8文字以上" value="">
+              <div class="pw-strength">
+                <div class="pw-bar weak"></div>
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+              </div>
+              <span class="err-msg">⚠ 8文字以上で入力してください</span>
+            </div>
+            <button class="btn-primary">アカウントを作成</button>
+            <div class="link-row">
+              すでにアカウントをお持ちですか？ <a href="#">ログイン</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anno-area" style="max-width:360px;">
+      <div class="anno-title">📋 SignupPage — バリデーション状態</div>
+      <ul>
+        <li>zodスキーマ：nickname(2-20文字)、email(形式)、password(8文字以上)</li>
+        <li>送信ボタン押下時にすべてのフィールドを検証</li>
+        <li>APIエラー（409 Conflict）→ バナーでメール重複エラー表示</li>
+        <li>getErrorMessage(error) ユーティリティで detail を取り出す</li>
+        <li>aria-describedby でエラーメッセージを各 input に紐付け（アクセシビリティ）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

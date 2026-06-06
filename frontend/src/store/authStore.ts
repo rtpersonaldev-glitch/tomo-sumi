@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-interface User {
+export interface User {
   id: number;
   email: string;
   nickname: string;
@@ -10,13 +10,13 @@ interface User {
   notificationFlag: boolean;
 }
 
-interface Home {
+export interface Home {
   id: number;
   name: string;
   homeImagePath: string | null;
 }
 
-interface HomeUser extends User {
+export interface HomeUser extends User {
   returnTime: string | null;
   lastActive: string;
 }
