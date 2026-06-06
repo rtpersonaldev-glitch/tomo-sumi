@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,7 @@ from app.features.auth.router import router as auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
     yield
 
 

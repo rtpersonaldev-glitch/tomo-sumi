@@ -1,4 +1,4 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +6,7 @@ from app.core.security import hash_password, verify_password
 from app.features.auth.schemas import RegisterRequest
 from app.models.home import Home, HomeLink
 from app.models.user import FCMToken, User
+from app.utils.file_storage import delete_image, save_image
 
 
 class AuthService:
@@ -58,6 +59,16 @@ class AuthService:
             .where(HomeLink.user_id == user.id, HomeLink.deleted_at.is_(None))
         )
         return list(result.scalars().all())
+
+    async def update_profile(
+        self, user: User, nickname: str, icon: UploadFile | None
+    ) -> User:
+        user.nickname = nickname
+        if icon:
+            delete_image(user.icon_path)
+            user.icon_path = await save_image(icon, directory="icons", max_mb=5)
+        await self.db.flush()
+        return user
 
     async def register_fcm_token(self, user_id: int, token: str) -> None:
         result = await self.db.execute(select(FCMToken).where(FCMToken.token == token))

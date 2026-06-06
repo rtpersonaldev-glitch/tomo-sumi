@@ -1,7 +1,12 @@
-import pytest
+import io
+from pathlib import Path
+from unittest.mock import patch
+
 from httpx import AsyncClient
+from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.utils.file_storage as fs
 from app.models.home import Home, HomeLink
 
 REGISTER_PAYLOAD = {
@@ -177,9 +182,44 @@ async def test_logout_unauthenticated(client: AsyncClient) -> None:
 
 async def test_update_profile(client: AsyncClient) -> None:
     await _register_and_login(client)
-    resp = await client.put("/api/auth/profile", json={"nickname": "新しい名前"})
+    resp = await client.put("/api/auth/profile", data={"nickname": "新しい名前"})
     assert resp.status_code == 200
-    assert resp.json()["nickname"] == "新しい名前"
+    data = resp.json()
+    assert data["nickname"] == "新しい名前"
+    assert data["icon_url"] is None
+
+
+async def test_update_profile_with_icon(client: AsyncClient, tmp_path: Path) -> None:
+    """アイコン画像付きでプロフィールを更新できる"""
+    await _register_and_login(client)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(0, 128, 255)).save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.put(
+            "/api/auth/profile",
+            data={"nickname": "アイコン付き"},
+            files={"icon": ("icon.png", png_bytes, "image/png")},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["nickname"] == "アイコン付き"
+    assert data["icon_url"] is not None
+    assert "icons/" in data["icon_url"]
+
+
+async def test_update_profile_invalid_icon(client: AsyncClient) -> None:
+    """非対応形式のファイルで 400 を返す"""
+    await _register_and_login(client)
+    resp = await client.put(
+        "/api/auth/profile",
+        data={"nickname": "テスト"},
+        files={"icon": ("doc.pdf", b"fake-pdf", "application/pdf")},
+    )
+    assert resp.status_code == 400
 
 
 # ─── status toggle ────────────────────────────────────────────────────────────
