@@ -5,9 +5,9 @@ export interface User {
   id: number;
   email: string;
   nickname: string;
-  iconPath: string | null;
+  icon_url: string | null;
   status: "at_home" | "away";
-  notificationFlag: boolean;
+  notification_flag: boolean;
 }
 
 export interface Home {
@@ -17,8 +17,8 @@ export interface Home {
 }
 
 export interface HomeUser extends User {
-  returnTime: string | null;
-  lastActive: string;
+  return_time: string | null;
+  last_active: string;
 }
 
 interface AuthState {

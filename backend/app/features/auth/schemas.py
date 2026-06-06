@@ -1,6 +1,10 @@
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator, model_validator
+
+from app.core.config import settings
+from app.utils.file_storage import get_media_url
 
 
 class RegisterRequest(BaseModel):
@@ -21,10 +25,6 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class ProfileUpdateRequest(BaseModel):
-    nickname: str
-
-
 class FCMTokenRequest(BaseModel):
     token: str
 
@@ -35,11 +35,27 @@ class UserResponse(BaseModel):
     id: int
     email: str
     nickname: str
-    icon_path: str | None = None
+    icon_url: str | None = None
     status: str
     notification_flag: bool
     return_time: datetime | None = None
     selected_home_id: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _convert_icon_path(cls, data: Any) -> Any:
+        if not isinstance(data, dict) and hasattr(data, "icon_path"):
+            return {
+                "id": data.id,
+                "email": data.email,
+                "nickname": data.nickname,
+                "icon_url": get_media_url(data.icon_path, settings.MEDIA_BASE_URL),
+                "status": data.status,
+                "notification_flag": data.notification_flag,
+                "return_time": getattr(data, "return_time", None),
+                "selected_home_id": getattr(data, "selected_home_id", None),
+            }
+        return data
 
 
 class HomeResponse(BaseModel):

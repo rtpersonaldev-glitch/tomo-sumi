@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -10,7 +10,6 @@ from app.features.auth.schemas import (
     HomeResponse,
     LoginRequest,
     MeResponse,
-    ProfileUpdateRequest,
     RegisterRequest,
     SettingsResponse,
     UserResponse,
@@ -137,13 +136,12 @@ async def home_logout(
 
 @router.put("/profile", response_model=UserResponse)
 async def update_profile(
-    body: ProfileUpdateRequest,
+    nickname: str = Form(...),
+    icon: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    current_user.nickname = body.nickname
-    await db.flush()
-    return current_user
+    return await AuthService(db).update_profile(current_user, nickname, icon)
 
 
 @router.post("/status/toggle", response_model=UserResponse)
