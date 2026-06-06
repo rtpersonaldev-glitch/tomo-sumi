@@ -39,6 +39,7 @@
 | **[13_file_upload.md](13_file_upload.md)** | ファイルアップロードのBE/FE実装パターン | 画像・ファイル送信を含む機能実装時 |
 | **[14_websocket_auth.md](14_websocket_auth.md)** | WebSocket認証方法・チャットプロトコル詳細 | チャット機能実装時 |
 | **[15_git_workflow.md](15_git_workflow.md)** | ブランチ戦略・Issue/PR運用・Claude Code開発フロー | Issue着手前・PR作成時 |
+| **[16_ui_design.md](16_ui_design.md)** | UIデザインガイドライン・カラー・レイアウト・ワイヤーフレームフロー | フロントエンドUI実装前に必ず確認 |
 
 ---
 
