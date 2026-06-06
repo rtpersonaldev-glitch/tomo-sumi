@@ -22,6 +22,10 @@ node_modules/
 # Media uploads
 media/
 
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
 # Firebase credentials
 firebase_service_account.json
 
