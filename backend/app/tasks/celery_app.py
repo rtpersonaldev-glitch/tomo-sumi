@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import settings
 
@@ -15,4 +16,14 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="Asia/Tokyo",
     enable_utc=True,
+    beat_schedule={
+        "monthly-settlement": {
+            "task": "app.tasks.cost_tasks.run_monthly_settlement",
+            "schedule": crontab(minute=59, hour=23),
+        },
+        "reminder-notifications": {
+            "task": "app.tasks.reminder_tasks.send_reminder_notifications",
+            "schedule": crontab(minute="*/5"),
+        },
+    },
 )
