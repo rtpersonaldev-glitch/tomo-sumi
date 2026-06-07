@@ -8,11 +8,13 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.features.activity.router import router as activity_router
 from app.features.auth.router import router as auth_router
+from app.utils.fcm import init_firebase
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
+    init_firebase()
     yield
 
 
