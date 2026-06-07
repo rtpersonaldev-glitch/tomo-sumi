@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
+from app.features.activity.router import router as activity_router
 from app.features.auth.router import router as auth_router
 
 
@@ -34,3 +35,4 @@ app.add_middleware(
 app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 
 app.include_router(auth_router, prefix="/api/auth", tags=["認証"])
+app.include_router(activity_router, prefix="/api/activity", tags=["アクティビティ"])
