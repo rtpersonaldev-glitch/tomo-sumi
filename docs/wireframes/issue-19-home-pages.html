@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #19 ワイヤーフレーム — ホーム管理</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f0f0; color: #1a1d23; }
+
+  /* ── Layout ── */
+  .sections { display: flex; flex-wrap: wrap; gap: 32px; padding: 32px; }
+  .section { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.10); }
+  .section-title { font-size: 13px; font-weight: 700; color: #586365; background: #f4f4f4; padding: 10px 16px; border-bottom: 1px solid #e0e0e0; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* ── Screen shell ── */
+  .screen { width: 390px; background: #f7f6f2; position: relative; min-height: 580px; display: flex; flex-direction: column; }
+  .screen.wide { width: 820px; }
+
+  /* ── Colors (brand) ── */
+  :root {
+    --primary: #37ab9d;
+    --primary-fg: #fff;
+    --accent: #ffc042;
+    --muted: #586365;
+    --bg: #f7f6f2;
+    --card: #fff;
+    --border: #d6eded;
+    --ring: #4dc0b2;
+    --green: #22c55e;
+    --red: #ef4444;
+  }
+
+  /* ── Shared UI ── */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-primary { background: var(--primary); color: var(--primary-fg); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: #1a1d23; }
+  .btn-ghost { background: transparent; color: var(--muted); font-weight: 500; }
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+  .btn-destructive { background: #ef4444; color: #fff; }
+
+  .input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; background: var(--card); color: #1a1d23; }
+  .label { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: block; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .error-msg { font-size: 12px; color: var(--red); }
+
+  .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
+
+  .avatar { border-radius: 9999px; background: var(--primary); color: var(--primary-fg); font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .avatar-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 9999px; border: 2px solid var(--bg); }
+  .dot-green { background: var(--green); }
+  .dot-gray { background: #94a3b8; }
+
+  .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .tag-green { background: #dcfce7; color: #15803d; }
+  .tag-gray { background: #f1f5f9; color: var(--muted); }
+
+  .logo-block { width: 44px; height: 44px; border-radius: 12px; background: var(--primary); color: var(--primary-fg); font-weight: 800; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  .back-link { font-size: 13px; color: var(--primary); display: flex; align-items: center; gap: 4px; }
+  .chevron { font-size: 16px; }
+  .section-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* ── Page 1: HomeSwitcherPage ── */
+  #p1 .inner { padding: 40px 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+  .home-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--card); border-radius: 12px; border: 1.5px solid var(--border); cursor: pointer; transition: border-color .15s; }
+  .home-card:hover { border-color: var(--primary); }
+  .home-card.active { border-color: var(--primary); background: #f0fafa; }
+  .home-card .home-img { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #37ab9d 0%, #4dc0b2 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 18px; }
+  .home-card .home-info { flex: 1; }
+  .home-card .home-name { font-weight: 600; font-size: 15px; }
+  .home-card .home-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .home-card .check { color: var(--primary); font-size: 18px; }
+
+  /* ── Page 2: HomeCreatePage ── */
+  #p2 .inner { padding: 24px 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+  .img-upload { width: 80px; height: 80px; border-radius: 50%; background: #e8f7f6; border: 2px dashed var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: var(--primary); cursor: pointer; margin: 0 auto; }
+
+  /* ── Page 3: JoinHomePage ── */
+  #p3 .inner { padding: 24px 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+  .code-input { width: 100%; border: 2px solid var(--border); border-radius: 8px; padding: 14px 16px; font-size: 22px; font-family: monospace; letter-spacing: .18em; text-align: center; background: var(--card); }
+
+  /* ── Page 4: DashboardPage ── */
+  #p4 .inner { padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+  .member-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .member-chip { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .member-chip .name { font-size: 12px; color: #1a1d23; }
+  .member-avatar-wrap { position: relative; }
+
+  .announce-banner { background: #fff8e6; border: 1.5px solid var(--accent); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+  .bell-icon { font-size: 18px; }
+  .announce-banner .text { font-size: 13px; font-weight: 500; flex: 1; }
+  .announce-banner .badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; }
+
+  .schedule-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  .schedule-card .day-header { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700; color: var(--muted); display: flex; justify-content: space-between; }
+  .schedule-item { display: flex; gap: 10px; padding: 10px 14px; align-items: flex-start; border-bottom: 1px solid #f3f3f3; }
+  .schedule-item:last-child { border-bottom: none; }
+  .time-badge { font-size: 11px; color: var(--primary); font-weight: 700; width: 50px; flex-shrink: 0; padding-top: 2px; }
+  .schedule-item .title { font-size: 13px; font-weight: 500; }
+  .schedule-item .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .schedule-dot { width: 8px; height: 8px; border-radius: 9999px; background: var(--primary); margin-top: 5px; flex-shrink: 0; }
+
+  .status-switch { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+  .status-switch .label-text { font-size: 13px; font-weight: 500; flex: 1; }
+  .toggle { width: 40px; height: 22px; border-radius: 9999px; background: var(--primary); position: relative; }
+  .toggle::after { content: ''; width: 16px; height: 16px; border-radius: 9999px; background: #fff; position: absolute; top: 3px; right: 3px; }
+
+  /* ── Page 5: HomeSettingsPage ── */
+  #p5 .inner { padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
+  .settings-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  .settings-card .row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #f3f3f3; }
+  .settings-card .row:last-child { border-bottom: none; }
+  .settings-card .row-label { font-size: 14px; font-weight: 500; flex: 1; }
+  .settings-card .row-value { font-size: 13px; color: var(--muted); }
+  .settings-card .row-action { font-size: 13px; color: var(--primary); font-weight: 600; cursor: pointer; }
+
+  .invite-box { background: #f0fafa; border: 1.5px dashed var(--primary); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .invite-code { font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: .12em; color: #1a1d23; text-align: center; }
+  .invite-actions { display: flex; gap: 8px; justify-content: center; }
+
+  .avatar-edit-wrap { position: relative; width: 72px; height: 72px; }
+  .avatar-edit-wrap .edit-badge { position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; border-radius: 9999px; background: var(--primary); color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); }
+</style>
+</head>
+<body>
+
+<div style="padding: 24px 32px 8px; background: #fff; border-bottom: 1px solid #e0e0e0; margin-bottom: 0;">
+  <h1 style="font-size: 20px; font-weight: 800; color: #1a1d23;">Issue #19 ワイヤーフレーム — ホーム管理フロントエンド</h1>
+  <p style="font-size: 13px; color: #586365; margin-top: 4px;">5画面のモバイルレイアウト案（390px幅）。デザイントークンは <code>globals.css</code> 準拠。</p>
+</div>
+
+<div class="sections">
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- 1. HomeSwitcherPage                        -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">① HomeSwitcherPage — /home-select</div>
+    <div class="screen" id="p1">
+      <div class="inner">
+        <div style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;">
+          <div class="logo-block">T</div>
+          <p style="font-size:13px; color:var(--muted);">参加しているホームを選択してください</p>
+        </div>
+
+        <div>
+          <div class="section-header">所属ホーム</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <!-- ホームカード（選択中） -->
+            <div class="home-card active">
+              <div class="home-img">A</div>
+              <div class="home-info">
+                <div class="home-name">青山家</div>
+                <div class="home-meta">メンバー 3名 · 選択中</div>
+              </div>
+              <span class="check">✓</span>
+            </div>
+            <!-- ホームカード -->
+            <div class="home-card">
+              <div class="home-img" style="background: linear-gradient(135deg, #f97316, #fb923c);">S</div>
+              <div class="home-info">
+                <div class="home-name">仕事シェアハウス</div>
+                <div class="home-meta">メンバー 2名</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button class="btn btn-primary btn-block">＋ 新しいホームを作成</button>
+          <button class="btn btn-outline btn-block">🔗 招待コードで参加</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- 2. HomeCreatePage                          -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">② HomeCreatePage — /home-create</div>
+    <div class="screen" id="p2">
+      <div class="inner">
+        <a class="back-link"><span class="chevron">‹</span> 戻る</a>
+
+        <div style="text-align:center;">
+          <div style="font-size:20px; font-weight:700; margin-bottom:4px;">ホームを作成</div>
+          <p style="font-size:13px; color:var(--muted);">家族・同居人と共有する空間を作ります</p>
+        </div>
+
+        <!-- ホーム画像 -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+          <div class="img-upload">
+            <span style="font-size:22px;">📷</span>
+            <span>画像を選択</span>
+          </div>
+          <span style="font-size:11px; color:var(--muted);">任意 · JPG/PNG 最大5MB</span>
+        </div>
+
+        <!-- ホーム名 -->
+        <div class="field">
+          <label class="label">ホーム名 <span style="color:var(--red)">*</span></label>
+          <input class="input" type="text" placeholder="例: 山田家" />
+          <span style="font-size:11px; color:var(--muted);">2〜50文字</span>
+        </div>
+
+        <div style="margin-top:8px; display:flex; flex-direction:column; gap:10px;">
+          <button class="btn btn-primary btn-block">ホームを作成</button>
+          <button class="btn btn-ghost btn-block">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- 3. JoinHomePage                            -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">③ JoinHomePage — /join-home</div>
+    <div class="screen" id="p3">
+      <div class="inner">
+        <a class="back-link"><span class="chevron">‹</span> 戻る</a>
+
+        <div style="text-align:center;">
+          <div style="font-size:20px; font-weight:700; margin-bottom:4px;">ホームに参加</div>
+          <p style="font-size:13px; color:var(--muted);">招待コードを入力してください</p>
+        </div>
+
+        <!-- 説明イラスト領域 -->
+        <div style="background:#f0fafa; border-radius:12px; padding:20px; text-align:center;">
+          <div style="font-size:40px;">🔑</div>
+          <p style="font-size:12px; color:var(--muted); margin-top:8px;">ホーム管理者から共有された<br>8〜16桁の招待コードを入力</p>
+        </div>
+
+        <!-- 招待コード入力 -->
+        <div class="field">
+          <label class="label">招待コード <span style="color:var(--red)">*</span></label>
+          <input class="code-input" type="text" placeholder="XXXX-XXXX" maxlength="16" />
+          <!-- エラー時 -->
+          <span class="error-msg" style="display:none">⚠ 招待コードが無効または期限切れです</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button class="btn btn-primary btn-block">ホームに参加</button>
+          <button class="btn btn-ghost btn-block">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- 4. DashboardPage                           -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">④ DashboardPage — /home</div>
+    <div class="screen" id="p4">
+      <!-- Mobile Header -->
+      <div style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; background:var(--card); border-bottom:1px solid var(--border);">
+        <div style="font-size:16px; font-weight:700;">青山家</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div style="position:relative; cursor:pointer; padding:4px;">
+            🔔
+            <span style="position:absolute; top:0; right:0; width:16px; height:16px; background:var(--red); border-radius:9999px; color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center;">3</span>
+          </div>
+          <div style="position:relative;">
+            <div class="avatar" style="width:32px; height:32px; font-size:13px;">A</div>
+            <span class="avatar-dot dot-green" style="width:10px; height:10px; position:absolute; bottom:0; right:0;"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="inner">
+        <!-- 未読お知らせバナー -->
+        <div class="announce-banner">
+          <span class="bell-icon">📢</span>
+          <span class="text">未読のお知らせがあります</span>
+          <span class="badge">3</span>
+        </div>
+
+        <!-- 自分のステータス切替 -->
+        <div class="status-switch">
+          <div class="avatar" style="width:36px; height:36px; font-size:14px; position:relative;">
+            A
+            <span class="avatar-dot dot-green" style="width:10px; height:10px;"></span>
+          </div>
+          <span class="label-text">在宅中</span>
+          <div class="toggle"></div>
+        </div>
+
+        <!-- メンバー状況 -->
+        <div>
+          <div class="section-header">メンバーの状況</div>
+          <div class="member-row">
+            <!-- 在宅 -->
+            <div class="member-chip">
+              <div class="member-avatar-wrap">
+                <div class="avatar" style="width:52px; height:52px; font-size:18px;">A</div>
+                <span class="avatar-dot dot-green" style="width:12px; height:12px; position:absolute; bottom:1px; right:1px;"></span>
+              </div>
+              <span class="name">あおい</span>
+              <span class="tag tag-green">在宅</span>
+            </div>
+            <!-- 外出 -->
+            <div class="member-chip">
+              <div class="member-avatar-wrap">
+                <div class="avatar" style="width:52px; height:52px; font-size:18px; background:#64748b;">K</div>
+                <span class="avatar-dot dot-gray" style="width:12px; height:12px; position:absolute; bottom:1px; right:1px;"></span>
+              </div>
+              <span class="name">けんた</span>
+              <span class="tag tag-gray">外出</span>
+            </div>
+            <!-- 外出（帰宅時刻あり） -->
+            <div class="member-chip">
+              <div class="member-avatar-wrap">
+                <div class="avatar" style="width:52px; height:52px; font-size:18px; background:#8b5cf6;">H</div>
+                <span class="avatar-dot dot-gray" style="width:12px; height:12px; position:absolute; bottom:1px; right:1px;"></span>
+              </div>
+              <span class="name">はるか</span>
+              <span class="tag tag-gray">18:00帰宅</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 今日のスケジュール -->
+        <div>
+          <div class="section-header">今日のスケジュール</div>
+          <div class="schedule-card">
+            <div class="day-header">
+              <span>6月7日（土）</span>
+              <span style="color:var(--primary); font-weight:600;">3件</span>
+            </div>
+            <div class="schedule-item">
+              <span class="time-badge">09:00</span>
+              <span class="schedule-dot" style="background:var(--primary);"></span>
+              <div>
+                <div class="title">家族ミーティング</div>
+                <div class="sub">全員</div>
+              </div>
+            </div>
+            <div class="schedule-item">
+              <span class="time-badge">12:00</span>
+              <span class="schedule-dot" style="background:var(--accent);"></span>
+              <div>
+                <div class="title">ランチ</div>
+                <div class="sub">けんた・はるか</div>
+              </div>
+            </div>
+            <div class="schedule-item">
+              <span class="time-badge">19:00</span>
+              <span class="schedule-dot" style="background:#8b5cf6;"></span>
+              <div>
+                <div class="title">夕食</div>
+                <div class="sub">全員</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- 5. HomeSettingsPage                        -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">⑤ HomeSettingsPage — /settings/home</div>
+    <div class="screen" id="p5">
+      <!-- Header -->
+      <div style="padding:12px 16px; display:flex; align-items:center; gap:8px; background:var(--card); border-bottom:1px solid var(--border);">
+        <a class="back-link"><span class="chevron">‹</span></a>
+        <div style="font-size:16px; font-weight:700; flex:1;">ホーム設定</div>
+      </div>
+
+      <div class="inner">
+        <!-- ホーム画像 -->
+        <div style="display:flex; justify-content:center; padding:8px 0 4px;">
+          <div class="avatar-edit-wrap">
+            <div class="avatar" style="width:72px; height:72px; font-size:26px; border-radius:14px;">A</div>
+            <div class="edit-badge">✏</div>
+          </div>
+        </div>
+
+        <!-- ホーム名 -->
+        <div class="field">
+          <label class="label">ホーム名</label>
+          <div style="display:flex; gap:8px;">
+            <input class="input" type="text" value="青山家" style="flex:1;" />
+            <button class="btn btn-primary btn-sm">保存</button>
+          </div>
+        </div>
+
+        <!-- メンバー一覧 -->
+        <div>
+          <div class="section-header">メンバー (3名)</div>
+          <div class="settings-card">
+            <div class="row">
+              <div class="avatar" style="width:36px; height:36px; font-size:14px;">A</div>
+              <span class="row-label">あおい（あなた）</span>
+              <span class="tag tag-green" style="font-size:10px;">在宅</span>
+            </div>
+            <div class="row">
+              <div class="avatar" style="width:36px; height:36px; font-size:14px; background:#64748b;">K</div>
+              <span class="row-label">けんた</span>
+              <span class="tag tag-gray" style="font-size:10px;">外出</span>
+            </div>
+            <div class="row">
+              <div class="avatar" style="width:36px; height:36px; font-size:14px; background:#8b5cf6;">H</div>
+              <span class="row-label">はるか</span>
+              <span class="tag tag-gray" style="font-size:10px;">外出</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 招待コード -->
+        <div>
+          <div class="section-header">招待コード</div>
+          <div class="invite-box">
+            <div class="invite-code">TOMO-AB12</div>
+            <div style="font-size:11px; color:var(--muted); text-align:center;">有効期限: 2026年6月14日まで</div>
+            <div class="invite-actions">
+              <button class="btn btn-outline btn-sm">📋 コピー</button>
+              <button class="btn btn-outline btn-sm">🔄 再生成</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 危険操作 -->
+        <div>
+          <div class="section-header">危険な操作</div>
+          <div class="settings-card">
+            <div class="row">
+              <span class="row-label" style="color:var(--red);">ホームから退出</span>
+              <span class="row-action" style="color:var(--red);">退出</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="padding: 16px 32px; background: #f4f4f4; border-top: 1px solid #ddd; font-size: 12px; color: #586365;">
+  <strong>補足:</strong>
+  ① ホーム選択は現在選択中のホームに ✓ を表示。②③ は AppLayout 外（ホーム選択前）。④ ダッシュボードは未読お知らせバナー・メンバー在宅状況（アバター＋ステータスドット）・今日のスケジュール一覧を表示。⑤ ホーム設定は画像・名前変更＋招待コード表示（コピー・再生成）＋退出。
+</div>
+
+</body>
+</html>

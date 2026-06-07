@@ -5,23 +5,23 @@ import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSelectHome } from "@/features/auth/hooks/useAuth";
 import { getErrorMessage } from "@/utils/error";
-import { useCreateHome } from "../hooks/useHome";
+import { useJoinHome } from "../hooks/useHome";
 
 const schema = z.object({
-  name: z
+  code: z
     .string()
-    .min(1, "ホーム名を入力してください")
-    .max(50, "50文字以内で入力してください"),
+    .min(1, "招待コードを入力してください")
+    .max(64, "招待コードが長すぎます"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 const inputBase =
-  "w-full rounded-lg border bg-card px-3 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring";
+  "w-full rounded-lg border bg-card text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring";
 
-export default function HomeCreatePage() {
+export default function JoinHomePage() {
   const navigate = useNavigate();
-  const createHome = useCreateHome();
+  const joinHome = useJoinHome();
   const selectHome = useSelectHome();
 
   const {
@@ -32,14 +32,14 @@ export default function HomeCreatePage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const home = await createHome.mutateAsync(values.name.trim());
+      const home = await joinHome.mutateAsync(values.code.trim());
       selectHome.mutate(home.id);
     } catch {
-      // createHome.error handles display
+      // joinHome.error handles display
     }
   };
 
-  const isPending = createHome.isPending || selectHome.isPending;
+  const isPending = joinHome.isPending || selectHome.isPending;
 
   return (
     <div className="flex min-h-screen items-start justify-center bg-background px-4 py-12">
@@ -54,43 +54,44 @@ export default function HomeCreatePage() {
         </button>
 
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold">ホームを作成</h1>
+          <div className="mb-3 text-4xl" aria-hidden>🔑</div>
+          <h1 className="text-2xl font-bold">ホームに参加</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            家族・同居人と共有する空間を作ります
+            ホーム管理者から共有された招待コードを入力してください
           </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
-          {(createHome.error || selectHome.error) && (
+          {(joinHome.error || selectHome.error) && (
             <div
               role="alert"
               className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
             >
-              {getErrorMessage(createHome.error ?? selectHome.error)}
+              {getErrorMessage(joinHome.error ?? selectHome.error)}
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="name" className="text-sm font-medium">
-              ホーム名 <span className="text-destructive">*</span>
+            <label htmlFor="code" className="text-sm font-medium">
+              招待コード <span className="text-destructive">*</span>
             </label>
             <input
-              id="name"
+              id="code"
               type="text"
-              placeholder="例: 山田家"
+              placeholder="XXXX-XXXX"
               autoComplete="off"
-              aria-describedby={errors.name ? "name-error" : undefined}
-              aria-invalid={!!errors.name}
-              className={`${inputBase} ${errors.name ? "border-destructive" : "border-input"}`}
-              {...register("name")}
+              aria-describedby={errors.code ? "code-error" : undefined}
+              aria-invalid={!!errors.code}
+              className={`${inputBase} px-3 py-3 text-center font-mono text-xl tracking-widest ${
+                errors.code ? "border-destructive" : "border-input"
+              }`}
+              {...register("code")}
             />
-            {errors.name ? (
-              <span id="name-error" role="alert" className="flex items-center gap-1 text-xs text-destructive">
+            {errors.code && (
+              <span id="code-error" role="alert" className="flex items-center gap-1 text-xs text-destructive">
                 <span aria-hidden>⚠</span>
-                {errors.name.message}
+                {errors.code.message}
               </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">2〜50文字</span>
             )}
           </div>
 
@@ -102,10 +103,10 @@ export default function HomeCreatePage() {
             {isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                作成中...
+                参加中...
               </>
             ) : (
-              "ホームを作成"
+              "ホームに参加"
             )}
           </button>
 
