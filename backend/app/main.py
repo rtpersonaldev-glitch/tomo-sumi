@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.features.activity.router import router as activity_router
+from app.features.albums.router import router as albums_router
 from app.features.announces.router import router as announces_router
 from app.features.auth.router import router as auth_router
 from app.features.homes.router import router as homes_router
@@ -44,6 +45,7 @@ app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 
 app.include_router(auth_router, prefix="/api/auth", tags=["認証"])
 app.include_router(homes_router, prefix="/api/homes", tags=["ホーム管理"])
+app.include_router(albums_router, prefix="/api/albums", tags=["アルバム"])
 app.include_router(announces_router, prefix="/api/announces", tags=["お知らせ"])
 app.include_router(schedule_router, prefix="/api/schedules", tags=["スケジュール"])
 app.include_router(todos_router, prefix="/api/todos", tags=["TODOリスト"])
