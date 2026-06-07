@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.features.activity.router import router as activity_router
 from app.features.albums.router import router as albums_router
 from app.features.chat.router import router as chat_router
+from app.features.costs.router import router as costs_router
 from app.features.announces.router import router as announces_router
 from app.features.auth.router import router as auth_router
 from app.features.homes.router import router as homes_router
@@ -48,6 +49,7 @@ app.include_router(auth_router, prefix="/api/auth", tags=["認証"])
 app.include_router(homes_router, prefix="/api/homes", tags=["ホーム管理"])
 app.include_router(albums_router, prefix="/api/albums", tags=["アルバム"])
 app.include_router(chat_router, prefix="/api/chat", tags=["チャット"])
+app.include_router(costs_router, prefix="/api/costs", tags=["家計管理"])
 app.include_router(announces_router, prefix="/api/announces", tags=["お知らせ"])
 app.include_router(schedule_router, prefix="/api/schedules", tags=["スケジュール"])
 app.include_router(todos_router, prefix="/api/todos", tags=["TODOリスト"])
