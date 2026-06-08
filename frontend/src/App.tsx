@@ -15,6 +15,9 @@ const HomeCreatePage = lazy(() => import("@/features/home/pages/HomeCreatePage")
 const JoinHomePage = lazy(() => import("@/features/home/pages/JoinHomePage"));
 const DashboardPage = lazy(() => import("@/features/home/pages/DashboardPage"));
 const HomeSettingsPage = lazy(() => import("@/features/home/pages/HomeSettingsPage"));
+const AnnounceListPage = lazy(() => import("@/features/announces/pages/AnnounceListPage"));
+const AnnounceDetailPage = lazy(() => import("@/features/announces/pages/AnnounceDetailPage"));
+const AnnounceEditPage = lazy(() => import("@/features/announces/pages/AnnounceEditPage"));
 
 export default function App() {
   return (
@@ -42,6 +45,10 @@ export default function App() {
                   <Route path="/" element={<Navigate to="/home" replace />} />
                   <Route path="/home" element={<DashboardPage />} />
                   <Route path="/settings/home" element={<HomeSettingsPage />} />
+                  <Route path="/announces" element={<AnnounceListPage />} />
+                  <Route path="/announces/new" element={<AnnounceEditPage />} />
+                  <Route path="/announces/:id" element={<AnnounceDetailPage />} />
+                  <Route path="/announces/:id/edit" element={<AnnounceEditPage />} />
                 </Route>
               </Route>
             </Route>
