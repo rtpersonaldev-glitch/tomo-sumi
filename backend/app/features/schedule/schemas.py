@@ -28,3 +28,4 @@ class ScheduleResponse(BaseModel):
     start_day: datetime
     end_day: datetime
     created_at: datetime
+    created_by: int | None

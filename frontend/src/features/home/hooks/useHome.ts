@@ -3,6 +3,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/store/authStore";
 import type {
   DashboardResponse,
+  HomeMemberResponse,
   HomeResponse,
   InvitationCodeResponse,
 } from "../types";
@@ -95,4 +96,19 @@ export const useRefreshInvitationCode = () => {
   return () => {
     qc.invalidateQueries({ queryKey: ["invitation-code", homeId] });
   };
+};
+
+export const useHomeMembers = () => {
+  const homeId = useAuthStore((s) => s.home?.id);
+  return useQuery({
+    queryKey: ["home-members", homeId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<HomeMemberResponse[]>(
+        `/api/homes/${homeId}/users`,
+      );
+      return data;
+    },
+    enabled: !!homeId,
+    staleTime: 5 * 60 * 1000,
+  });
 };
