@@ -18,6 +18,9 @@ const HomeSettingsPage = lazy(() => import("@/features/home/pages/HomeSettingsPa
 const AnnounceListPage = lazy(() => import("@/features/announces/pages/AnnounceListPage"));
 const AnnounceDetailPage = lazy(() => import("@/features/announces/pages/AnnounceDetailPage"));
 const AnnounceEditPage = lazy(() => import("@/features/announces/pages/AnnounceEditPage"));
+const SchedulePage = lazy(() => import("@/features/schedules/pages/SchedulePage"));
+const ScheduleDetailPage = lazy(() => import("@/features/schedules/pages/ScheduleDetailPage"));
+const ScheduleEditPage = lazy(() => import("@/features/schedules/pages/ScheduleEditPage"));
 
 export default function App() {
   return (
@@ -49,6 +52,10 @@ export default function App() {
                   <Route path="/announces/new" element={<AnnounceEditPage />} />
                   <Route path="/announces/:id" element={<AnnounceDetailPage />} />
                   <Route path="/announces/:id/edit" element={<AnnounceEditPage />} />
+                  <Route path="/schedules" element={<SchedulePage />} />
+                  <Route path="/schedules/new" element={<ScheduleEditPage />} />
+                  <Route path="/schedules/:id" element={<ScheduleDetailPage />} />
+                  <Route path="/schedules/:id/edit" element={<ScheduleEditPage />} />
                 </Route>
               </Route>
             </Route>
