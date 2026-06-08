@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #20 Wireframe — お知らせ画面</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f0f4f3;
+    padding: 32px 16px;
+    color: #1e2a2a;
+  }
+  h2 { font-size: 13px; font-weight: 700; color: #586365; letter-spacing: .08em;
+       text-transform: uppercase; margin-bottom: 10px; }
+  .screens {
+    display: flex; flex-wrap: wrap; gap: 40px; justify-content: flex-start;
+  }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+  /* ---- Phone frame ---- */
+  .phone {
+    width: 375px;
+    background: #faf8f5;
+    border-radius: 28px;
+    border: 2px solid #c9d5d4;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+    display: flex; flex-direction: column;
+  }
+
+  /* ---- App Header (inside AppLayout) ---- */
+  .app-header {
+    background: #ffffff;
+    border-bottom: 1px solid #d8e5e4;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    min-height: 52px;
+  }
+  .app-header .back-btn {
+    font-size: 13px; color: #37ab9d; cursor: pointer;
+  }
+  .app-header h1 {
+    font-size: 17px; font-weight: 600; flex: 1;
+  }
+  .app-header .action-btn {
+    background: #37ab9d; color: #fff; border: none;
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+  .icon-btn {
+    background: transparent; border: none; cursor: pointer;
+    color: #586365; display: flex; align-items: center; padding: 4px;
+  }
+
+  /* ---- Scrollable content area ---- */
+  .content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ---- Search bar ---- */
+  .search-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1.5px solid #c9d5d4;
+    border-radius: 10px; padding: 9px 12px;
+  }
+  .search-bar input {
+    border: none; outline: none; flex: 1; font-size: 14px;
+    background: transparent; color: #1e2a2a;
+  }
+  .search-bar .search-icon { color: #586365; font-size: 14px; }
+
+  /* ---- Filter / Sort row ---- */
+  .filter-row {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .chip {
+    border: 1.5px solid #c9d5d4; border-radius: 20px;
+    padding: 4px 12px; font-size: 12px; font-weight: 500;
+    background: #fff; color: #586365; cursor: pointer; white-space: nowrap;
+  }
+  .chip.active { background: #37ab9d; color: #fff; border-color: #37ab9d; }
+  .chip.accent { background: #ffc042; color: #1e2a2a; border-color: #ffc042; }
+  .sort-btn {
+    margin-left: auto; border: 1.5px solid #c9d5d4; border-radius: 8px;
+    padding: 4px 10px; font-size: 12px; background: #fff; color: #586365;
+    cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+
+  /* ---- Announce Card ---- */
+  .announce-card {
+    background: #fff; border: 1.5px solid #d8e5e4; border-radius: 14px;
+    padding: 14px; display: flex; flex-direction: column; gap: 8px;
+    cursor: pointer; transition: box-shadow .15s;
+  }
+  .card-top { display: flex; align-items: flex-start; gap: 8px; }
+  .priority-badge {
+    border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 700;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .priority-high { background: #fde8e8; color: #d93025; }
+  .priority-medium { background: #fff3cd; color: #9a6c00; }
+  .priority-low { background: #edf0f0; color: #586365; }
+  .card-title { font-size: 15px; font-weight: 600; flex: 1; line-height: 1.35; }
+  .card-content {
+    font-size: 13px; color: #586365; line-height: 1.55;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card-footer {
+    display: flex; align-items: center; gap: 10px; justify-content: space-between;
+  }
+  .card-meta { font-size: 11px; color: #8fa3a3; }
+  .like-count {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; color: #586365;
+  }
+  .like-count .heart { font-size: 13px; }
+  .like-count.liked { color: #d93025; }
+
+  /* ---- Empty state ---- */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 40px 0; color: #8fa3a3; font-size: 14px; text-align: center;
+  }
+  .empty-state .emoji { font-size: 36px; }
+
+  /* ---- Detail page ---- */
+  .detail-section {
+    background: #fff; border: 1.5px solid #d8e5e4; border-radius: 14px; padding: 16px;
+  }
+  .detail-title {
+    font-size: 19px; font-weight: 700; line-height: 1.4; margin-bottom: 6px;
+  }
+  .detail-meta-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .detail-content {
+    font-size: 14px; line-height: 1.75; color: #2c3e3e; white-space: pre-wrap;
+  }
+  .divider { border: none; border-top: 1px solid #e8efef; margin: 14px 0; }
+  .detail-info-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: #8fa3a3;
+  }
+  .action-row {
+    display: flex; gap: 10px;
+  }
+  .like-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: 2px solid #d8e5e4; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; color: #586365;
+  }
+  .like-btn.liked { border-color: #d93025; color: #d93025; background: #fde8e8; }
+  .push-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: 2px solid #37ab9d; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; color: #37ab9d;
+  }
+  .edit-row {
+    display: flex; gap: 8px;
+  }
+  .edit-btn {
+    flex: 1; border: 1.5px solid #c9d5d4; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 13px; font-weight: 600; color: #586365; cursor: pointer;
+    text-align: center;
+  }
+  .delete-btn {
+    flex: 1; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 13px; font-weight: 600; color: #d93025; cursor: pointer;
+    text-align: center;
+  }
+
+  /* ---- Form page ---- */
+  .form-section {
+    background: #fff; border: 1.5px solid #d8e5e4; border-radius: 14px; padding: 16px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 13px; font-weight: 600; color: #1e2a2a; }
+  .field label .req { color: #d93025; margin-left: 2px; }
+  .field-input {
+    border: 1.5px solid #c9d5d4; border-radius: 8px; padding: 10px 12px;
+    font-size: 14px; outline: none; background: #faf8f5;
+    color: #1e2a2a;
+  }
+  .field-input.textarea { resize: none; height: 88px; line-height: 1.6; }
+  .char-count { font-size: 11px; color: #8fa3a3; text-align: right; }
+  .priority-select {
+    display: flex; gap: 8px;
+  }
+  .prio-chip {
+    flex: 1; text-align: center; border-radius: 8px; padding: 8px 4px;
+    font-size: 13px; font-weight: 600; border: 2px solid transparent; cursor: pointer;
+  }
+  .prio-high { background: #fde8e8; color: #d93025; }
+  .prio-high.selected { border-color: #d93025; }
+  .prio-medium { background: #fff3cd; color: #9a6c00; }
+  .prio-medium.selected { border-color: #ffc042; }
+  .prio-low { background: #edf0f0; color: #586365; }
+  .prio-low.selected { border-color: #586365; }
+  .submit-btn {
+    background: #37ab9d; color: #fff; border: none; border-radius: 10px;
+    padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;
+  }
+  .cancel-btn {
+    background: transparent; border: none; color: #586365;
+    font-size: 13px; cursor: pointer; text-align: center; padding: 6px;
+  }
+
+  /* ---- Bottom tab (reference) ---- */
+  .bottom-tab {
+    background: #fff; border-top: 1px solid #d8e5e4;
+    padding: 8px 0 10px;
+    display: flex; justify-content: space-around; align-items: center;
+  }
+  .tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tab-icon { font-size: 20px; }
+  .tab-label { font-size: 10px; color: #8fa3a3; }
+  .tab-item.active .tab-icon { filter: none; }
+  .tab-item.active .tab-label { color: #37ab9d; font-weight: 600; }
+
+  /* ---- Annotation ---- */
+  .note {
+    font-size: 11px; color: #586365; background: #e8f4f3; border-left: 3px solid #37ab9d;
+    border-radius: 0 6px 6px 0; padding: 6px 10px; max-width: 375px;
+  }
+</style>
+</head>
+<body>
+
+<h2 style="font-size:20px;font-weight:800;color:#1e2a2a;letter-spacing:normal;text-transform:none;margin-bottom:6px;">
+  Issue #20 ワイヤーフレーム — お知らせ画面
+</h2>
+<p style="font-size:13px;color:#586365;margin-bottom:32px;">
+  AnnounceListPage / AnnounceDetailPage / AnnounceEditPage (新規作成 &amp; 編集)
+</p>
+
+<div class="screens">
+
+  <!-- =========================================================
+       画面 1: お知らせ一覧 (AnnounceListPage)
+       ========================================================= -->
+  <div class="screen-wrap">
+    <h2>① AnnounceListPage — 一覧</h2>
+    <div class="phone" style="min-height:760px;">
+      <!-- App Header -->
+      <div class="app-header">
+        <h1>📢 お知らせ</h1>
+        <button class="action-btn">＋ 作成</button>
+      </div>
+      <!-- Content -->
+      <div class="content">
+        <!-- Search -->
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="タイトル・内容で検索" />
+        </div>
+
+        <!-- Priority filter chips + sort -->
+        <div class="filter-row">
+          <span class="chip active">すべて</span>
+          <span class="chip" style="border-color:#fca5a5;color:#d93025;">🔴 高</span>
+          <span class="chip" style="border-color:#fcd34d;color:#9a6c00;">🟡 中</span>
+          <span class="chip" style="color:#586365;">⚪ 低</span>
+          <button class="sort-btn">↕ 新しい順 ▾</button>
+        </div>
+
+        <!-- 件数 -->
+        <p style="font-size:12px;color:#8fa3a3;">3件</p>
+
+        <!-- Card 1: 高優先度 -->
+        <div class="announce-card">
+          <div class="card-top">
+            <span class="priority-badge priority-high">🔴 高</span>
+            <span class="card-title">4月の家賃・光熱費について</span>
+          </div>
+          <p class="card-content">今月の家賃と光熱費の支払い期日が近づいています。各自確認して期日内に...</p>
+          <div class="card-footer">
+            <span class="card-meta">期限: 2026/06/30</span>
+            <span class="like-count liked">❤️ 2</span>
+          </div>
+        </div>
+
+        <!-- Card 2: 中優先度 -->
+        <div class="announce-card">
+          <div class="card-top">
+            <span class="priority-badge priority-medium">🟡 中</span>
+            <span class="card-title">共用スペース掃除当番</span>
+          </div>
+          <p class="card-content">今週末はリビングと洗面所の大掃除をお願いします。道具は収納棚にあります。</p>
+          <div class="card-footer">
+            <span class="card-meta">期限: 2026/07/05</span>
+            <span class="like-count">🤍 1</span>
+          </div>
+        </div>
+
+        <!-- Card 3: 低優先度 -->
+        <div class="announce-card">
+          <div class="card-top">
+            <span class="priority-badge priority-low">⚪ 低</span>
+            <span class="card-title">Wi-Fiルーター更新のお知らせ</span>
+          </div>
+          <p class="card-content">来月にルーターを新機種に交換予定です。設定変更が必要になる場合があります。</p>
+          <div class="card-footer">
+            <span class="card-meta">期限: 2026/07/31</span>
+            <span class="like-count">🤍 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Tab -->
+      <div class="bottom-tab">
+        <div class="tab-item"><span class="tab-icon">🏠</span><span class="tab-label">ホーム</span></div>
+        <div class="tab-item"><span class="tab-icon">💬</span><span class="tab-label">チャット</span></div>
+        <div class="tab-item"><span class="tab-icon">📰</span><span class="tab-label">投稿</span></div>
+        <div class="tab-item"><span class="tab-icon">📅</span><span class="tab-label">予定</span></div>
+        <div class="tab-item active"><span class="tab-icon" style="filter:none;">📢</span><span class="tab-label" style="color:#37ab9d;font-weight:600;">お知らせ</span></div>
+      </div>
+    </div>
+    <div class="note">
+      ・検索バーは入力するたびにフィルタリング（debounce）<br>
+      ・優先度チップは1つだけ選択可（activeで背景色変化）<br>
+      ・並び替えは「新しい順 / 古い順 / 期限近い順」<br>
+      ・カードタップで詳細へ遷移<br>
+      ・いいね済みカード: ❤️ 赤表示
+    </div>
+  </div>
+
+  <!-- =========================================================
+       画面 2: お知らせ詳細 (AnnounceDetailPage)
+       ========================================================= -->
+  <div class="screen-wrap">
+    <h2>② AnnounceDetailPage — 詳細</h2>
+    <div class="phone" style="min-height:760px;">
+      <!-- Header -->
+      <div class="app-header">
+        <button class="back-btn">‹ 戻る</button>
+        <h1>お知らせ詳細</h1>
+      </div>
+      <!-- Content -->
+      <div class="content">
+        <div class="detail-section">
+          <!-- Priority + Title -->
+          <div class="detail-meta-row">
+            <span class="priority-badge priority-high">🔴 高優先度</span>
+            <span class="card-meta">期限: 2026年6月30日</span>
+          </div>
+          <h2 class="detail-title">4月の家賃・光熱費について</h2>
+          <hr class="divider" />
+
+          <!-- Content -->
+          <p class="detail-content">今月の家賃と光熱費の支払い期日が近づいています。各自確認して期日内にお支払いをお願いします。
+
+口座情報は共有フォルダの「支払い情報.pdf」に記載されています。
+
+不明点があれば管理者（田中）まで連絡してください。</p>
+
+          <hr class="divider" />
+
+          <!-- Meta info -->
+          <div class="detail-info-row">
+            <span>作成: 2026年6月1日</span>
+            <span>❤️ 2 いいね</span>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-row">
+          <button class="like-btn liked">❤️ いいね済み (2)</button>
+          <button class="push-btn">🔔 通知を送る</button>
+        </div>
+
+        <!-- Edit / Delete (own post) -->
+        <div class="detail-section" style="padding:12px;">
+          <p style="font-size:11px;color:#8fa3a3;margin-bottom:10px;">作成者のみ操作可能</p>
+          <div class="edit-row">
+            <button class="edit-btn">✏️ 編集</button>
+            <button class="delete-btn">🗑️ 削除</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Tab -->
+      <div class="bottom-tab">
+        <div class="tab-item"><span class="tab-icon">🏠</span><span class="tab-label">ホーム</span></div>
+        <div class="tab-item"><span class="tab-icon">💬</span><span class="tab-label">チャット</span></div>
+        <div class="tab-item"><span class="tab-icon">📰</span><span class="tab-label">投稿</span></div>
+        <div class="tab-item"><span class="tab-icon">📅</span><span class="tab-label">予定</span></div>
+        <div class="tab-item active"><span class="tab-icon">📢</span><span class="tab-label" style="color:#37ab9d;font-weight:600;">お知らせ</span></div>
+      </div>
+    </div>
+    <div class="note">
+      ・いいねは楽観的更新（即時UI反映 → API後に確定）<br>
+      ・いいね済み: ❤️ 赤 / 未いいね: 🤍 グレー<br>
+      ・「通知を送る」は全メンバーへFCMプッシュ<br>
+      ・編集・削除ボタンは作成者のみ表示<br>
+      ・削除は確認ダイアログ後に実行
+    </div>
+  </div>
+
+  <!-- =========================================================
+       画面 3a: お知らせ作成 (AnnounceEditPage — 新規)
+       ========================================================= -->
+  <div class="screen-wrap">
+    <h2>③ AnnounceEditPage — 新規作成</h2>
+    <div class="phone" style="min-height:760px;">
+      <!-- Header -->
+      <div class="app-header">
+        <button class="back-btn">‹ キャンセル</button>
+        <h1>お知らせ作成</h1>
+      </div>
+      <!-- Content -->
+      <div class="content">
+        <div class="form-section">
+
+          <!-- タイトル -->
+          <div class="field">
+            <label>タイトル <span class="req">*</span></label>
+            <input class="field-input" type="text" placeholder="例: 家賃支払いについて" />
+            <span class="char-count">0 / 50</span>
+          </div>
+
+          <!-- 内容 -->
+          <div class="field">
+            <label>内容 <span class="req">*</span></label>
+            <textarea class="field-input textarea" placeholder="お知らせの詳細内容を入力してください..."></textarea>
+            <span class="char-count">0 / 300</span>
+          </div>
+
+          <!-- 優先度 -->
+          <div class="field">
+            <label>優先度 <span class="req">*</span></label>
+            <div class="priority-select">
+              <div class="prio-chip prio-high selected">🔴 高</div>
+              <div class="prio-chip prio-medium">🟡 中</div>
+              <div class="prio-chip prio-low">⚪ 低</div>
+            </div>
+          </div>
+
+          <!-- 期限日 -->
+          <div class="field">
+            <label>期限日 <span class="req">*</span></label>
+            <input class="field-input" type="text" placeholder="2026-06-30" />
+            <p style="font-size:11px;color:#8fa3a3;">この日以降は一覧から非表示になります</p>
+          </div>
+
+          <!-- Submit -->
+          <button class="submit-btn">作成する</button>
+          <button class="cancel-btn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      ・react-hook-form + zod バリデーション<br>
+      ・タイトル: 1〜50文字、内容: 1〜300文字、期限日: 必須<br>
+      ・優先度は3択チップ選択（デフォルト: 中）<br>
+      ・作成成功後 → 一覧に戻り TanStack Query キャッシュ invalidate<br>
+      ・エラー: sonner toast
+    </div>
+  </div>
+
+  <!-- =========================================================
+       画面 3b: お知らせ編集 (AnnounceEditPage — 編集モード)
+       ========================================================= -->
+  <div class="screen-wrap">
+    <h2>③' AnnounceEditPage — 編集モード</h2>
+    <div class="phone" style="min-height:760px;">
+      <!-- Header -->
+      <div class="app-header">
+        <button class="back-btn">‹ キャンセル</button>
+        <h1>お知らせ編集</h1>
+      </div>
+      <!-- Content -->
+      <div class="content">
+        <div class="form-section">
+
+          <!-- タイトル（既存値入力済み） -->
+          <div class="field">
+            <label>タイトル <span class="req">*</span></label>
+            <input class="field-input" type="text" value="4月の家賃・光熱費について" />
+            <span class="char-count">16 / 50</span>
+          </div>
+
+          <!-- 内容 -->
+          <div class="field">
+            <label>内容 <span class="req">*</span></label>
+            <textarea class="field-input textarea">今月の家賃と光熱費の支払い期日が近づいています。各自確認して期日内にお支払いをお願いします。</textarea>
+            <span class="char-count">47 / 300</span>
+          </div>
+
+          <!-- 優先度 -->
+          <div class="field">
+            <label>優先度 <span class="req">*</span></label>
+            <div class="priority-select">
+              <div class="prio-chip prio-high selected">🔴 高</div>
+              <div class="prio-chip prio-medium">🟡 中</div>
+              <div class="prio-chip prio-low">⚪ 低</div>
+            </div>
+          </div>
+
+          <!-- 期限日 -->
+          <div class="field">
+            <label>期限日 <span class="req">*</span></label>
+            <input class="field-input" type="text" value="2026-06-30" />
+          </div>
+
+          <!-- Submit (更新) -->
+          <button class="submit-btn" style="background:#37ab9d;">更新する</button>
+          <button class="cancel-btn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      ・AnnounceEditPage を新規作成・編集で共用（mode="create"|"edit"）<br>
+      ・編集時は GET /api/announces/{'{'}id{'}'}/detail でデフォルト値を取得<br>
+      ・更新成功後 → 詳細ページに戻り TanStack Query キャッシュ invalidate<br>
+      ・ルート: /announces/new (新規) / /announces/{'{'}id{'}'}/edit (編集)
+    </div>
+  </div>
+
+</div>
+
+<!-- Route plan -->
+<div style="margin-top:40px;background:#fff;border:1.5px solid #d8e5e4;border-radius:14px;padding:20px;max-width:840px;">
+  <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">ルート構成（予定）</h3>
+  <table style="font-size:13px;border-collapse:collapse;width:100%;">
+    <tr style="background:#f0f4f3;">
+      <th style="text-align:left;padding:6px 10px;border:1px solid #d8e5e4;">URL</th>
+      <th style="text-align:left;padding:6px 10px;border:1px solid #d8e5e4;">コンポーネント</th>
+      <th style="text-align:left;padding:6px 10px;border:1px solid #d8e5e4;">備考</th>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">/announces</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">AnnounceListPage</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">一覧・検索・フィルター</td>
+    </tr>
+    <tr style="background:#f0f4f3;">
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">/announces/new</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">AnnounceEditPage</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">新規作成モード</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">/announces/:id</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">AnnounceDetailPage</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">詳細・いいね・プッシュ通知</td>
+    </tr>
+    <tr style="background:#f0f4f3;">
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">/announces/:id/edit</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">AnnounceEditPage</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">編集モード（既存値プリセット）</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>
