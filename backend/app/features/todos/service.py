@@ -69,7 +69,12 @@ class TodoService:
         await self.db.flush()
         for item in contents:
             self.db.add(
-                TodoContent(todo_id=todo.id, content=item.content, check_flag=item.check_flag)
+                TodoContent(
+                    todo_id=todo.id,
+                    content=item.content,
+                    check_flag=item.check_flag,
+                    checked_by=item.checked_by,
+                )
             )
         await self.db.flush()
         result = await self.db.execute(
@@ -102,7 +107,12 @@ class TodoService:
         self.db.expire(todo)  # clear stale contents cache after delete
         for item in contents:
             self.db.add(
-                TodoContent(todo_id=todo_id, content=item.content, check_flag=item.check_flag)
+                TodoContent(
+                    todo_id=todo_id,
+                    content=item.content,
+                    check_flag=item.check_flag,
+                    checked_by=item.checked_by,
+                )
             )
         await self.db.flush()
         result = await self.db.execute(

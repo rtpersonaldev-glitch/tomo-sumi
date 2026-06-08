@@ -24,5 +24,6 @@ class TodoContent(Base, TimestampMixin):
     todo_id: Mapped[int] = mapped_column(ForeignKey("todos.id"), nullable=False)
     content: Mapped[str] = mapped_column(String(50), nullable=False)
     check_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    checked_by: Mapped[int | None] = mapped_column(nullable=True)
 
     todo: Mapped[Todo] = relationship("Todo", back_populates="contents")
