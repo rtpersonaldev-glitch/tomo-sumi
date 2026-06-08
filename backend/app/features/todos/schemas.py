@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class TodoContentRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=50)
     check_flag: bool = False
+    checked_by: int | None = None
 
 
 class TodoContentResponse(BaseModel):
@@ -15,6 +16,7 @@ class TodoContentResponse(BaseModel):
     todo_id: int
     content: str
     check_flag: bool
+    checked_by: int | None
 
 
 class TodoBase(BaseModel):
@@ -39,3 +41,4 @@ class TodoResponse(BaseModel):
     complete_flag: bool
     contents: list[TodoContentResponse]
     created_at: datetime
+    created_by: int | None

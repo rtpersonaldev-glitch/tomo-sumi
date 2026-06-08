@@ -21,6 +21,9 @@ const AnnounceEditPage = lazy(() => import("@/features/announces/pages/AnnounceE
 const SchedulePage = lazy(() => import("@/features/schedules/pages/SchedulePage"));
 const ScheduleDetailPage = lazy(() => import("@/features/schedules/pages/ScheduleDetailPage"));
 const ScheduleEditPage = lazy(() => import("@/features/schedules/pages/ScheduleEditPage"));
+const TodoListPage = lazy(() => import("@/features/todos/pages/TodoListPage"));
+const TodoDetailPage = lazy(() => import("@/features/todos/pages/TodoDetailPage"));
+const TodoEditPage = lazy(() => import("@/features/todos/pages/TodoEditPage"));
 
 export default function App() {
   return (
@@ -56,6 +59,10 @@ export default function App() {
                   <Route path="/schedules/new" element={<ScheduleEditPage />} />
                   <Route path="/schedules/:id" element={<ScheduleDetailPage />} />
                   <Route path="/schedules/:id/edit" element={<ScheduleEditPage />} />
+                  <Route path="/todos" element={<TodoListPage />} />
+                  <Route path="/todos/new" element={<TodoEditPage />} />
+                  <Route path="/todos/:id" element={<TodoDetailPage />} />
+                  <Route path="/todos/:id/edit" element={<TodoEditPage />} />
                 </Route>
               </Route>
             </Route>
