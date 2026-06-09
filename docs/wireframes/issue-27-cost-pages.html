@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #27 ワイヤーフレーム v3 — 家計管理</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #ecf3f2; padding: 24px; color: #1a2024; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #586365; margin-bottom: 28px; }
+  h2 { font-size: 13px; font-weight: 700; color: #37ab9d; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: 0.06em; border-left: 4px solid #37ab9d; padding-left: 10px; }
+  .screens { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+
+  .screen { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 14px rgba(0,0,0,0.09); }
+  .screen-label { background: #37ab9d; color: #fff; font-size: 11px; font-weight: 700; padding: 7px 14px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .screen-sub { background: #2d8f83; color: rgba(255,255,255,0.85); font-size: 10px; padding: 3px 14px 5px; }
+  .screen-label.amber { background: #d97706; }
+  .screen-sub.amber { background: #b45309; }
+
+  /* Shell */
+  .header { background: #fff; border-bottom: 1px solid #daeae8; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .header-title { font-size: 15px; font-weight: 600; flex: 1; text-align: center; }
+  .btn-nav { background: none; border: none; cursor: pointer; font-size: 18px; color: #37ab9d; padding: 2px 4px; }
+  .btn-primary { background: #37ab9d; color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-sm { background: #37ab9d; color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-ghost { background: none; border: 1px solid #daeae8; border-radius: 6px; padding: 4px 10px; font-size: 11px; color: #586365; cursor: pointer; }
+  .btn-outline { background: none; color: #37ab9d; border: 1.5px solid #37ab9d; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-danger { background: none; color: #dc2626; border: 1.5px solid #dc2626; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-disabled { background: #daeae8; color: #aaa; border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: not-allowed; }
+  .content { padding: 12px 14px; background: #f5f8f7; min-height: 360px; }
+
+  /* Avatar */
+  .avatar { width: 32px; height: 32px; border-radius: 50%; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+  .av-teal  { background: #37ab9d; }
+  .av-amber { background: #d97706; }
+  .av-blue  { background: #2563eb; }
+  .av-rose  { background: #e11d48; }
+  .av-sm { width: 22px; height: 22px; font-size: 9px; }
+  .av-lg { width: 40px; height: 40px; font-size: 14px; }
+  .av-stack { display: flex; }
+  .av-stack .avatar { margin-left: -6px; border: 2px solid #fff; }
+  .av-stack .avatar:first-child { margin-left: 0; }
+
+  /* Badge */
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+  .badge-cat      { background: #edf7f6; color: #37ab9d; }
+  .badge-pending  { background: #fef9ec; color: #b45309; }
+  .badge-done     { background: #f0fdf4; color: #15803d; }
+  .badge-partial  { background: #fff7ed; color: #c2410c; }
+  .badge-locked   { background: #f3f4f6; color: #9ca3af; }
+
+  /* Filter */
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chip { border: 1px solid #daeae8; border-radius: 20px; padding: 5px 11px; font-size: 11px; color: #586365; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .chip.active { border-color: #37ab9d; color: #37ab9d; background: #edf7f6; font-weight: 600; }
+
+  /* Cost list item */
+  .cost-item { background: #fff; border-radius: 12px; padding: 11px 12px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); cursor: pointer; }
+  .cost-item.locked { background: #fafafa; border: 1px solid #daeae8; cursor: default; }
+  .cost-row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+  .cost-date { font-size: 11px; color: #586365; }
+  .cost-amount { font-size: 16px; font-weight: 700; margin-left: auto; }
+  .cost-amount.locked { color: #9ca3af; }
+  .cost-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .seikyusaki-row { display: flex; align-items: center; gap: 4px; margin-top: 6px; border-top: 1px dashed #daeae8; padding-top: 6px; }
+  .seisan-row { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
+
+  /* Form */
+  .form-group { margin-bottom: 13px; }
+  .form-label { font-size: 11px; font-weight: 700; color: #586365; margin-bottom: 4px; display: block; text-transform: uppercase; letter-spacing: 0.03em; }
+  .form-input { width: 100%; border: 1px solid #daeae8; border-radius: 8px; padding: 8px 11px; font-size: 13px; color: #1a2024; background: #fff; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .required { color: #dc2626; }
+
+  /* 清算方法タブ */
+  .method-tabs { display: flex; background: #f0f7f6; border-radius: 10px; padding: 3px; margin-bottom: 12px; gap: 2px; }
+  .method-tab { flex: 1; text-align: center; padding: 6px 4px; font-size: 11px; font-weight: 600; color: #586365; border-radius: 8px; cursor: pointer; }
+  .method-tab.active { background: #fff; color: #37ab9d; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  /* Member picker */
+  .member-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+  .member-pick-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+  .member-pick-item .avatar { border: 2.5px solid transparent; }
+  .member-pick-item.selected .avatar { border-color: #37ab9d; box-shadow: 0 0 0 2px #edf7f6; }
+  .member-pick-item .name { font-size: 10px; color: #586365; }
+  .member-pick-item.selected .name { color: #37ab9d; font-weight: 600; }
+  .checkmark { width: 16px; height: 16px; border-radius: 50%; background: #37ab9d; color: #fff; font-size: 9px; display: flex; align-items: center; justify-content: center; margin-top: -8px; }
+  .checkmark-hidden { width: 16px; height: 16px; }
+
+  /* 食数割 rows */
+  .shokusu-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0f4f4; }
+  .shokusu-row:last-child { border-bottom: none; }
+  .shokusu-name { display: flex; align-items: center; gap: 6px; flex: 1; font-size: 12px; }
+  .shokusu-input { width: 56px; border: 1px solid #daeae8; border-radius: 6px; padding: 4px 8px; font-size: 12px; text-align: right; }
+  .shokusu-unit { font-size: 11px; color: #586365; }
+
+  /* 直接入力 rows */
+  .direct-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0f4f4; }
+  .direct-row:last-child { border-bottom: none; }
+  .direct-name { display: flex; align-items: center; gap: 6px; flex: 1; font-size: 12px; }
+  .direct-input { width: 80px; border: 1px solid #daeae8; border-radius: 6px; padding: 4px 8px; font-size: 12px; text-align: right; }
+  .direct-input.error { border-color: #dc2626; }
+
+  /* Info bar */
+  .info-bar { border-radius: 8px; padding: 8px 10px; font-size: 11px; font-weight: 600; margin-top: 6px; }
+  .info-bar.green  { background: #f0fdf4; color: #15803d; }
+  .info-bar.amber  { background: #fef9ec; color: #b45309; }
+  .info-bar.red    { background: #fef2f2; color: #dc2626; }
+  .info-bar.teal   { background: #edf7f6; color: #37ab9d; }
+
+  /* Receipt upload */
+  .receipt-upload { border: 2px dashed #daeae8; border-radius: 10px; padding: 16px; text-align: center; color: #586365; font-size: 12px; cursor: pointer; }
+
+  /* Summary */
+  .period-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 12px; }
+  .period-nav .arrow { background: none; border: 1px solid #daeae8; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #37ab9d; }
+  .stat-card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); text-align: center; }
+  .stat-value { font-size: 26px; font-weight: 700; color: #37ab9d; }
+  .stat-label { font-size: 11px; color: #586365; margin-top: 2px; }
+  .chart-placeholder { border: 1px solid #daeae8; border-radius: 10px; padding: 12px; background: #fff; margin-bottom: 10px; }
+  .chart-title { font-size: 11px; font-weight: 700; color: #586365; margin-bottom: 10px; text-transform: uppercase; }
+  .chart-pie { width: 90px; height: 90px; border-radius: 50%; background: conic-gradient(#37ab9d 0% 40%, #ffc042 40% 65%, #60a5fa 65% 80%, #f87171 80% 100%); margin: 0 auto 10px; }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #586365; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .bar-chart { display: flex; gap: 12px; align-items: flex-end; height: 80px; padding: 0 8px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; }
+  .bar-val { font-size: 9px; font-weight: 600; color: #37ab9d; }
+  .bar-user { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid #daeae8; background: #fff; }
+  .tab { flex: 1; text-align: center; padding: 10px 0; font-size: 12px; font-weight: 600; color: #586365; border-bottom: 2.5px solid transparent; cursor: pointer; }
+  .tab.active { color: #37ab9d; border-bottom-color: #37ab9d; }
+
+  /* Seisan */
+  .seisan-item { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); cursor: pointer; }
+  .seisan-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .seisan-meta { font-size: 11px; color: #586365; display: flex; gap: 10px; align-items: center; }
+  .chevron { font-size: 16px; color: #daeae8; margin-left: auto; }
+
+  /* Meisai */
+  .meisai-card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .meisai-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .meisai-flow { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .meisai-arrow { font-size: 14px; color: #586365; }
+  .meisai-amount { font-size: 17px; font-weight: 700; }
+  .meisai-actions { display: flex; align-items: center; gap: 6px; }
+  .meisai-memo { font-size: 10px; color: #586365; margin-top: 4px; padding-top: 5px; border-top: 1px dashed #daeae8; font-style: italic; }
+
+  /* Modal overlay */
+  .modal-overlay { background: rgba(30,50,48,0.5); padding: 20px 14px; }
+  .modal-box { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+  .modal-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; text-align: center; }
+  .modal-sub { font-size: 11px; color: #586365; margin-bottom: 12px; text-align: center; }
+
+  /* Seisan cost items */
+  .seisan-cost-item { background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .seisan-cost-item:hover { box-shadow: 0 2px 6px rgba(55,171,157,0.12); }
+  .seisan-cost-info { flex: 1; }
+  .seisan-cost-name { font-size: 12px; font-weight: 500; }
+  .seisan-cost-meta { font-size: 10px; color: #586365; }
+  .seisan-cost-amount { font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+  /* Cost detail */
+  .detail-section { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0f4f4; font-size: 12px; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: #586365; }
+  .detail-val { font-weight: 500; display: flex; align-items: center; gap: 6px; }
+
+  /* Checkbox cost select */
+  .cost-check-item { background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .cost-check-item.checked { border: 1.5px solid #37ab9d; background: #f5fdfc; }
+  .checkbox { width: 18px; height: 18px; border-radius: 5px; border: 2px solid #daeae8; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .checkbox.checked { background: #37ab9d; border-color: #37ab9d; color: #fff; font-size: 11px; }
+  .check-info { flex: 1; }
+  .check-title { font-size: 12px; font-weight: 500; }
+  .check-meta { font-size: 10px; color: #586365; }
+  .check-amount { font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+  /* Category */
+  .category-item { background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+
+  /* Koteihi */
+  .koteihi-item { background: #fff; border-radius: 12px; padding: 11px 12px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px; }
+  .koteihi-info { flex: 1; }
+  .koteihi-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+  .koteihi-meta { font-size: 11px; color: #586365; display: flex; align-items: center; gap: 4px; }
+  .koteihi-amount { font-size: 15px; font-weight: 700; color: #37ab9d; white-space: nowrap; }
+
+  /* Settings */
+  .settings-card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .toggle { width: 38px; height: 20px; border-radius: 10px; background: #37ab9d; position: relative; cursor: pointer; flex-shrink: 0; }
+  .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff; top: 3px; right: 3px; }
+
+  /* Total bar */
+  .total-bar { background: #edf7f6; border-radius: 10px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .total-bar-label { font-size: 12px; color: #37ab9d; font-weight: 600; }
+  .total-bar-val { font-size: 18px; font-weight: 700; color: #37ab9d; }
+
+  /* Breadcrumb */
+  .breadcrumb { font-size: 10px; color: #86a4a0; padding: 6px 14px; background: #f0f7f6; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .breadcrumb-sep { color: #c0d8d5; }
+  .breadcrumb-cur { color: #37ab9d; font-weight: 600; }
+
+  /* Locked banner */
+  .locked-banner { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: #6b7280; }
+
+  .sec-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .sec-title { font-size: 11px; font-weight: 700; color: #586365; text-transform: uppercase; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<h1>Issue #27 ワイヤーフレーム v3 — 家計管理</h1>
+<p class="subtitle">変更点: 清算方法3種 / 清算明細完了時メモ / 清算後の支出ロック / 清算作成の日付廃止</p>
+
+<!-- ===== 支出作成 ===== -->
+<h2>支出作成 — 清算方法の3パターン</h2>
+<div class="screens">
+
+  <!-- ②-A CostEditPage: 均等割り -->
+  <div class="screen">
+    <div class="screen-label">②-A CostEditPage — 均等割り</div>
+    <div class="phone">
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">支出を作成</span>
+        <button class="btn-primary">保存</button>
+      </div>
+      <div class="content">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">購入日 <span class="required">*</span></label>
+            <input class="form-input" type="date" value="2026-06-09" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">金額（円） <span class="required">*</span></label>
+            <input class="form-input" type="number" value="3240" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">カテゴリ</label>
+          <div style="display:flex;gap:6px">
+            <select class="form-input"><option>食費</option></select>
+            <button class="btn-ghost" style="font-size:11px;white-space:nowrap">管理</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">支払者 <span class="required">*</span></label>
+          <div class="member-picker">
+            <div class="member-pick-item selected">
+              <span class="avatar av-lg av-teal">田</span>
+              <div class="checkmark">✓</div>
+              <span class="name">田中</span>
+            </div>
+            <div class="member-pick-item">
+              <span class="avatar av-lg av-amber">佐</span>
+              <div class="checkmark-hidden"></div>
+              <span class="name">佐藤</span>
+            </div>
+            <div class="member-pick-item">
+              <span class="avatar av-lg av-blue">鈴</span>
+              <div class="checkmark-hidden"></div>
+              <span class="name">鈴木</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 清算方法 -->
+        <div class="form-group">
+          <label class="form-label">清算方法</label>
+          <div class="method-tabs">
+            <div class="method-tab active">均等割り</div>
+            <div class="method-tab">食数割</div>
+            <div class="method-tab">直接入力</div>
+          </div>
+
+          <label class="form-label">請求先（複数可）</label>
+          <div class="member-picker" style="margin-bottom:8px">
+            <div class="member-pick-item">
+              <span class="avatar av-lg av-teal">田</span>
+              <div class="checkmark-hidden"></div>
+              <span class="name">田中</span>
+            </div>
+            <div class="member-pick-item selected">
+              <span class="avatar av-lg av-amber">佐</span>
+              <div class="checkmark">✓</div>
+              <span class="name">佐藤</span>
+            </div>
+            <div class="member-pick-item selected">
+              <span class="avatar av-lg av-blue">鈴</span>
+              <div class="checkmark">✓</div>
+              <span class="name">鈴木</span>
+            </div>
+          </div>
+          <div class="info-bar teal">2名で均等割り → 1人あたり ¥1,620</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">メモ</label>
+          <textarea class="form-input" rows="2" placeholder="スーパーで購入…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">レシート画像</label>
+          <div class="receipt-upload">📷 タップして追加</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ②-B CostEditPage: 食数割 -->
+  <div class="screen">
+    <div class="screen-label">②-B CostEditPage — 食数割</div>
+    <div class="phone">
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">支出を作成</span>
+        <button class="btn-primary">保存</button>
+      </div>
+      <div class="content">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">購入日 <span class="required">*</span></label>
+            <input class="form-input" type="date" value="2026-06-09" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">金額（円） <span class="required">*</span></label>
+            <input class="form-input" type="number" value="4320" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">カテゴリ</label>
+          <select class="form-input"><option>外食</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">支払者 <span class="required">*</span></label>
+          <div class="member-picker">
+            <div class="member-pick-item selected">
+              <span class="avatar av-lg av-teal">田</span>
+              <div class="checkmark">✓</div>
+              <span class="name">田中</span>
+            </div>
+            <div class="member-pick-item">
+              <span class="avatar av-lg av-amber">佐</span>
+              <div class="checkmark-hidden"></div>
+              <span class="name">佐藤</span>
+            </div>
+            <div class="member-pick-item">
+              <span class="avatar av-lg av-blue">鈴</span>
+              <div class="checkmark-hidden"></div>
+              <span class="name">鈴木</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 清算方法: 食数割 -->
+        <div class="form-group">
+          <label class="form-label">清算方法</label>
+          <div class="method-tabs">
+            <div class="method-tab">均等割り</div>
+            <div class="method-tab active">食数割</div>
+            <div class="method-tab">直接入力</div>
+          </div>
+
+          <label class="form-label">請求先と食数</label>
+          <div style="background:#fff;border:1px solid #daeae8;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+            <div class="shokusu-row">
+              <div class="shokusu-name">
+                <span class="avatar av-sm av-amber">佐</span> 佐藤
+              </div>
+              <input class="shokusu-input" type="number" value="2" />
+              <span class="shokusu-unit">食</span>
+              <span style="font-size:11px;font-weight:600;color:#37ab9d;width:48px;text-align:right">¥1,728</span>
+            </div>
+            <div class="shokusu-row">
+              <div class="shokusu-name">
+                <span class="avatar av-sm av-blue">鈴</span> 鈴木
+              </div>
+              <input class="shokusu-input" type="number" value="1" />
+              <span class="shokusu-unit">食</span>
+              <span style="font-size:11px;font-weight:600;color:#37ab9d;width:48px;text-align:right">¥864</span>
+            </div>
+            <div class="shokusu-row">
+              <div class="shokusu-name">
+                <span class="avatar av-sm av-rose">山</span> 山田
+              </div>
+              <input class="shokusu-input" type="number" value="2" />
+              <span class="shokusu-unit">食</span>
+              <span style="font-size:11px;font-weight:600;color:#37ab9d;width:48px;text-align:right">¥1,728</span>
+            </div>
+          </div>
+          <div class="info-bar teal">合計 5食 → ¥864/食 ／ 合計 ¥4,320 ✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ②-C CostEditPage: 直接入力 -->
+  <div class="screen">
+    <div class="screen-label">②-C CostEditPage — 直接入力</div>
+    <div class="phone">
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">支出を作成</span>
+        <button class="btn-primary">保存</button>
+      </div>
+      <div class="content">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">購入日 <span class="required">*</span></label>
+            <input class="form-input" type="date" value="2026-06-09" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">金額（円） <span class="required">*</span></label>
+            <input class="form-input" type="number" value="3240" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">カテゴリ</label>
+          <select class="form-input"><option>日用品</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">支払者 <span class="required">*</span></label>
+          <div class="member-picker">
+            <div class="member-pick-item selected">
+              <span class="avatar av-lg av-teal">田</span>
+              <div class="checkmark">✓</div>
+              <span class="name">田中</span>
+            </div>
+            <div class="member-pick-item">
+              <span class="avatar av-lg av-amber">佐</span>
+              <div class="checkmark-hidden"></div>
+              <span class="name">佐藤</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 清算方法: 直接入力 -->
+        <div class="form-group">
+          <label class="form-label">清算方法</label>
+          <div class="method-tabs">
+            <div class="method-tab">均等割り</div>
+            <div class="method-tab">食数割</div>
+            <div class="method-tab active">直接入力</div>
+          </div>
+
+          <label class="form-label">請求先と金額</label>
+          <div style="background:#fff;border:1px solid #daeae8;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+            <div class="direct-row">
+              <div class="direct-name">
+                <span class="avatar av-sm av-amber">佐</span> 佐藤
+              </div>
+              <input class="direct-input" type="number" value="2000" />
+              <span class="shokusu-unit">円</span>
+            </div>
+            <div class="direct-row">
+              <div class="direct-name">
+                <span class="avatar av-sm av-blue">鈴</span> 鈴木
+              </div>
+              <input class="direct-input error" type="number" value="1000" />
+              <span class="shokusu-unit">円</span>
+            </div>
+          </div>
+          <!-- 合計不一致エラー -->
+          <div class="info-bar red">入力合計 ¥3,000 ≠ 支出金額 ¥3,240（¥240 不足）</div>
+          <div style="margin-top:6px">
+            <!-- 一致している場合の表示（参考用コメント） -->
+          </div>
+          <!-- OK例（参考） -->
+          <div style="background:#fff;border:1px solid #daeae8;border-radius:10px;padding:10px 12px;margin-top:8px">
+            <div class="direct-row">
+              <div class="direct-name">
+                <span class="avatar av-sm av-amber">佐</span> 佐藤
+              </div>
+              <input class="direct-input" type="number" value="2000" />
+              <span class="shokusu-unit">円</span>
+            </div>
+            <div class="direct-row">
+              <div class="direct-name">
+                <span class="avatar av-sm av-blue">鈴</span> 鈴木
+              </div>
+              <input class="direct-input" type="number" value="1240" />
+              <span class="shokusu-unit">円</span>
+            </div>
+          </div>
+          <div class="info-bar green">入力合計 ¥3,240 ✓ 金額と一致</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 清算明細 完了モーダル ===== -->
+<h2>清算明細 — 完了時メモ入力モーダル</h2>
+<div class="screens">
+
+  <!-- ⑤ SeisanDetailPage -->
+  <div class="screen">
+    <div class="screen-label">⑤ SeisanDetailPage — 清算詳細</div>
+    <div class="screen-sub">「完了にする」タップ → ⑤-B モーダル表示</div>
+    <div class="phone">
+      <div class="breadcrumb">
+        清算管理 <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-cur">6月第1週の清算</span>
+      </div>
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">6月第1週の清算</span>
+        <span></span>
+      </div>
+      <div class="content">
+        <div style="font-size:11px;color:#586365;margin-bottom:10px">清算日: 2026-06-09 ／ 支出 4件 / 合計 ¥18,520</div>
+
+        <div class="sec-hd"><span class="sec-title">清算明細</span></div>
+
+        <!-- 未完了明細 -->
+        <div class="meisai-card">
+          <div class="meisai-top">
+            <div class="meisai-flow">
+              <span class="avatar av-amber">佐</span>
+              <span style="font-size:11px;color:#586365">佐藤</span>
+              <span class="meisai-arrow">→</span>
+              <span class="avatar av-teal">田</span>
+              <span style="font-size:11px;color:#586365">田中</span>
+            </div>
+            <span class="meisai-amount">¥3,200</span>
+          </div>
+          <div class="meisai-actions">
+            <span class="badge badge-pending">未完了</span>
+            <button class="btn-sm" style="margin-left:auto">完了にする →</button>
+          </div>
+        </div>
+
+        <!-- 完了済み明細（メモあり） -->
+        <div class="meisai-card">
+          <div class="meisai-top">
+            <div class="meisai-flow">
+              <span class="avatar av-blue">鈴</span>
+              <span style="font-size:11px;color:#586365">鈴木</span>
+              <span class="meisai-arrow">→</span>
+              <span class="avatar av-teal">田</span>
+              <span style="font-size:11px;color:#586365">田中</span>
+            </div>
+            <span class="meisai-amount">¥1,800</span>
+          </div>
+          <div class="meisai-actions">
+            <span class="badge badge-done">✓ 完了</span>
+          </div>
+          <div class="meisai-memo">💬 「PayPayで送金しました」</div>
+        </div>
+
+        <div class="sec-hd" style="margin-top:8px"><span class="sec-title">含まれる支出</span><span style="font-size:10px;color:#aaa">タップで詳細</span></div>
+
+        <div class="seisan-cost-item">
+          <span class="avatar av-sm av-teal">田</span>
+          <div class="seisan-cost-info">
+            <div class="seisan-cost-name">スーパー</div>
+            <div class="seisan-cost-meta">6/8 ・ 食費 ・ 均等割 / 請求: 佐,鈴</div>
+          </div>
+          <div class="seisan-cost-amount">¥3,240</div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="seisan-cost-item">
+          <span class="avatar av-sm av-amber">佐</span>
+          <div class="seisan-cost-info">
+            <div class="seisan-cost-name">外食</div>
+            <div class="seisan-cost-meta">6/7 ・ 外食 ・ 食数割 / 請求: 鈴,山</div>
+          </div>
+          <div class="seisan-cost-amount">¥4,320</div>
+          <span class="chevron">›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤-B 完了モーダル -->
+  <div class="screen">
+    <div class="screen-label amber">⑤-B 清算明細 完了モーダル</div>
+    <div class="screen-sub amber">メモは任意。保存すると完了に変わる</div>
+    <div class="phone">
+      <div class="breadcrumb">
+        清算管理 <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-cur">6月第1週の清算</span>
+      </div>
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">6月第1週の清算</span>
+        <span></span>
+      </div>
+      <!-- モーダルオーバーレイ -->
+      <div class="modal-overlay">
+        <!-- 下がぼやけた状態の支出一覧（薄く） -->
+        <div style="opacity:0.3;font-size:11px;color:#586365;margin-bottom:12px">清算明細・支出一覧...</div>
+
+        <div class="modal-box">
+          <div class="modal-title">清算明細を完了にする</div>
+          <div style="background:#f5f8f7;border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px">
+            <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+              <span class="avatar av-amber">佐</span>
+              <span>佐藤</span>
+              <span style="color:#586365;font-size:14px">→</span>
+              <span class="avatar av-teal">田</span>
+              <span>田中</span>
+              <span style="margin-left:auto;font-weight:700;font-size:15px">¥3,200</span>
+            </div>
+          </div>
+
+          <div class="modal-sub">送金方法や確認事項をメモできます（任意）</div>
+
+          <div class="form-group">
+            <label class="form-label">メモ（任意）</label>
+            <textarea class="form-input" rows="3" placeholder="例: PayPayで送金 / 銀行振込済み…">PayPayで¥3,200送金しました</textarea>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn-ghost" style="flex:1;padding:10px;border-radius:8px">キャンセル</button>
+            <button class="btn-primary" style="flex:1;padding:10px;border-radius:8px">✓ 完了にする</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 支出ロック ===== -->
+<h2>支出詳細 — 清算後ロック状態</h2>
+<div class="screens">
+
+  <!-- ① CostListPage（ロックあり） -->
+  <div class="screen">
+    <div class="screen-label">① CostListPage — ロック済み支出の表示</div>
+    <div class="phone">
+      <div class="header">
+        <span class="header-title">💰 支出一覧</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn-ghost">集計</button>
+          <button class="btn-primary">＋ 追加</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="filter-bar">
+          <div class="chip">🏷 全カテゴリ</div>
+          <div class="chip">👤 全員</div>
+        </div>
+
+        <!-- 通常の未清算支出 -->
+        <div class="cost-item">
+          <div class="cost-row1">
+            <span class="avatar av-teal">田</span>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600">コンビニ</div>
+              <div class="cost-date">6/9（月）</div>
+            </div>
+            <div class="cost-amount">¥680</div>
+          </div>
+          <div class="cost-row2">
+            <span class="badge badge-cat">食費</span>
+            <span style="font-size:10px;color:#aaa;margin-left:auto">未清算</span>
+          </div>
+        </div>
+
+        <!-- 清算済み（ロック）支出 -->
+        <div class="cost-item locked">
+          <div class="cost-row1">
+            <span class="avatar av-teal" style="opacity:0.5">田</span>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:#9ca3af">スーパー</div>
+              <div class="cost-date">6/8（日）</div>
+            </div>
+            <div class="cost-amount locked">¥3,240</div>
+          </div>
+          <div class="cost-row2">
+            <span class="badge badge-cat" style="opacity:0.5">食費</span>
+            <span class="badge badge-locked">🔒 清算済み</span>
+          </div>
+        </div>
+
+        <div class="cost-item locked">
+          <div class="cost-row1">
+            <span class="avatar av-amber" style="opacity:0.5">佐</span>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:#9ca3af">電気代</div>
+              <div class="cost-date">6/6（金）</div>
+            </div>
+            <div class="cost-amount locked">¥12,400</div>
+          </div>
+          <div class="cost-row2">
+            <span class="badge badge-cat" style="opacity:0.5">光熱費</span>
+            <span class="badge badge-locked">🔒 清算済み</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ CostDetailPage（ロック状態） -->
+  <div class="screen">
+    <div class="screen-label">⑥ CostDetailPage — 清算後ロック</div>
+    <div class="screen-sub">編集・削除ボタンが無効化される</div>
+    <div class="phone">
+      <div class="breadcrumb">
+        清算管理 <span class="breadcrumb-sep">›</span>
+        6月第1週の清算 <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-cur">スーパー</span>
+      </div>
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">支出詳細</span>
+        <span></span>
+      </div>
+      <div class="content">
+
+        <!-- ロックバナー -->
+        <div class="locked-banner">
+          🔒 この支出は「<strong>6月第1週の清算</strong>」に含まれており、編集・削除できません
+        </div>
+
+        <div style="margin-bottom:10px;display:flex;justify-content:center">
+          <div style="width:64px;height:64px;border-radius:8px;background:#daeae8;display:flex;align-items:center;justify-content:center;font-size:24px">🧾</div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-row">
+            <span class="detail-key">購入日</span>
+            <span class="detail-val">2026-06-08（日）</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">カテゴリ</span>
+            <span class="detail-val"><span class="badge badge-cat">食費</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">金額</span>
+            <span class="detail-val" style="font-size:16px;font-weight:700;color:#37ab9d">¥3,240</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">清算方法</span>
+            <span class="detail-val">均等割り</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">支払者</span>
+            <span class="detail-val"><span class="avatar av-sm av-teal">田</span> 田中</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">メモ</span>
+            <span class="detail-val">週末のまとめ買い</span>
+          </div>
+        </div>
+
+        <div class="sec-hd"><span class="sec-title">請求先</span></div>
+        <div class="detail-section">
+          <div class="detail-row">
+            <span class="detail-val"><span class="avatar av-sm av-amber">佐</span> 佐藤</span>
+            <span style="font-size:13px;font-weight:700">¥1,620</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-val"><span class="avatar av-sm av-blue">鈴</span> 鈴木</span>
+            <span style="font-size:13px;font-weight:700">¥1,620</span>
+          </div>
+        </div>
+
+        <!-- ボタンは無効化 -->
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-disabled" style="flex:1">編集（清算済みのため不可）</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 清算作成 ===== -->
+<h2>清算作成 — 支出選択・日付入力なし</h2>
+<div class="screens">
+
+  <!-- ⑦ SeisanCreatePage -->
+  <div class="screen">
+    <div class="screen-label">⑦ SeisanCreatePage — 清算を今すぐ作成</div>
+    <div class="screen-sub">清算日は「今日」に自動設定。タイトルと支出選択のみ</div>
+    <div class="phone">
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">清算を作成</span>
+        <button class="btn-primary">今すぐ清算</button>
+      </div>
+      <div class="content">
+
+        <div class="info-bar teal" style="margin-bottom:12px">📅 清算日は本日（2026-06-09）が自動的に設定されます</div>
+
+        <div class="form-group">
+          <label class="form-label">清算タイトル <span class="required">*</span></label>
+          <input class="form-input" placeholder="例: 6月第1週の清算" value="6月第1週の清算" />
+        </div>
+
+        <div class="sec-hd" style="margin-top:4px">
+          <span class="sec-title">清算する支出を選択</span>
+          <button class="btn-ghost" style="font-size:10px">全選択</button>
+        </div>
+
+        <div class="cost-check-item checked">
+          <div class="checkbox checked">✓</div>
+          <span class="avatar av-sm av-teal">田</span>
+          <div class="check-info">
+            <div class="check-title">スーパー</div>
+            <div class="check-meta">6/8 ・ 食費 ・ 均等割 / 請求: 佐,鈴</div>
+          </div>
+          <div class="check-amount">¥3,240</div>
+        </div>
+
+        <div class="cost-check-item checked">
+          <div class="checkbox checked">✓</div>
+          <span class="avatar av-sm av-amber">佐</span>
+          <div class="check-info">
+            <div class="check-title">外食（食数割）</div>
+            <div class="check-meta">6/7 ・ 外食 ・ 食数割 / 請求: 鈴,山</div>
+          </div>
+          <div class="check-amount">¥4,320</div>
+        </div>
+
+        <div class="cost-check-item checked">
+          <div class="checkbox checked">✓</div>
+          <span class="avatar av-sm av-teal">田</span>
+          <div class="check-info">
+            <div class="check-title">電気代</div>
+            <div class="check-meta">6/6 ・ 光熱費 ・ 均等割 / 請求: 佐,鈴,山</div>
+          </div>
+          <div class="check-amount">¥12,400</div>
+        </div>
+
+        <div class="cost-check-item">
+          <div class="checkbox"></div>
+          <span class="avatar av-sm av-blue">鈴</span>
+          <div class="check-info">
+            <div class="check-title">コンビニ</div>
+            <div class="check-meta">6/5 ・ 食費 ・ 直接入力 / 請求: 田</div>
+          </div>
+          <div class="check-amount">¥680</div>
+        </div>
+
+        <div class="total-bar">
+          <span class="total-bar-label">選択中 3件の合計</span>
+          <span class="total-bar-val">¥19,960</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== その他の画面（前回と同様） ===== -->
+<h2>その他の画面（カテゴリ管理 / 固定費）</h2>
+<div class="screens">
+
+  <!-- ⑧ CategoryManagePage -->
+  <div class="screen">
+    <div class="screen-label">⑧ CategoryManagePage — カテゴリ管理</div>
+    <div class="phone">
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">カテゴリ管理</span>
+        <span></span>
+      </div>
+      <div class="content">
+        <div class="info-bar teal" style="margin-bottom:12px">💡 支出作成・編集時に選択できます</div>
+
+        <div class="category-item">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500">
+            <div style="width:10px;height:10px;border-radius:50%;background:#37ab9d"></div>食費
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;color:#aaa">12件</span>
+            <button class="btn-ghost" style="font-size:10px;padding:3px 8px">編集</button>
+            <button style="background:none;border:none;color:#dc2626;font-size:13px;cursor:pointer">✕</button>
+          </div>
+        </div>
+        <div class="category-item">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500">
+            <div style="width:10px;height:10px;border-radius:50%;background:#d97706"></div>日用品
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;color:#aaa">5件</span>
+            <button class="btn-ghost" style="font-size:10px;padding:3px 8px">編集</button>
+            <button style="background:none;border:none;color:#dc2626;font-size:13px;cursor:pointer">✕</button>
+          </div>
+        </div>
+        <div class="category-item">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500">
+            <div style="width:10px;height:10px;border-radius:50%;background:#2563eb"></div>光熱費
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;color:#aaa">3件</span>
+            <button class="btn-ghost" style="font-size:10px;padding:3px 8px">編集</button>
+            <button style="background:none;border:none;color:#dc2626;font-size:13px;cursor:pointer">✕</button>
+          </div>
+        </div>
+
+        <!-- インライン追加フォーム -->
+        <div style="background:#fff;border-radius:10px;padding:12px;margin-top:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);border:1.5px dashed #37ab9d">
+          <div class="form-label" style="margin-bottom:6px">新しいカテゴリ名</div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" placeholder="例: 交通費" style="flex:1" />
+            <button class="btn-primary" style="padding:8px 14px">追加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑨ KoteihiPage -->
+  <div class="screen">
+    <div class="screen-label">⑨ KoteihiPage — 固定費・自動清算</div>
+    <div class="phone">
+      <div class="header">
+        <button class="btn-nav">←</button>
+        <span class="header-title">固定費・設定</span>
+        <button class="btn-sm">＋ 追加</button>
+      </div>
+      <div class="content">
+        <div class="sec-hd"><span class="sec-title">⚙️ 自動清算</span></div>
+        <div class="settings-card">
+          <div class="settings-row" style="margin-bottom:8px">
+            <span style="font-size:13px">自動清算を有効にする</span>
+            <div class="toggle"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">清算日（毎月）</label>
+            <select class="form-input"><option>25日</option></select>
+          </div>
+        </div>
+
+        <div class="sec-hd"><span class="sec-title">📋 固定費一覧</span></div>
+
+        <div class="koteihi-item">
+          <div class="koteihi-info">
+            <div class="koteihi-name"><span class="badge badge-cat" style="font-size:9px">光熱費</span>家賃</div>
+            <div class="koteihi-meta">
+              <span class="avatar av-sm av-teal">田</span> 田中
+              <span style="color:#daeae8">→</span>
+              <span class="avatar av-sm av-amber">佐</span> 佐藤
+            </div>
+          </div>
+          <span class="koteihi-amount">¥80,000</span>
+          <button class="btn-ghost" style="font-size:11px">編集</button>
+        </div>
+
+        <div class="koteihi-item">
+          <div class="koteihi-info">
+            <div class="koteihi-name"><span class="badge badge-cat" style="font-size:9px">光熱費</span>電気代</div>
+            <div class="koteihi-meta">支払者・受取者なし</div>
+          </div>
+          <span class="koteihi-amount">¥8,500</span>
+          <button class="btn-ghost" style="font-size:11px">編集</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ルーティング -->
+<div style="margin-top:28px;background:#fff;border-radius:14px;padding:20px;box-shadow:0 1px 6px rgba(0,0,0,0.07)">
+  <div style="font-size:14px;font-weight:700;color:#1a2024;margin-bottom:12px">ルーティング設計</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:11px;color:#586365;line-height:2">
+    <div>
+      <strong style="color:#37ab9d">支出</strong><br/>
+      <code>/costs</code> ① CostListPage<br/>
+      <code>/costs/new</code> ②-A/B/C CostEditPage<br/>
+      <code>/costs/:id/edit</code> ②-A/B/C CostEditPage<br/>
+      <code>/costs/:id</code> ⑥ CostDetailPage<br/>
+      <code>/costs/summary</code> 集計グラフ<br/>
+      <code>/costs/categories</code> ⑧ CategoryManagePage<br/>
+    </div>
+    <div>
+      <strong style="color:#37ab9d">清算・固定費</strong><br/>
+      <code>/costs/seisan</code> ④ SeisanPage（一覧）<br/>
+      <code>/costs/seisan/new</code> ⑦ SeisanCreatePage<br/>
+      <code>/costs/seisan/:id</code> ⑤ SeisanDetailPage<br/>
+      &nbsp;&nbsp;└ 支出タップ → ⑥ CostDetailPage<br/>
+      <code>/costs/koteihi</code> ⑨ KoteihiPage<br/>
+      <code>/costs/koteihi/new</code> 固定費作成<br/>
+      <code>/costs/koteihi/:id/edit</code> 固定費編集<br/>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

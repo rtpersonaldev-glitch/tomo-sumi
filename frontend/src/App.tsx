@@ -34,6 +34,16 @@ const AlbumListPage = lazy(() => import("@/features/albums/pages/AlbumListPage")
 const AlbumDetailPage = lazy(() => import("@/features/albums/pages/AlbumDetailPage"));
 const AlbumEditPage = lazy(() => import("@/features/albums/pages/AlbumEditPage"));
 const ChatPage = lazy(() => import("@/features/chat/pages/ChatPage"));
+const CostListPage = lazy(() => import("@/features/costs/pages/CostListPage"));
+const CostEditPage = lazy(() => import("@/features/costs/pages/CostEditPage"));
+const CostDetailPage = lazy(() => import("@/features/costs/pages/CostDetailPage"));
+const CostSummaryPage = lazy(() => import("@/features/costs/pages/CostSummaryPage"));
+const CategoryManagePage = lazy(() => import("@/features/costs/pages/CategoryManagePage"));
+const SeisanPage = lazy(() => import("@/features/costs/pages/SeisanPage"));
+const SeisanCreatePage = lazy(() => import("@/features/costs/pages/SeisanCreatePage"));
+const SeisanDetailPage = lazy(() => import("@/features/costs/pages/SeisanDetailPage"));
+const KoteihiPage = lazy(() => import("@/features/costs/pages/KoteihiPage"));
+const KoteihiEditPage = lazy(() => import("@/features/costs/pages/KoteihiEditPage"));
 
 export default function App() {
   return (
@@ -87,6 +97,18 @@ export default function App() {
                   <Route path="/albums/:id" element={<AlbumDetailPage />} />
                   <Route path="/albums/:id/edit" element={<AlbumEditPage />} />
                   <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/costs" element={<CostListPage />} />
+                  <Route path="/costs/new" element={<CostEditPage />} />
+                  <Route path="/costs/summary" element={<CostSummaryPage />} />
+                  <Route path="/costs/categories" element={<CategoryManagePage />} />
+                  <Route path="/costs/seisan" element={<SeisanPage />} />
+                  <Route path="/costs/seisan/new" element={<SeisanCreatePage />} />
+                  <Route path="/costs/seisan/:id" element={<SeisanDetailPage />} />
+                  <Route path="/costs/koteihi" element={<KoteihiPage />} />
+                  <Route path="/costs/koteihi/new" element={<KoteihiEditPage />} />
+                  <Route path="/costs/koteihi/:id/edit" element={<KoteihiEditPage />} />
+                  <Route path="/costs/:id" element={<CostDetailPage />} />
+                  <Route path="/costs/:id/edit" element={<CostEditPage />} />
                 </Route>
               </Route>
             </Route>
