@@ -166,3 +166,5 @@ def test_ws_close_no_home_in_token() -> None:
         ) as ws:
             ws.receive_json()
     assert exc.value.code == 4003
+
+
