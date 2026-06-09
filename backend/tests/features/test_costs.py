@@ -1,9 +1,14 @@
+import io
 from datetime import date
+from pathlib import Path
+from unittest.mock import patch
 
 from httpx import AsyncClient
+from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.utils.file_storage as fs
 from app.models.home import Home, HomeLink
 from app.models.user import User
 
@@ -111,6 +116,28 @@ async def test_create_cost_unauthenticated(client: AsyncClient) -> None:
     """未認証時は 401"""
     resp = await client.post("/api/costs", data={"purchase_date": "2026-06-01", "amount": "1000"})
     assert resp.status_code == 401
+
+
+async def test_create_cost_with_receipt(client: AsyncClient, tmp_path: Path) -> None:
+    """レシート画像付きで支出を作成すると receipt_image_url に格納される"""
+    await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(200, 200, 0)).save(buf, format="JPEG")
+    jpg_bytes = buf.getvalue()
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.post(
+            "/api/costs",
+            data={"purchase_date": "2026-06-01", "amount": "3000", "memo": "レシートテスト"},
+            files={"receipt_image": ("receipt.jpg", jpg_bytes, "image/jpeg")},
+        )
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["amount"] == 3000
+    assert data["receipt_image_url"] is not None
 
 
 # ─── GET /api/costs/{id}/detail ──────────────────────────────────────────────

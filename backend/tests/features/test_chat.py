@@ -1,8 +1,14 @@
+import io
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
+from PIL import Image
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+import app.utils.file_storage as fs
 from app.core.security import create_access_token
 from app.main import app
 
@@ -80,6 +86,27 @@ async def test_upload_chat_image_unauthenticated(client: AsyncClient) -> None:
     """未認証時は 401"""
     resp = await client.post("/api/chat/1/images", files={"image": ("a.jpg", b"", "image/jpeg")})
     assert resp.status_code == 401
+
+
+async def test_upload_chat_image_success(client: AsyncClient, tmp_path: Path) -> None:
+    """チャット画像をアップロードすると 200 と image_url を返す"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(128, 0, 128)).save(buf, format="JPEG")
+    buf.seek(0)
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.post(
+            f"/api/chat/{home_id}/images",
+            files={"image": ("chat.jpg", buf.read(), "image/jpeg")},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "image_path" in data
+    assert data["image_path"].startswith("chat_pictures/")
 
 
 async def test_upload_chat_image_wrong_home(client: AsyncClient) -> None:

@@ -116,6 +116,7 @@ class AlbumService:
             self.db.add(AlbumPicture(album_id=album_id, image_path=path, created_by=user_id))
 
         await self.db.flush()
+        self.db.expire(album)
         await log_activity(self.db, home_id, user_id, "アルバムを更新しました", "album", album_id)
         return await self.get_album(album_id, home_id)
 

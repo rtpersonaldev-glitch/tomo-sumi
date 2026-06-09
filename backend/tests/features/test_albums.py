@@ -1,6 +1,12 @@
+import io
+from pathlib import Path
+from unittest.mock import patch
+
 from httpx import AsyncClient
+from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.utils.file_storage as fs
 from app.models.album import Album, AlbumPicture
 from app.models.home import Home
 
@@ -241,6 +247,58 @@ async def test_delete_picture_wrong_album(client: AsyncClient, db: AsyncSession)
 
     resp = await client.delete(f"/api/albums/{album1_id}/pictures/{pic.id}")
     assert resp.status_code == 404
+
+
+# ─── アクティビティログ検証 ────────────────────────────────────────────────────
+
+
+async def test_create_album_with_pictures(client: AsyncClient, tmp_path: Path) -> None:
+    """画像付きでアルバムを作成すると pictures に格納される"""
+    await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(0, 128, 0)).save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.post(
+            "/api/albums",
+            data={"title": "画像付きアルバム"},
+            files=[("pictures", ("photo.png", png_bytes, "image/png"))],
+        )
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["title"] == "画像付きアルバム"
+    assert len(data["pictures"]) == 1
+    assert "image_url" in data["pictures"][0]
+
+
+async def test_update_album_adds_pictures(client: AsyncClient, tmp_path: Path) -> None:
+    """更新時に画像を追加すると pictures に追加される"""
+    await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    create_resp = await client.post("/api/albums", data={"title": "更新前アルバム"})
+    album_id = create_resp.json()["id"]
+    assert create_resp.json()["pictures"] == []
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(255, 0, 0)).save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.put(
+            f"/api/albums/{album_id}",
+            data={"title": "更新後アルバム"},
+            files=[("pictures", ("added.png", png_bytes, "image/png"))],
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["title"] == "更新後アルバム"
+    assert len(data["pictures"]) == 1
 
 
 # ─── アクティビティログ検証 ────────────────────────────────────────────────────

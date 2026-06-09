@@ -1,6 +1,12 @@
+import io
+from pathlib import Path
+from unittest.mock import patch
+
 from httpx import AsyncClient
+from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.utils.file_storage as fs
 from app.models.home import Home
 from app.models.post import Post, PostComment
 from app.models.user import User
@@ -94,6 +100,28 @@ async def test_create_post_unauthenticated(client: AsyncClient) -> None:
     """未認証時は 401 を返す"""
     resp = await client.post("/api/posts", data={"content": "未認証投稿"})
     assert resp.status_code == 401
+
+
+async def test_create_post_with_images(client: AsyncClient, tmp_path: Path) -> None:
+    """画像付きで投稿を作成すると picture_urls に格納される"""
+    await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(0, 0, 255)).save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.post(
+            "/api/posts",
+            data={"content": "画像付き投稿"},
+            files=[("images", ("pic.png", png_bytes, "image/png"))],
+        )
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["content"] == "画像付き投稿"
+    assert len(data["picture_urls"]) == 1
 
 
 # ─── GET /api/posts/{id}/detail ──────────────────────────────────────────────
