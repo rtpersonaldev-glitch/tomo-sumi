@@ -80,7 +80,6 @@ export default function ActivityPage() {
 
   useEffect(() => {
     markAsRead.mutate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const unread = data?.filter((l) => !l.is_read) ?? [];
