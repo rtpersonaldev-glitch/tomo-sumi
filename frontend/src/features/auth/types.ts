@@ -2,9 +2,16 @@ import type { User, Home, HomeUser } from "@/store/authStore";
 
 export type { User, Home, HomeUser };
 
-export interface MeResponse extends User {
-  home: Home | null;
-  homeUsers: HomeUser[];
+interface BackendHome {
+  id: number;
+  name: string;
+  home_image_path: string | null;
+}
+
+export interface MeResponse {
+  user: User;
+  homes: BackendHome[];
+  home: BackendHome | null;
 }
 
 export interface LoginRequest {
