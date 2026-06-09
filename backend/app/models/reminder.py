@@ -17,7 +17,7 @@ class Reminder(Base, TimestampMixin):
     complete_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     contents: Mapped[list[ReminderContent]] = relationship(
-        "ReminderContent", back_populates="reminder"
+        "ReminderContent", back_populates="reminder", lazy="selectin"
     )
 
 
