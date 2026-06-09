@@ -91,6 +91,7 @@ async def chat_websocket(
                     user_id=user_id,
                     message=data.get("message", ""),
                 )
+                await db.commit()
                 await manager.broadcast(home_id, saved)
 
             elif msg_type == "image":
@@ -99,10 +100,12 @@ async def chat_websocket(
                     user_id=user_id,
                     image_path=data.get("image_path", ""),
                 )
+                await db.commit()
                 await manager.broadcast(home_id, saved)
 
             elif msg_type == "read":
                 await ChatService(db).mark_as_read(home_id=home_id, user_id=user_id)
+                await db.commit()
 
     except WebSocketDisconnect:
         manager.disconnect(home_id, websocket)

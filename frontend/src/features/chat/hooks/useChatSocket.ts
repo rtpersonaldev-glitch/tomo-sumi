@@ -19,6 +19,8 @@ export const useChatSocket = (
   const [isConnected, setIsConnected] = useState(false);
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track intentional closes so the onclose handler doesn't trigger reconnect
+  const deliberatelyClosedRef = useRef(false);
 
   /* Keep onMessage stable across renders without re-creating the socket */
   const onMessageRef = useRef(onMessage);
@@ -28,6 +30,7 @@ export const useChatSocket = (
 
   useEffect(() => {
     if (!homeId) return;
+    deliberatelyClosedRef.current = false;
 
     const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL as string | undefined;
     const wsUrl = wsBaseUrl
@@ -52,12 +55,17 @@ export const useChatSocket = (
 
     ws.onclose = (event: CloseEvent) => {
       setIsConnected(false);
-      wsRef.current = null;
+      // Guard: only clear the ref if this WS is still the active one.
+      // In React StrictMode, cleanup closes the old WS after the new WS is
+      // already stored in wsRef, so the async onclose must not overwrite it.
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+      }
       if (event.code === 4001) {
         navigate("/login", { replace: true });
       } else if (event.code === 4003) {
         navigate("/home-select", { replace: true });
-      } else if (event.code !== 1000) {
+      } else if (event.code !== 1000 && !deliberatelyClosedRef.current) {
         /* Unexpected disconnect — retry after 3 seconds */
         reconnectTimerRef.current = setTimeout(() => {
           setReconnectAttempt((n) => n + 1);
@@ -70,6 +78,7 @@ export const useChatSocket = (
     };
 
     return () => {
+      deliberatelyClosedRef.current = true;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
