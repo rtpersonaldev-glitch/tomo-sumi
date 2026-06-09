@@ -4,12 +4,12 @@ import { useAuthStore } from "@/store/authStore";
 
 export interface ActivityLog {
   id: number;
-  user_id: number;
-  nickname: string;
+  user_id: number | null;
+  nickname: string | null;
   icon_url: string | null;
   action: string;
   target_type: string;
-  target_label: string;
+  target_label: string | null;
   is_read: boolean;
   created_at: string;
 }

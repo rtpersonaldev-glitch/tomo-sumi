@@ -22,7 +22,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 function ActivityCard({ log }: { log: ActivityLog }) {
-  const initial = log.nickname.charAt(0);
+  const initial = log.nickname?.charAt(0) ?? "?";
   const categoryLabel = CATEGORY_LABEL[log.target_type] ?? log.target_type;
   const relativeTime = formatDistanceToNow(parseISO(log.created_at), {
     addSuffix: true,
