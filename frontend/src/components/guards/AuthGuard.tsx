@@ -8,21 +8,18 @@ import type { MeResponse } from "@/features/auth/types";
 export function AuthGuard() {
   const isUserLoggedIn = useAuthStore((s) => s.isUserLoggedIn);
   const setUser = useAuthStore((s) => s.setUser);
-  // ストアが false のときのみ ME を叩いて復元を試みる
-  const [checking, setChecking] = useState(!isUserLoggedIn);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+  // 毎回APIで確認して最新ユーザーデータを取得する
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (isUserLoggedIn) {
-      setChecking(false);
-      return;
-    }
     apiClient
       .get<MeResponse>("/api/auth/me")
       .then(({ data }) => {
-        setUser(data);
+        setUser(data.user);
       })
       .catch(() => {
-        // Cookie 無効 → ログイン画面へ（checking=false になり Navigate がレンダーされる）
+        clearAuth();
       })
       .finally(() => {
         setChecking(false);

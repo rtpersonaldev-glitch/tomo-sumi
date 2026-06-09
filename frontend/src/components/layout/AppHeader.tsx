@@ -75,7 +75,7 @@ function UserMenuSheet({ onClose }: UserMenuSheetProps) {
             />
           ) : (
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-              {user.nickname.charAt(0)}
+              {user.nickname?.charAt(0) ?? "?"}
             </div>
           )}
           <div className="min-w-0">
@@ -224,7 +224,7 @@ export function AppHeader() {
             />
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-              {user.nickname.charAt(0)}
+              {user.nickname?.charAt(0) ?? "?"}
             </div>
           )}
           <span
