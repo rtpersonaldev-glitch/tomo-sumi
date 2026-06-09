@@ -50,6 +50,7 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://tomo:tomo@localhost:5432/tomo_test
           SECRET_KEY: ci-test-secret-key
           REDIS_URL: redis://localhost:6379/0
+          DEBUG: "true"
         run: |
           pytest tests/ --cov=app --cov-report=term-missing --tb=short -q
 
