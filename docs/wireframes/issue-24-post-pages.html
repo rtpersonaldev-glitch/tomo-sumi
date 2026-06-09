@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #24 — 投稿・SNS ワイヤーフレーム</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f4f4; color: #1a1f2e; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: #586365; margin-bottom: 32px; }
+  .screens { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 32px; }
+  .screen { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .screen-label { font-size: 11px; font-weight: 700; color: #37ab9d; background: #e8f7f6; padding: 8px 14px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .phone { background: #f8f9fb; border-top: 1px solid #e0e6e6; }
+
+  /* Common layout parts */
+  .app-header { background: #fff; padding: 14px 16px; border-bottom: 1px solid #ddecea; display: flex; align-items: center; justify-content: space-between; }
+  .app-header h2 { font-size: 18px; font-weight: 700; }
+  .btn-primary { background: #37ab9d; color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-ghost { background: transparent; border: 1px solid #ddecea; border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 600; color: #37ab9d; cursor: pointer; }
+  .btn-danger { background: #ef4444; color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .content-area { padding: 14px 16px; }
+
+  /* Avatar */
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #37ab9d; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .avatar-sm { width: 22px; height: 22px; font-size: 9px; }
+  .author-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .author-name { font-size: 13px; font-weight: 600; }
+  .author-date { font-size: 11px; color: #586365; }
+
+  /* Post card */
+  .post-card { background: #fff; border-radius: 12px; border: 1px solid #ddecea; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .post-card-body { padding: 12px 14px; }
+  .post-content-preview { font-size: 13px; line-height: 1.6; color: #1a1f2e; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .post-images-row { display: flex; gap: 4px; margin-bottom: 10px; }
+  .post-img-thumb { width: 64px; height: 64px; border-radius: 8px; background: #c8dede; object-fit: cover; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #586365; }
+  .post-img-thumb-more { font-size: 13px; font-weight: 700; }
+  .post-footer { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid #f0f5f5; background: #f8fbfb; }
+  .post-footer-action { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #586365; background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.1s; }
+  .post-footer-action.liked { color: #ef4444; }
+  .post-footer-spacer { flex: 1; }
+  .post-footer-edit { font-size: 11px; color: #37ab9d; background: none; border: none; cursor: pointer; }
+
+  /* Detail page */
+  .back-row { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+  .back-btn { font-size: 13px; color: #37ab9d; background: none; border: none; cursor: pointer; }
+  .detail-title { font-size: 17px; font-weight: 700; }
+  .detail-content { font-size: 13px; line-height: 1.75; color: #1a1f2e; margin-bottom: 12px; }
+  .detail-content b { font-weight: 700; }
+  .detail-images { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; border-radius: 10px; overflow: hidden; }
+  .detail-img { background: #c8dede; height: 90px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #586365; }
+  .like-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid #eef3f3; border-bottom: 1px solid #eef3f3; }
+  .like-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; border: 1.5px solid #ddecea; border-radius: 20px; padding: 6px 14px; background: #fff; cursor: pointer; }
+  .like-btn.liked { background: #fef2f2; border-color: #fca5a5; color: #ef4444; }
+  .comment-count { font-size: 12px; color: #586365; }
+
+  /* Comments */
+  .comments-section { padding: 12px 16px; }
+  .comments-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #586365; }
+  .comment-item { display: flex; gap: 8px; margin-bottom: 10px; }
+  .comment-body { flex: 1; background: #f3f8f8; border-radius: 10px; padding: 8px 10px; }
+  .comment-author { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+  .comment-text { font-size: 12px; color: #1a1f2e; line-height: 1.5; }
+  .comment-date { font-size: 10px; color: #a0afaf; margin-top: 2px; }
+  .comment-delete { font-size: 10px; color: #ef4444; background: none; border: none; cursor: pointer; margin-left: 4px; }
+  .comment-input-area { padding: 10px 16px 14px; border-top: 1px solid #eef3f3; display: flex; gap: 8px; align-items: flex-end; }
+  .comment-input { flex: 1; border: 1px solid #ddecea; border-radius: 20px; padding: 8px 14px; font-size: 13px; resize: none; outline: none; }
+  .comment-send { background: #37ab9d; color: #fff; border: none; border-radius: 20px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+  /* Edit page */
+  .form-card { background: #fff; border-radius: 12px; border: 1px solid #ddecea; padding: 14px; margin-bottom: 12px; }
+  .form-label { font-size: 12px; font-weight: 700; color: #586365; margin-bottom: 6px; display: block; }
+  .tiptap-toolbar { display: flex; gap: 4px; padding: 6px 10px; border-bottom: 1px solid #eef3f3; background: #f8fbfb; border-radius: 8px 8px 0 0; }
+  .tiptap-btn { background: #fff; border: 1px solid #ddecea; border-radius: 4px; width: 28px; height: 28px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .tiptap-btn.active { background: #e8f7f6; border-color: #37ab9d; color: #37ab9d; }
+  .tiptap-area { border: 1px solid #ddecea; border-top: none; border-radius: 0 0 8px 8px; padding: 10px 12px; min-height: 100px; font-size: 13px; line-height: 1.7; color: #1a1f2e; }
+  .tiptap-placeholder { color: #a0afaf; }
+
+  /* Image upload */
+  .image-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+  .image-preview { width: 72px; height: 72px; border-radius: 8px; background: #c8dede; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .image-remove { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.5); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .image-add { width: 72px; height: 72px; border-radius: 8px; border: 2px dashed #ddecea; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; color: #37ab9d; font-size: 20px; }
+  .image-add span { font-size: 10px; font-weight: 700; }
+
+  /* Cropper modal */
+  .modal-overlay { background: rgba(0,0,0,0.6); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .modal-card { background: #fff; border-radius: 12px; overflow: hidden; }
+  .modal-header { padding: 10px 14px; border-bottom: 1px solid #eef3f3; font-size: 13px; font-weight: 700; }
+  .cropper-area { background: #1a1f2e; height: 160px; display: flex; align-items: center; justify-content: center; }
+  .cropper-box { width: 120px; height: 120px; border: 2px dashed #37ab9d; position: relative; }
+  .cropper-handle { position: absolute; bottom: -6px; right: -6px; width: 12px; height: 12px; background: #37ab9d; border-radius: 50%; }
+  .cropper-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+  .cropper-grid-line { border: 0.5px solid rgba(255,255,255,0.3); }
+  .modal-footer { padding: 10px 14px; display: flex; gap: 8px; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 40px 20px; color: #586365; }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+  .empty-text { font-size: 13px; }
+
+  /* Tag chip */
+  .tag-chip { display: inline-flex; align-items: center; background: #e8f7f6; color: #37ab9d; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; gap: 4px; }
+
+  .section-divider { height: 1px; background: #eef3f3; margin: 8px 0; }
+  .note { font-size: 11px; color: #586365; background: #f8f9fb; border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Issue #24 — 投稿・SNS ワイヤーフレーム</h1>
+<p class="subtitle">PostListPage / PostDetailPage / PostEditPage（作成・編集）</p>
+
+<div class="screens">
+
+  <!-- ====== SCREEN 1: PostListPage ====== -->
+  <div class="screen">
+    <div class="screen-label">Screen 1 — PostListPage（/posts）</div>
+    <div class="phone">
+      <div class="app-header">
+        <h2>投稿</h2>
+        <button class="btn-primary">＋ 作成</button>
+      </div>
+      <div class="content-area">
+
+        <!-- Post Card 1 (with images, liked) -->
+        <div class="post-card">
+          <div class="post-card-body">
+            <div class="author-row">
+              <div class="avatar">山</div>
+              <div>
+                <div class="author-name">山田太郎</div>
+                <div class="author-date">2026年6月9日</div>
+              </div>
+            </div>
+            <div class="post-content-preview">
+              今日は家族でバーベキューをしました！天気もよくて最高でした。子どもたちも大喜びでとても楽しい一日になりました。
+            </div>
+            <div class="post-images-row">
+              <div class="post-img-thumb">🏕️</div>
+              <div class="post-img-thumb">🔥</div>
+              <div class="post-img-thumb" style="background:#a8c8c8;">
+                <span class="post-img-thumb-more">+3</span>
+              </div>
+            </div>
+          </div>
+          <div class="post-footer">
+            <button class="post-footer-action liked">❤️ 5</button>
+            <button class="post-footer-action">💬 3</button>
+            <div class="post-footer-spacer"></div>
+            <button class="post-footer-edit">✏️ 編集</button>
+            <button class="post-footer-edit" style="color:#ef4444;">🗑️ 削除</button>
+          </div>
+        </div>
+
+        <!-- Post Card 2 (text only) -->
+        <div class="post-card">
+          <div class="post-card-body">
+            <div class="author-row">
+              <div class="avatar" style="background:#ffc042; color:#1a1f2e;">花</div>
+              <div>
+                <div class="author-name">花子</div>
+                <div class="author-date">2026年6月8日</div>
+              </div>
+            </div>
+            <div class="post-content-preview">
+              夕食に<b>カレーライス</b>を作りました！スパイスから作ったので香りが最高です。みんな食べてね 🍛
+            </div>
+          </div>
+          <div class="post-footer">
+            <button class="post-footer-action">🤍 2</button>
+            <button class="post-footer-action">💬 1</button>
+            <div class="post-footer-spacer"></div>
+          </div>
+        </div>
+
+        <!-- Post Card 3 (no posts own) -->
+        <div class="post-card">
+          <div class="post-card-body">
+            <div class="author-row">
+              <div class="avatar" style="background:#7c6f9f;">弟</div>
+              <div>
+                <div class="author-name">弟</div>
+                <div class="author-date">2026年6月7日</div>
+              </div>
+            </div>
+            <div class="post-content-preview">
+              明日は学校の遠足です！楽しみ〜
+            </div>
+          </div>
+          <div class="post-footer">
+            <button class="post-footer-action">🤍 0</button>
+            <button class="post-footer-action">💬 0</button>
+            <div class="post-footer-spacer"></div>
+          </div>
+        </div>
+
+        <!-- Empty state (comment out when cards shown) -->
+        <!-- <div class="empty-state">
+          <div class="empty-icon">📰</div>
+          <div class="empty-text">まだ投稿がありません</div>
+        </div> -->
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SCREEN 2: PostListPage (empty) ====== -->
+  <div class="screen">
+    <div class="screen-label">Screen 1b — PostListPage（投稿なし）</div>
+    <div class="phone">
+      <div class="app-header">
+        <h2>投稿</h2>
+        <button class="btn-primary">＋ 作成</button>
+      </div>
+      <div class="content-area">
+        <div class="empty-state">
+          <div class="empty-icon">📰</div>
+          <div class="empty-text">まだ投稿がありません<br>最初の投稿をしてみましょう！</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SCREEN 3: PostDetailPage ====== -->
+  <div class="screen">
+    <div class="screen-label">Screen 2 — PostDetailPage（/posts/:id）</div>
+    <div class="phone">
+      <div class="back-row">
+        <button class="back-btn">‹ 戻る</button>
+        <span class="detail-title">投稿詳細</span>
+      </div>
+
+      <div style="padding: 0 16px 12px;">
+        <!-- Author -->
+        <div class="author-row" style="margin-bottom:10px;">
+          <div class="avatar">山</div>
+          <div>
+            <div class="author-name">山田太郎</div>
+            <div class="author-date">2026年6月9日 14:30</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:6px;">
+            <button class="btn-ghost" style="padding:4px 10px; font-size:11px;">✏️ 編集</button>
+            <button style="background:none;border:1px solid #fca5a5;color:#ef4444;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;">🗑️</button>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          <span class="tag-chip"># 家族</span>
+          <span class="tag-chip"># バーベキュー</span>
+        </div>
+
+        <!-- Content -->
+        <div class="detail-content">
+          今日は家族でバーベキューをしました！天気もよくて最高でした。<br><br>
+          子どもたちも大喜びで、<b>スパイスたっぷりのお肉</b>は絶品でした。<br>来年もまたやりたいです 🔥
+        </div>
+
+        <!-- Images -->
+        <div class="detail-images">
+          <div class="detail-img">🏕️</div>
+          <div class="detail-img">🔥</div>
+          <div class="detail-img">🥩</div>
+          <div class="detail-img" style="position:relative;">
+            🌅
+            <span style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;">+2</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Like & comment bar -->
+      <div class="like-bar">
+        <button class="like-btn liked">❤️ いいね · 5</button>
+        <span class="comment-count">💬 3件のコメント</span>
+      </div>
+
+      <!-- Comments -->
+      <div class="comments-section">
+        <div class="comments-title">コメント</div>
+
+        <div class="comment-item">
+          <div class="avatar avatar-sm">花</div>
+          <div class="comment-body">
+            <div class="comment-author">花子</div>
+            <div class="comment-text">最高の一日でしたね！写真きれい〜</div>
+            <div class="comment-date">6月9日 15:02</div>
+          </div>
+        </div>
+
+        <div class="comment-item">
+          <div class="avatar avatar-sm" style="background:#7c6f9f;">弟</div>
+          <div class="comment-body">
+            <div class="comment-author">弟</div>
+            <div class="comment-text">次は俺も連れてって！</div>
+            <div class="comment-date">6月9日 15:18</div>
+          </div>
+        </div>
+
+        <div class="comment-item">
+          <div class="avatar avatar-sm">山</div>
+          <div class="comment-body" style="background:#e8f7f6;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div class="comment-author">山田太郎 <span style="font-size:9px;color:#37ab9d;">（自分）</span></div>
+              <button class="comment-delete">削除</button>
+            </div>
+            <div class="comment-text">ありがとう！また行こう！</div>
+            <div class="comment-date">6月9日 15:30</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comment input -->
+      <div class="comment-input-area">
+        <div class="avatar avatar-sm">山</div>
+        <textarea class="comment-input" rows="1" placeholder="コメントを追加…"></textarea>
+        <button class="comment-send">送信</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SCREEN 4: PostEditPage (create) ====== -->
+  <div class="screen">
+    <div class="screen-label">Screen 3 — PostEditPage 作成（/posts/new）</div>
+    <div class="phone">
+      <div class="back-row">
+        <button class="back-btn">‹ キャンセル</button>
+        <span class="detail-title">投稿作成</span>
+      </div>
+
+      <div class="content-area">
+
+        <!-- Tiptap editor -->
+        <div class="form-card" style="padding:0; overflow:hidden;">
+          <div class="tiptap-toolbar">
+            <button class="tiptap-btn active">B</button>
+            <button class="tiptap-btn"><i>I</i></button>
+            <button class="tiptap-btn">≡</button>
+            <button class="tiptap-btn">•</button>
+            <button class="tiptap-btn">🔗</button>
+          </div>
+          <div class="tiptap-area">
+            <span class="tiptap-placeholder">今日の出来事を書いてみましょう…</span>
+          </div>
+        </div>
+
+        <!-- Image upload -->
+        <div class="form-card">
+          <span class="form-label">画像（最大5枚・各10MBまで）</span>
+          <div class="image-grid">
+            <div class="image-preview">
+              🏕️
+              <button class="image-remove">✕</button>
+            </div>
+            <div class="image-preview">
+              🔥
+              <button class="image-remove">✕</button>
+            </div>
+            <div class="image-add">
+              <span>＋</span>
+              <span>追加</span>
+            </div>
+          </div>
+          <div class="note">画像を選択すると、クロップ画面が表示されます</div>
+        </div>
+
+        <!-- Cropper (shown after file select) -->
+        <div class="modal-overlay">
+          <div class="modal-card">
+            <div class="modal-header">画像を切り抜く</div>
+            <div class="cropper-area">
+              <div class="cropper-box">
+                <div class="cropper-grid">
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                  <div class="cropper-grid-line"></div>
+                </div>
+                <div class="cropper-handle"></div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-ghost" style="flex:1;">キャンセル</button>
+              <button class="btn-primary" style="flex:1; justify-content:center;">✓ 切り抜く</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%; padding:12px; justify-content:center; font-size:14px; border-radius:10px;">
+          投稿する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SCREEN 5: PostEditPage (edit) ====== -->
+  <div class="screen">
+    <div class="screen-label">Screen 4 — PostEditPage 編集（/posts/:id/edit）</div>
+    <div class="phone">
+      <div class="back-row">
+        <button class="back-btn">‹ キャンセル</button>
+        <span class="detail-title">投稿編集</span>
+      </div>
+
+      <div class="content-area">
+        <p class="note" style="margin-bottom:12px;">※ テキスト内容のみ編集できます</p>
+
+        <!-- Tiptap editor (prefilled) -->
+        <div class="form-card" style="padding:0; overflow:hidden; margin-bottom:16px;">
+          <div class="tiptap-toolbar">
+            <button class="tiptap-btn active">B</button>
+            <button class="tiptap-btn"><i>I</i></button>
+            <button class="tiptap-btn">≡</button>
+            <button class="tiptap-btn">•</button>
+            <button class="tiptap-btn">🔗</button>
+          </div>
+          <div class="tiptap-area">
+            今日は家族でバーベキューをしました！天気もよくて最高でした。<br><br>
+            子どもたちも大喜びで、<b>スパイスたっぷりのお肉</b>は絶品でした。<br>来年もまたやりたいです 🔥
+          </div>
+        </div>
+
+        <!-- Existing images (display only) -->
+        <div class="form-card">
+          <span class="form-label">既存画像（編集不可）</span>
+          <div class="image-grid">
+            <div class="image-preview">🏕️</div>
+            <div class="image-preview">🔥</div>
+            <div class="image-preview">🥩</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%; padding:12px; justify-content:center; font-size:14px; border-radius:10px;">
+          更新する
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:40px; padding:20px; background:#fff; border-radius:12px; border:1px solid #ddecea; max-width:700px;">
+  <h3 style="font-size:15px; font-weight:700; margin-bottom:12px; color:#37ab9d;">実装メモ</h3>
+  <ul style="font-size:12px; color:#586365; line-height:1.9; padding-left:16px;">
+    <li><b>PostListPage:</b> 投稿カード一覧、いいね/コメント数、投稿者アバター表示（useHomeMembers から引き当て）</li>
+    <li><b>PostDetailPage:</b> フル本文（HTML 描画）、画像ギャラリー、いいねボタン（楽観的更新）、コメント一覧・追加・削除</li>
+    <li><b>PostEditPage 作成:</b> Tiptap エディタ（StarterKit + Placeholder）、react-cropper による複数画像クロップ → FormData 送信</li>
+    <li><b>PostEditPage 編集:</b> テキスト内容のみ更新（PUT は JSON body）、既存画像は表示のみ</li>
+    <li><b>いいね楽観的更新:</b> onMutate でキャッシュ内 is_liked / like_count を即時反転、onError でロールバック</li>
+    <li><b>created_by:</b> バックエンドスキーマに追加 → フロントで homeMembers から nickname/avatar 表示</li>
+    <li><b>Tiptap 出力:</b> editor.getHTML() → FormData の content フィールドへ、表示は dangerouslySetInnerHTML</li>
+  </ul>
+</div>
+
+</body>
+</html>
