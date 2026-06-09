@@ -43,6 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 
 app.include_router(auth_router, prefix="/api/auth", tags=["認証"])

@@ -24,6 +24,23 @@ class ReminderService:
             )
         return reminder
 
+    async def _get_reminder_with_contents_or_403(
+        self, reminder_id: int, home_id: int
+    ) -> Reminder:
+        result = await self.db.execute(
+            select(Reminder)
+            .where(Reminder.id == reminder_id)
+            .options(selectinload(Reminder.contents))
+        )
+        reminder = result.scalar_one_or_none()
+        if not reminder:
+            raise HTTPException(status_code=404, detail="リマインダーが見つかりません")
+        if reminder.home_id != home_id:
+            raise HTTPException(
+                status_code=403, detail="このリマインダーへのアクセス権限がありません"
+            )
+        return reminder
+
     async def _get_content_or_403(self, content_id: int, home_id: int) -> ReminderContent:
         content = await self.db.get(ReminderContent, content_id)
         if not content:
@@ -66,11 +83,16 @@ class ReminderService:
         await log_activity(
             self.db, home_id, user_id, "リマインダーを作成しました", "reminder", reminder.id
         )
-        return ReminderResponse.model_validate(reminder)
+        result = await self.db.execute(
+            select(Reminder)
+            .where(Reminder.id == reminder.id)
+            .options(selectinload(Reminder.contents))
+        )
+        return ReminderResponse.model_validate(result.scalar_one())
 
     async def get_reminder(self, reminder_id: int, home_id: int) -> ReminderResponse:
         return ReminderResponse.model_validate(
-            await self._get_reminder_or_403(reminder_id, home_id)
+            await self._get_reminder_with_contents_or_403(reminder_id, home_id)
         )
 
     async def update_reminder(
@@ -81,7 +103,7 @@ class ReminderService:
         list_name: str,
         complete_flag: bool,
     ) -> ReminderResponse:
-        reminder = await self._get_reminder_or_403(reminder_id, home_id)
+        reminder = await self._get_reminder_with_contents_or_403(reminder_id, home_id)
         reminder.list_name = list_name
         reminder.complete_flag = complete_flag
         reminder.updated_by = user_id
