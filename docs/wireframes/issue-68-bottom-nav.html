@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #68 フッターアクションメニュー ワイヤーフレーム</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f0e8; color: #1a1f2e; }
+
+  h1 { font-size: 22px; font-weight: 700; padding: 24px 32px 8px; }
+  .subtitle { font-size: 13px; color: #586365; padding: 0 32px 24px; }
+
+  .screens { display: flex; flex-wrap: wrap; gap: 32px; padding: 0 32px 48px; align-items: flex-start; }
+  .screen { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.08); width: 360px; flex-shrink: 0; }
+  .screen-title { font-size: 12px; font-weight: 600; color: #37ab9d; text-transform: uppercase; letter-spacing: .06em; padding: 10px 16px; background: #f0fafa; border-bottom: 1px solid #d4eeeb; }
+
+  /* ── App Header ── */
+  .app-header { background: #fff; border-bottom: 1px solid #d4eeeb; padding: 0 16px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  .app-header-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .header-icons { display: flex; gap: 4px; align-items: center; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; background: none; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; }
+  .icon-btn:hover { background: #f0fafa; }
+  .avatar-btn { width: 36px; height: 36px; border-radius: 50%; background: #37ab9d; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .status-dot { position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; border: 2px solid #fff; }
+
+  /* ── Page Content ── */
+  .page-content { background: #f5f0e8; padding: 16px; min-height: 480px; }
+  .page-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+
+  /* ── Dashboard cards ── */
+  .dash-card { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .dash-card-title { font-size: 12px; color: #586365; margin-bottom: 6px; }
+  .member-row { display: flex; gap: 6px; }
+  .member-chip { display: flex; align-items: center; gap: 4px; background: #f0fafa; border-radius: 20px; padding: 4px 8px; font-size: 11px; }
+  .dot-green { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+  .dot-gray  { width: 6px; height: 6px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; }
+
+  /* ── Bottom Navigation Bar ── */
+  .bottom-nav {
+    background: #fff;
+    border-top: 1px solid #d4eeeb;
+    height: 64px;
+    display: flex;
+    align-items: stretch;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 6px 0;
+    position: relative;
+    transition: background .12s;
+  }
+  .nav-item:hover { background: #f0fafa; }
+  .nav-item.active .nav-icon { color: #37ab9d; }
+  .nav-item.active .nav-label { color: #37ab9d; font-weight: 600; }
+  .nav-icon { font-size: 20px; color: #94a3b8; line-height: 1; }
+  .nav-label { font-size: 10px; color: #586365; }
+  .nav-badge {
+    position: absolute;
+    top: 6px;
+    right: calc(50% - 16px);
+    background: #ef4444;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border: 2px solid #fff;
+  }
+  /* Active indicator line */
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 2px;
+    background: #37ab9d;
+    border-radius: 0 0 2px 2px;
+  }
+
+  /* ── Menu Page ── */
+  .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+  .menu-item {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    border: 1px solid transparent;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .menu-item:hover { border-color: #d4eeeb; box-shadow: 0 2px 8px rgba(55,171,157,.12); }
+  .menu-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .menu-item-label { font-size: 13px; font-weight: 500; text-align: center; }
+  .menu-item-sub { font-size: 11px; color: #586365; text-align: center; }
+
+  /* Icon wrap colors */
+  .ic-teal   { background: #e8f8f6; }
+  .ic-amber  { background: #fff7e6; }
+  .ic-blue   { background: #e8f0ff; }
+  .ic-rose   { background: #ffe8f0; }
+  .ic-purple { background: #f3e8ff; }
+  .ic-green  { background: #e8f8e8; }
+
+  /* ── Section label ── */
+  .section-label { font-size: 11px; font-weight: 600; color: #586365; text-transform: uppercase; letter-spacing: .06em; padding: 12px 16px 4px; }
+
+  /* ── Annotation box ── */
+  .annotations { padding: 0 32px 48px; }
+  .ann-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .ann-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; font-size: 13px; color: #1a1f2e; }
+  .ann-dot { width: 6px; height: 6px; border-radius: 50%; background: #37ab9d; margin-top: 5px; flex-shrink: 0; }
+  .ann-key { font-weight: 600; color: #37ab9d; min-width: 120px; }
+
+  /* Highlight */
+  .highlight-box { background: #e8f8f6; border-left: 3px solid #37ab9d; padding: 10px 14px; border-radius: 6px; margin: 8px 0 16px; font-size: 13px; color: #1a1f2e; }
+</style>
+</head>
+<body>
+
+<h1>Issue #68 フッターアクションメニュー</h1>
+<p class="subtitle">モバイル用ボトムナビゲーションバーと全機能メニューページのワイヤーフレーム</p>
+
+<div class="screens">
+
+  <!-- ① ダッシュボード + BottomNav (Home アクティブ) -->
+  <div class="screen">
+    <div class="screen-title">① ダッシュボード（ホームタブ選択中）</div>
+
+    <!-- Header -->
+    <div class="app-header">
+      <span class="app-header-title">わが家</span>
+      <div class="header-icons">
+        <button class="icon-btn" title="アクティビティ">🔔</button>
+        <div class="avatar-btn">A<span class="status-dot"></span></div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="page-content">
+      <div class="page-title">ダッシュボード</div>
+      <div class="dash-card">
+        <div class="dash-card-title">メンバーの状態</div>
+        <div class="member-row">
+          <div class="member-chip"><span class="dot-green"></span>お父さん</div>
+          <div class="member-chip"><span class="dot-gray"></span>お母さん</div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">今日の予定</div>
+        <div style="font-size:13px;color:#586365;">予定はありません</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">最近のお知らせ</div>
+        <div style="font-size:13px;color:#586365;">新着なし</div>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+      <button class="nav-item active">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">ホーム</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">チャット</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📰</span>
+        <span class="nav-label">投稿</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">カレンダー</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">⋯</span>
+        <span class="nav-label">メニュー</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ② チャット + BottomNav (Chat アクティブ) -->
+  <div class="screen">
+    <div class="screen-title">② チャットページ（チャットタブ選択中）</div>
+
+    <div class="app-header">
+      <span class="app-header-title">わが家のチャット</span>
+      <div class="header-icons">
+        <div class="avatar-btn">A<span class="status-dot"></span></div>
+      </div>
+    </div>
+
+    <div class="page-content" style="min-height:480px; display:flex; flex-direction:column; justify-content:flex-end; padding:12px;">
+      <div style="font-size:13px;color:#586365;text-align:center;margin-bottom:16px;">チャット履歴</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;background:#fff;border-radius:24px;border:1px solid #d4eeeb;padding:10px 14px;font-size:13px;color:#94a3b8;">メッセージを入力…</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:#37ab9d;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">▶</div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-item">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">ホーム</span>
+      </button>
+      <button class="nav-item active">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">チャット</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📰</span>
+        <span class="nav-label">投稿</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">カレンダー</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">⋯</span>
+        <span class="nav-label">メニュー</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ③ メニューページ (全機能一覧) -->
+  <div class="screen">
+    <div class="screen-title">③ メニューページ（メニュータブ選択中）</div>
+
+    <div class="app-header">
+      <span class="app-header-title">メニュー</span>
+      <div class="header-icons">
+        <button class="icon-btn">🔔</button>
+        <div class="avatar-btn">A<span class="status-dot"></span></div>
+      </div>
+    </div>
+
+    <div class="page-content" style="padding:0; background:#f5f0e8;">
+
+      <div class="section-label">機能一覧</div>
+      <div class="menu-grid">
+        <div class="menu-item">
+          <div class="menu-icon-wrap ic-teal">🔔</div>
+          <div class="menu-item-label">お知らせ</div>
+          <div class="menu-item-sub">ホームのお知らせ</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon-wrap ic-blue">✅</div>
+          <div class="menu-item-label">TODO</div>
+          <div class="menu-item-sub">やることリスト</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon-wrap ic-amber">⏰</div>
+          <div class="menu-item-label">リマインダー</div>
+          <div class="menu-item-sub">定期的なリマインド</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon-wrap ic-green">💰</div>
+          <div class="menu-item-label">家計</div>
+          <div class="menu-item-sub">支出・清算管理</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon-wrap ic-rose">🖼️</div>
+          <div class="menu-item-label">アルバム</div>
+          <div class="menu-item-sub">写真・思い出</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon-wrap ic-purple">📊</div>
+          <div class="menu-item-label">アクティビティ</div>
+          <div class="menu-item-sub">操作履歴ログ</div>
+        </div>
+      </div>
+
+      <div class="section-label">設定</div>
+      <div style="padding: 0 16px 16px;">
+        <div class="menu-item" style="flex-direction:row;gap:12px;padding:12px 14px;justify-content:flex-start;">
+          <div class="menu-icon-wrap ic-teal" style="width:40px;height:40px;border-radius:10px;font-size:18px;">⚙️</div>
+          <div>
+            <div class="menu-item-label" style="text-align:left;">ホーム設定</div>
+            <div class="menu-item-sub" style="text-align:left;">名前・画像・メンバー管理</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-item">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">ホーム</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">チャット</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📰</span>
+        <span class="nav-label">投稿</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">カレンダー</span>
+      </button>
+      <button class="nav-item active">
+        <span class="nav-icon">⋯</span>
+        <span class="nav-label">メニュー</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ④ バッジ付き（チャット未読あり） -->
+  <div class="screen">
+    <div class="screen-title">④ バッジ表示（チャット未読3件）</div>
+
+    <div class="app-header">
+      <span class="app-header-title">ダッシュボード</span>
+      <div class="header-icons">
+        <button class="icon-btn">🔔</button>
+        <div class="avatar-btn">A<span class="status-dot"></span></div>
+      </div>
+    </div>
+
+    <div class="page-content" style="min-height:480px;">
+      <div class="page-title">ダッシュボード</div>
+      <div class="highlight-box">
+        💡 チャットに未読3件あり → チャットアイコンにバッジが表示される
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">メンバーの状態</div>
+        <div class="member-row">
+          <div class="member-chip"><span class="dot-green"></span>お父さん</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-item active">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">ホーム</span>
+      </button>
+      <button class="nav-item" style="position:relative;">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">チャット</span>
+        <span class="nav-badge">3</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📰</span>
+        <span class="nav-label">投稿</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">カレンダー</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon">⋯</span>
+        <span class="nav-label">メニュー</span>
+      </button>
+    </div>
+  </div>
+
+</div><!-- /screens -->
+
+<!-- Annotations -->
+<div class="annotations">
+  <div class="ann-title">実装メモ</div>
+
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">コンポーネント名：</span>BottomNav（<code>frontend/src/components/layout/BottomNav.tsx</code>）</span>
+  </div>
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">タブ構成：</span>ホーム / チャット / 投稿 / カレンダー / メニュー の5タブ</span>
+  </div>
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">アクティブ検知：</span>useLocation + startsWith でルートマッチ。/menu はメニュータブのみ。</span>
+  </div>
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">バッジ（将来対応）：</span>未読カウントを受け取れる props 設計にしておく。今回はチャット未読バッジは実装しない。</span>
+  </div>
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">セーフエリア：</span>padding-bottom に <code>env(safe-area-inset-bottom)</code> を適用（iOS ホームインジケータ対策）</span>
+  </div>
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">表示条件：</span>md 未満（モバイル）のみ表示（<code>md:hidden</code>）。デスクトップはサイドバーを使う。</span>
+  </div>
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">メニューページ：</span><code>frontend/src/features/menu/pages/MenuPage.tsx</code> に実装。ルート：<code>/menu</code></span>
+  </div>
+  <div class="ann-item">
+    <span class="ann-dot"></span>
+    <span><span class="ann-key">AppLayout 変更：</span>main の下に &lt;BottomNav /&gt; を追加。下部コンテンツが隠れないよう <code>pb-16 md:pb-0</code> を main に付与。</span>
+  </div>
+</div>
+
+</body>
+</html>
