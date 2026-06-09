@@ -30,6 +30,9 @@ const ReminderContentEditPage = lazy(() => import("@/features/reminders/pages/Re
 const PostListPage = lazy(() => import("@/features/posts/pages/PostListPage"));
 const PostDetailPage = lazy(() => import("@/features/posts/pages/PostDetailPage"));
 const PostEditPage = lazy(() => import("@/features/posts/pages/PostEditPage"));
+const AlbumListPage = lazy(() => import("@/features/albums/pages/AlbumListPage"));
+const AlbumDetailPage = lazy(() => import("@/features/albums/pages/AlbumDetailPage"));
+const AlbumEditPage = lazy(() => import("@/features/albums/pages/AlbumEditPage"));
 
 export default function App() {
   return (
@@ -78,6 +81,10 @@ export default function App() {
                   <Route path="/posts/new" element={<PostEditPage />} />
                   <Route path="/posts/:id" element={<PostDetailPage />} />
                   <Route path="/posts/:id/edit" element={<PostEditPage />} />
+                  <Route path="/albums" element={<AlbumListPage />} />
+                  <Route path="/albums/new" element={<AlbumEditPage />} />
+                  <Route path="/albums/:id" element={<AlbumDetailPage />} />
+                  <Route path="/albums/:id/edit" element={<AlbumEditPage />} />
                 </Route>
               </Route>
             </Route>
