@@ -18,7 +18,7 @@ async def get_unread_count(
     db: AsyncSession = Depends(get_db),
 ) -> UnreadCountResponse:
     count = await ActivityService(db).get_unread_count(current_home.id, current_user.id)
-    return UnreadCountResponse(unread_count=count)
+    return UnreadCountResponse(count=count)
 
 
 @router.post("/mark-as-read", status_code=204)
@@ -33,6 +33,7 @@ async def mark_as_read(
 @router.get("/{home_id}", response_model=list[ActivityLogResponse])
 async def get_activity_logs(
     home_id: int,
+    current_user: User = Depends(get_current_user),
     current_home: Home = Depends(get_current_home),
     db: AsyncSession = Depends(get_db),
 ) -> list[ActivityLogResponse]:
@@ -40,4 +41,4 @@ async def get_activity_logs(
         raise HTTPException(
             status_code=403, detail="現在選択中のホームのアクティビティのみ取得できます"
         )
-    return await ActivityService(db).get_logs(home_id)
+    return await ActivityService(db).get_logs(home_id, current_user.id)

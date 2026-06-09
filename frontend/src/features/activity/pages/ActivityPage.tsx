@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -22,7 +22,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 function ActivityCard({ log }: { log: ActivityLog }) {
-  const initial = log.nickname.charAt(0);
+  const initial = log.nickname?.charAt(0) ?? "?";
   const categoryLabel = CATEGORY_LABEL[log.target_type] ?? log.target_type;
   const relativeTime = formatDistanceToNow(parseISO(log.created_at), {
     addSuffix: true,
@@ -77,10 +77,14 @@ function ActivityCard({ log }: { log: ActivityLog }) {
 export default function ActivityPage() {
   const { data, isLoading, isError } = useActivityLogs();
   const markAsRead = useMarkActivityAsRead();
+  const markedRef = useRef(false);
 
   useEffect(() => {
-    markAsRead.mutate();
-  }, []);
+    if (data && !markedRef.current) {
+      markedRef.current = true;
+      markAsRead.mutate();
+    }
+  }, [data]);
 
   const unread = data?.filter((l) => !l.is_read) ?? [];
   const read = data?.filter((l) => l.is_read) ?? [];

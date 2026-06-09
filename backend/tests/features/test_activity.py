@@ -48,7 +48,7 @@ async def test_get_activity_logs_empty(client: AsyncClient, db: AsyncSession) ->
 
 
 async def test_get_activity_logs(client: AsyncClient, db: AsyncSession) -> None:
-    """ログが存在する場合に一覧を返す"""
+    """ログが存在する場合に一覧を返す（target_type / is_read / nickname 含む）"""
     user_id = await _register_and_login(client)
     home_id = await _create_home_and_select(client, db, user_id)
 
@@ -59,9 +59,10 @@ async def test_get_activity_logs(client: AsyncClient, db: AsyncSession) -> None:
     data = resp.json()
     assert len(data) == 1
     assert data[0]["action"] == "テストアクション"
-    assert data[0]["target_model"] == "test_model"
+    assert data[0]["target_type"] == "test_model"
     assert data[0]["target_id"] == 1
     assert data[0]["nickname"] == REGISTER_PAYLOAD["nickname"]
+    assert data[0]["is_read"] is False
 
 
 async def test_get_activity_logs_wrong_home(client: AsyncClient, db: AsyncSession) -> None:
@@ -77,6 +78,24 @@ async def test_get_activity_logs_wrong_home(client: AsyncClient, db: AsyncSessio
     assert resp.status_code == 403
 
 
+async def test_get_activity_logs_is_read_after_mark(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """mark-as-read 後は is_read が True になる"""
+    user_id = await _register_and_login(client)
+    home_id = await _create_home_and_select(client, db, user_id)
+
+    await log_activity(db, home_id, user_id, "アクション", "test_model")
+
+    before = (await client.get(f"/api/activity/{home_id}")).json()
+    assert before[0]["is_read"] is False
+
+    await client.post("/api/activity/mark-as-read")
+
+    after = (await client.get(f"/api/activity/{home_id}")).json()
+    assert after[0]["is_read"] is True
+
+
 # ─── GET /api/activity/unread-count ───────────────────────────────────────────
 
 
@@ -87,7 +106,7 @@ async def test_unread_count_empty(client: AsyncClient, db: AsyncSession) -> None
 
     resp = await client.get("/api/activity/unread-count")
     assert resp.status_code == 200
-    assert resp.json()["unread_count"] == 0
+    assert resp.json()["count"] == 0
 
 
 async def test_unread_count_with_logs(client: AsyncClient, db: AsyncSession) -> None:
@@ -100,7 +119,7 @@ async def test_unread_count_with_logs(client: AsyncClient, db: AsyncSession) -> 
 
     resp = await client.get("/api/activity/unread-count")
     assert resp.status_code == 200
-    assert resp.json()["unread_count"] == 2
+    assert resp.json()["count"] == 2
 
 
 # ─── POST /api/activity/mark-as-read ──────────────────────────────────────────
@@ -117,7 +136,7 @@ async def test_mark_as_read(client: AsyncClient, db: AsyncSession) -> None:
     assert resp.status_code == 204
 
     count_resp = await client.get("/api/activity/unread-count")
-    assert count_resp.json()["unread_count"] == 0
+    assert count_resp.json()["count"] == 0
 
 
 async def test_mark_as_read_idempotent(client: AsyncClient, db: AsyncSession) -> None:
@@ -151,13 +170,17 @@ async def test_activity_full_flow(client: AsyncClient, db: AsyncSession) -> None
 
     await log_activity(db, home_id, user_id, "フロー確認", "test_model")
 
-    count_before = (await client.get("/api/activity/unread-count")).json()["unread_count"]
+    count_before = (await client.get("/api/activity/unread-count")).json()["count"]
     assert count_before == 1
 
     logs = (await client.get(f"/api/activity/{home_id}")).json()
     assert logs[0]["action"] == "フロー確認"
+    assert logs[0]["is_read"] is False
 
     await client.post("/api/activity/mark-as-read")
 
-    count_after = (await client.get("/api/activity/unread-count")).json()["unread_count"]
+    count_after = (await client.get("/api/activity/unread-count")).json()["count"]
     assert count_after == 0
+
+    logs_after = (await client.get(f"/api/activity/{home_id}")).json()
+    assert logs_after[0]["is_read"] is True

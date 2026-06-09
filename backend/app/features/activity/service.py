@@ -12,10 +12,20 @@ class ActivityService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def get_logs(self, home_id: int) -> list[ActivityLogResponse]:
+    async def get_logs(self, home_id: int, user_id: int) -> list[ActivityLogResponse]:
         result = await self.db.execute(
-            select(ActivityLog, User.nickname)
+            select(
+                ActivityLog,
+                User.nickname,
+                User.icon_path,
+                ActivityReadStatus.id,
+            )
             .outerjoin(User, User.id == ActivityLog.user_id)
+            .outerjoin(
+                ActivityReadStatus,
+                (ActivityReadStatus.activity_id == ActivityLog.id)
+                & (ActivityReadStatus.user_id == user_id),
+            )
             .where(ActivityLog.home_id == home_id)
             .order_by(ActivityLog.created_at.desc())
             .limit(50)
@@ -24,13 +34,15 @@ class ActivityService:
             ActivityLogResponse(
                 id=log.id,
                 action=log.action,
-                target_model=log.target_model,
+                target_type=log.target_model,
                 target_id=log.target_id,
                 user_id=log.user_id,
                 nickname=nickname,
+                icon_url=icon_path,
+                is_read=read_id is not None,
                 created_at=log.created_at,
             )
-            for log, nickname in result.all()
+            for log, nickname, icon_path, read_id in result.all()
         ]
 
     async def get_unread_count(self, home_id: int, user_id: int) -> int:
