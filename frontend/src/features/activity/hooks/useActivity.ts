@@ -52,7 +52,6 @@ export const useMarkActivityAsRead = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["activity-unread-count", homeId] });
-      qc.invalidateQueries({ queryKey: ["activity-logs", homeId] });
     },
   });
 };

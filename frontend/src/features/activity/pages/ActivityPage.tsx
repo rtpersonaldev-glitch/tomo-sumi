@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -77,10 +77,14 @@ function ActivityCard({ log }: { log: ActivityLog }) {
 export default function ActivityPage() {
   const { data, isLoading, isError } = useActivityLogs();
   const markAsRead = useMarkActivityAsRead();
+  const markedRef = useRef(false);
 
   useEffect(() => {
-    markAsRead.mutate();
-  }, []);
+    if (data && !markedRef.current) {
+      markedRef.current = true;
+      markAsRead.mutate();
+    }
+  }, [data]);
 
   const unread = data?.filter((l) => !l.is_read) ?? [];
   const read = data?.filter((l) => l.is_read) ?? [];
