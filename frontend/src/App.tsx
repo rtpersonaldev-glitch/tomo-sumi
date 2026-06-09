@@ -27,6 +27,9 @@ const TodoEditPage = lazy(() => import("@/features/todos/pages/TodoEditPage"));
 const ReminderListPage = lazy(() => import("@/features/reminders/pages/ReminderListPage"));
 const ReminderGroupEditPage = lazy(() => import("@/features/reminders/pages/ReminderGroupEditPage"));
 const ReminderContentEditPage = lazy(() => import("@/features/reminders/pages/ReminderContentEditPage"));
+const PostListPage = lazy(() => import("@/features/posts/pages/PostListPage"));
+const PostDetailPage = lazy(() => import("@/features/posts/pages/PostDetailPage"));
+const PostEditPage = lazy(() => import("@/features/posts/pages/PostEditPage"));
 
 export default function App() {
   return (
@@ -71,6 +74,10 @@ export default function App() {
                   <Route path="/reminders/:id/edit" element={<ReminderGroupEditPage />} />
                   <Route path="/reminders/:id/contents/new" element={<ReminderContentEditPage />} />
                   <Route path="/reminders/contents/:contentId/edit" element={<ReminderContentEditPage />} />
+                  <Route path="/posts" element={<PostListPage />} />
+                  <Route path="/posts/new" element={<PostEditPage />} />
+                  <Route path="/posts/:id" element={<PostDetailPage />} />
+                  <Route path="/posts/:id/edit" element={<PostEditPage />} />
                 </Route>
               </Route>
             </Route>

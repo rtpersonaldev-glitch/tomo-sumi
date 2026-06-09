@@ -22,6 +22,7 @@ class PostListResponse(BaseModel):
     comment_count: int
     is_liked: bool
     created_at: datetime
+    created_by: int | None
 
 
 class PostDetailResponse(BaseModel):
@@ -34,6 +35,7 @@ class PostDetailResponse(BaseModel):
     comments: list[PostCommentResponse]
     tags: list[str]
     created_at: datetime
+    created_by: int | None
 
 
 class PostUpdateRequest(BaseModel):

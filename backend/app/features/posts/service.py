@@ -60,6 +60,7 @@ class PostService:
             comment_count=len(post.comments),
             is_liked=any(like.user_id == user_id for like in post.likes),
             created_at=post.created_at,
+            created_by=post.created_by,
         )
 
     def _to_detail_response(self, post: Post, user_id: int) -> PostDetailResponse:
@@ -73,6 +74,7 @@ class PostService:
             comments=[PostCommentResponse.model_validate(c) for c in post.comments],
             tags=[link.tag.name for link in post.tag_links],
             created_at=post.created_at,
+            created_by=post.created_by,
         )
 
     async def list_posts(
