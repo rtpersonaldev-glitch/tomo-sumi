@@ -17,16 +17,6 @@ class ReminderUpdateRequest(ReminderBase):
     pass
 
 
-class ReminderResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    home_id: int
-    list_name: str
-    complete_flag: bool
-    created_at: datetime
-
-
 class ReminderContentBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=50)
     memo: str = Field("", max_length=100)
@@ -54,3 +44,16 @@ class ReminderContentResponse(BaseModel):
     time: dt.time | None
     repeat: str | None
     is_active: bool
+    created_by: int | None
+
+
+class ReminderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    home_id: int
+    list_name: str
+    complete_flag: bool
+    created_at: datetime
+    created_by: int | None
+    contents: list[ReminderContentResponse] = []

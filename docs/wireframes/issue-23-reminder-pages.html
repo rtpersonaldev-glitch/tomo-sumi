@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #23 ワイヤーフレーム — リマインダーフロントエンド</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f3ee;
+    color: #1c2233;
+    padding: 32px 24px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #1c2233; }
+  .subtitle { color: #586365; font-size: 13px; margin-bottom: 40px; }
+  .section { margin-bottom: 60px; }
+  .section-title {
+    font-size: 13px; font-weight: 600; color: #37ab9d; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 16px; border-bottom: 2px solid #37ab9d;
+    padding-bottom: 6px;
+  }
+  .screens { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+
+  /* Phone frame */
+  .phone {
+    background: #fff;
+    border: 2px solid #d0d5d4;
+    border-radius: 16px;
+    width: 340px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+  .phone-label {
+    background: #f0faf9;
+    border-bottom: 1px solid #d0d5d4;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #37ab9d;
+    letter-spacing: 0.05em;
+  }
+  .phone-body { padding: 16px; }
+
+  /* Components */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .page-title { font-size: 18px; font-weight: 700; }
+  .back-link { font-size: 12px; color: #37ab9d; cursor: pointer; }
+  .btn-primary {
+    background: #37ab9d; color: #fff; border: none; border-radius: 8px;
+    padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-outline {
+    background: #fff; color: #1c2233; border: 1.5px solid #d0d5d4;
+    border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-danger {
+    background: #fff; color: #c0392b; border: 1.5px solid #f5c6c2;
+    border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+
+  /* Group card */
+  .group-card {
+    border: 1.5px solid #d0d5d4; border-radius: 12px; overflow: hidden;
+    margin-bottom: 14px; background: #fff;
+  }
+  .group-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; background: #f0faf9; border-bottom: 1px solid #d0d5d4;
+  }
+  .group-name { font-weight: 700; font-size: 15px; }
+  .group-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 14px; color: #586365; padding: 2px 4px; border-radius: 4px;
+  }
+  .icon-btn:hover { background: #e8f5f3; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    border-radius: 100px; padding: 2px 8px; font-size: 10px; font-weight: 700;
+  }
+  .badge-success { background: #d4f1ed; color: #1a7a70; }
+  .badge-progress { background: #fff3cd; color: #856404; }
+
+  /* Content item rows */
+  .content-list { padding: 0 14px; }
+  .content-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid #f0f0f0;
+  }
+  .content-item:last-child { border-bottom: none; }
+  .toggle-box {
+    width: 20px; height: 20px; border-radius: 5px; border: 2px solid #37ab9d;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: #fff; cursor: pointer;
+  }
+  .toggle-box.checked { background: #37ab9d; border-color: #37ab9d; color: #fff; font-size: 12px; }
+  .content-text { flex: 1; font-size: 13px; }
+  .content-text.done { text-decoration: line-through; color: #999; }
+  .content-meta { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .repeat-badge {
+    font-size: 9px; padding: 1px 5px; border-radius: 100px;
+    background: #e8f5f3; color: #37ab9d; font-weight: 600;
+  }
+  .time-label { font-size: 10px; color: #586365; }
+
+  .add-item-row {
+    padding: 10px 14px;
+    border-top: 1px dashed #d0d5d4;
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer; color: #37ab9d; font-size: 12px; font-weight: 600;
+  }
+
+  .card-footer { padding: 8px 14px; background: #fafaf9; font-size: 11px; color: #999; }
+
+  /* Form elements */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; margin-bottom: 6px; display: block; color: #1c2233; }
+  .form-label .required { color: #c0392b; margin-left: 2px; }
+  .form-input {
+    width: 100%; border: 1.5px solid #d0d5d4; border-radius: 8px;
+    padding: 9px 12px; font-size: 13px; color: #1c2233; background: #fff;
+    outline: none;
+  }
+  .form-input:focus { border-color: #37ab9d; box-shadow: 0 0 0 2px rgba(55,171,157,0.2); }
+  .form-textarea {
+    width: 100%; border: 1.5px solid #d0d5d4; border-radius: 8px;
+    padding: 9px 12px; font-size: 13px; color: #1c2233; background: #fff;
+    resize: none; height: 64px; outline: none; font-family: inherit;
+  }
+  .char-hint { font-size: 11px; color: #999; text-align: right; margin-top: 3px; }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  .form-select {
+    width: 100%; border: 1.5px solid #d0d5d4; border-radius: 8px;
+    padding: 9px 12px; font-size: 13px; background: #fff; outline: none; cursor: pointer;
+  }
+  .repeat-options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .repeat-chip {
+    border: 1.5px solid #d0d5d4; border-radius: 100px; padding: 5px 12px;
+    font-size: 12px; cursor: pointer; background: #fff;
+  }
+  .repeat-chip.selected { border-color: #37ab9d; background: #e8f5f3; color: #37ab9d; font-weight: 700; }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+  }
+  .toggle-label { font-size: 13px; font-weight: 600; }
+  .toggle-sub { font-size: 11px; color: #999; }
+  .toggle-switch {
+    width: 40px; height: 22px; background: #37ab9d; border-radius: 100px;
+    position: relative; cursor: pointer;
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 3px; right: 3px;
+    width: 16px; height: 16px; background: #fff; border-radius: 50%;
+  }
+  .toggle-switch.off { background: #d0d5d4; }
+  .toggle-switch.off::after { right: auto; left: 3px; }
+
+  .submit-btn {
+    width: 100%; background: #37ab9d; color: #fff; border: none; border-radius: 8px;
+    padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px;
+  }
+  .submit-btn:disabled { opacity: 0.6; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 40px 16px; color: #999;
+    font-size: 12px;
+  }
+  .empty-icon { font-size: 36px; display: block; margin-bottom: 8px; }
+
+  /* Section divider */
+  .divider { height: 1px; background: #eee; margin: 12px 0; }
+
+  /* Note */
+  .note-box {
+    background: #fff3cd; border: 1px solid #ffc042; border-radius: 8px;
+    padding: 10px 14px; font-size: 12px; color: #856404; margin-top: 12px;
+  }
+  .note-box strong { display: block; margin-bottom: 4px; }
+
+  .legend { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #586365; }
+
+  /* Avatar chip */
+  .avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .avatar-sm { width: 16px; height: 16px; font-size: 8px; }
+  .avatar-md { width: 20px; height: 20px; font-size: 10px; }
+  .avatar-teal { background: #37ab9d; }
+  .avatar-amber { background: #e0903c; }
+  .avatar-violet { background: #7c69c4; }
+  .creator-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: #586365;
+  }
+</style>
+</head>
+<body>
+
+<h1>Issue #23 ワイヤーフレーム — リマインダーフロントエンド実装</h1>
+<p class="subtitle">3ページ構成: ReminderListPage / ReminderGroupEditPage / ReminderContentEditPage</p>
+
+<!-- ==================== Page 1: List ==================== -->
+<div class="section">
+  <div class="section-title">1. ReminderListPage — /reminders</div>
+  <div class="screens">
+
+    <!-- List: with items -->
+    <div class="phone">
+      <div class="phone-label">ReminderListPage（グループあり）</div>
+      <div class="phone-body">
+        <div class="page-header">
+          <span class="page-title">リマインダー</span>
+          <button class="btn-primary">＋ 作成</button>
+        </div>
+
+        <!-- Group card 1 -->
+        <div class="group-card">
+          <div class="group-card-header">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span class="group-name">朝の支度</span>
+              <!-- グループ登録者 -->
+              <span class="creator-chip">
+                <span class="avatar avatar-md avatar-teal">た</span>
+                たろう · 2026年6月1日 作成
+              </span>
+            </div>
+            <div class="group-actions">
+              <button class="icon-btn" title="編集">✏️</button>
+              <button class="icon-btn" title="削除">🗑️</button>
+            </div>
+          </div>
+          <div class="content-list">
+            <!-- is_active=true (checked) · 項目登録者: たろう -->
+            <div class="content-item">
+              <div class="toggle-box checked">✓</div>
+              <div style="flex:1; min-width:0;">
+                <div class="content-text done">起きる</div>
+                <span class="creator-chip" style="margin-top:1px;">
+                  <span class="avatar avatar-sm avatar-teal">た</span>
+                  たろう
+                </span>
+              </div>
+              <div class="content-meta">
+                <span class="time-label">6:30</span>
+                <span class="repeat-badge">毎日</span>
+              </div>
+            </div>
+            <!-- is_active=false · 登録者: はなこ -->
+            <div class="content-item">
+              <div class="toggle-box"></div>
+              <div style="flex:1; min-width:0;">
+                <div class="content-text">朝食を食べる</div>
+                <span class="creator-chip" style="margin-top:1px;">
+                  <span class="avatar avatar-sm avatar-amber">は</span>
+                  はなこ
+                </span>
+              </div>
+              <div class="content-meta">
+                <span class="time-label">7:00</span>
+                <span class="repeat-badge">毎日</span>
+              </div>
+            </div>
+            <!-- 登録者: たろう -->
+            <div class="content-item">
+              <div class="toggle-box"></div>
+              <div style="flex:1; min-width:0;">
+                <div class="content-text">歯磨き</div>
+                <span class="creator-chip" style="margin-top:1px;">
+                  <span class="avatar avatar-sm avatar-teal">た</span>
+                  たろう
+                </span>
+              </div>
+              <div class="content-meta">
+                <span class="repeat-badge">毎日</span>
+              </div>
+            </div>
+          </div>
+          <div class="add-item-row">
+            ＋ 項目を追加
+          </div>
+        </div>
+
+        <!-- Group card 2 (all done) -->
+        <div class="group-card">
+          <div class="group-card-header">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="group-name">ゴミ出し</span>
+                <span class="badge badge-success">✓ 全完了</span>
+              </div>
+              <span class="creator-chip">
+                <span class="avatar avatar-md avatar-amber">は</span>
+                はなこ · 2026年5月15日 作成
+              </span>
+            </div>
+            <div class="group-actions">
+              <button class="icon-btn">✏️</button>
+              <button class="icon-btn">🗑️</button>
+            </div>
+          </div>
+          <div class="content-list">
+            <div class="content-item">
+              <div class="toggle-box checked">✓</div>
+              <div style="flex:1; min-width:0;">
+                <div class="content-text done">燃えるゴミ</div>
+                <span class="creator-chip" style="margin-top:1px;">
+                  <span class="avatar avatar-sm avatar-amber">は</span>
+                  はなこ
+                </span>
+              </div>
+              <div class="content-meta">
+                <span class="repeat-badge">毎週</span>
+              </div>
+            </div>
+            <div class="content-item">
+              <div class="toggle-box checked">✓</div>
+              <div style="flex:1; min-width:0;">
+                <div class="content-text done">資源ゴミ</div>
+                <span class="creator-chip" style="margin-top:1px;">
+                  <span class="avatar avatar-sm avatar-violet">け</span>
+                  けんじ
+                </span>
+              </div>
+              <div class="content-meta">
+                <span class="repeat-badge">毎月</span>
+              </div>
+            </div>
+          </div>
+          <div class="add-item-row">＋ 項目を追加</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- List: empty state -->
+    <div class="phone">
+      <div class="phone-label">ReminderListPage（空）</div>
+      <div class="phone-body">
+        <div class="page-header">
+          <span class="page-title">リマインダー</span>
+          <button class="btn-primary">＋ 作成</button>
+        </div>
+        <div class="empty-state">
+          <span class="empty-icon">🔔</span>
+          まだリマインダーがありません
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note-box" style="max-width: 728px; margin-top: 16px;">
+    <strong>ポイント</strong>
+    <ul style="margin-left: 16px; line-height: 1.8;">
+      <li>チェックボックス（toggle_box）= ReminderContent.is_active のトグル → 楽観的更新</li>
+      <li>チェック済み（is_active=true）→ テキスト打ち消し線</li>
+      <li>全項目が is_active=true → グループに「全完了」バッジ</li>
+      <li>繰り返しバッジ: repeat が "daily"→毎日 / "weekly"→毎週 / "monthly"→毎月</li>
+      <li>「＋ 項目を追加」→ <code>/reminders/:id/contents/new</code> へ遷移</li>
+      <li>✏️ (グループ) → <code>/reminders/:id/edit</code> へ遷移</li>
+      <li><strong>グループカードヘッダー</strong>: 登録者アバター（イニシャル or アイコン画像）+ ニックネーム + 作成日</li>
+      <li><strong>コンテンツ行</strong>: タイトルの下に登録者アバター + ニックネームを小さく表示</li>
+      <li>登録者情報は <code>created_by: int | None</code> をバックエンドスキーマに追加して取得</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== Page 2: Group Edit ==================== -->
+<div class="section">
+  <div class="section-title">2. ReminderGroupEditPage — /reminders/new &amp; /reminders/:id/edit</div>
+  <div class="screens">
+
+    <!-- Create -->
+    <div class="phone">
+      <div class="phone-label">グループ作成（/reminders/new）</div>
+      <div class="phone-body">
+        <div class="page-header" style="margin-bottom: 20px;">
+          <span class="back-link">‹ キャンセル</span>
+          <span class="page-title" style="font-size:16px;">グループ作成</span>
+          <span style="width:60px;"></span>
+        </div>
+
+        <div style="border: 1.5px solid #d0d5d4; border-radius: 12px; padding: 16px; background:#fff;">
+          <div class="form-group">
+            <label class="form-label">グループ名 <span class="required">*</span></label>
+            <input class="form-input" type="text" placeholder="例: 朝の支度" />
+            <div class="char-hint">0 / 50</div>
+          </div>
+
+          <button class="submit-btn">作成する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit -->
+    <div class="phone">
+      <div class="phone-label">グループ編集（/reminders/:id/edit）</div>
+      <div class="phone-body">
+        <div class="page-header" style="margin-bottom: 20px;">
+          <span class="back-link">‹ キャンセル</span>
+          <span class="page-title" style="font-size:16px;">グループ編集</span>
+          <span style="width:60px;"></span>
+        </div>
+
+        <div style="border: 1.5px solid #d0d5d4; border-radius: 12px; padding: 16px; background:#fff;">
+          <div class="form-group">
+            <label class="form-label">グループ名 <span class="required">*</span></label>
+            <input class="form-input" type="text" value="朝の支度" />
+            <div class="char-hint">6 / 50</div>
+          </div>
+
+          <button class="submit-btn">更新する</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== Page 3: Content Edit ==================== -->
+<div class="section">
+  <div class="section-title">3. ReminderContentEditPage — /reminders/:id/contents/new &amp; /reminders/contents/:contentId/edit</div>
+  <div class="screens">
+
+    <!-- Create content -->
+    <div class="phone">
+      <div class="phone-label">内容作成（/reminders/:id/contents/new）</div>
+      <div class="phone-body">
+        <div class="page-header" style="margin-bottom: 16px;">
+          <span class="back-link">‹ キャンセル</span>
+          <span class="page-title" style="font-size:16px;">項目追加</span>
+          <span style="width:60px;"></span>
+        </div>
+
+        <div style="border: 1.5px solid #d0d5d4; border-radius: 12px; padding: 16px; background:#fff;">
+
+          <div class="form-group">
+            <label class="form-label">タイトル <span class="required">*</span></label>
+            <input class="form-input" type="text" placeholder="例: 起きる" />
+            <div class="char-hint">0 / 50</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">メモ</label>
+            <textarea class="form-textarea" placeholder="任意のメモ…"></textarea>
+            <div class="char-hint">0 / 100</div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">日付</label>
+              <input class="form-input" type="date" style="font-size:12px;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">通知時刻</label>
+              <input class="form-input" type="time" style="font-size:12px;" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">繰り返し</label>
+            <div class="repeat-options">
+              <div class="repeat-chip selected">なし</div>
+              <div class="repeat-chip">毎日</div>
+              <div class="repeat-chip">毎週</div>
+              <div class="repeat-chip">毎月</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">有効にする</div>
+              <div class="toggle-sub">チェックをオンにして有効化</div>
+            </div>
+            <div class="toggle-switch off"></div>
+          </div>
+
+          <button class="submit-btn" style="margin-top:16px;">追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit content (filled) -->
+    <div class="phone">
+      <div class="phone-label">内容編集（/reminders/contents/:contentId/edit）</div>
+      <div class="phone-body">
+        <div class="page-header" style="margin-bottom: 16px;">
+          <span class="back-link">‹ キャンセル</span>
+          <span class="page-title" style="font-size:16px;">項目編集</span>
+          <span style="width:60px;"></span>
+        </div>
+
+        <div style="border: 1.5px solid #d0d5d4; border-radius: 12px; padding: 16px; background:#fff;">
+
+          <div class="form-group">
+            <label class="form-label">タイトル <span class="required">*</span></label>
+            <input class="form-input" type="text" value="起きる" />
+            <div class="char-hint">3 / 50</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">メモ</label>
+            <textarea class="form-textarea">目覚まし2回</textarea>
+            <div class="char-hint">6 / 100</div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">日付</label>
+              <input class="form-input" type="date" value="2026-06-09" style="font-size:12px;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">通知時刻</label>
+              <input class="form-input" type="time" value="06:30" style="font-size:12px;" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">繰り返し</label>
+            <div class="repeat-options">
+              <div class="repeat-chip">なし</div>
+              <div class="repeat-chip selected">毎日</div>
+              <div class="repeat-chip">毎週</div>
+              <div class="repeat-chip">毎月</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">有効にする</div>
+              <div class="toggle-sub">現在: 有効</div>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+
+          <button class="submit-btn" style="margin-top:16px;">更新する</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== Route summary ==================== -->
+<div class="section">
+  <div class="section-title">ルート構成まとめ</div>
+  <table style="border-collapse:collapse; max-width:700px; font-size:13px;">
+    <tr style="background:#f0faf9;">
+      <th style="border:1px solid #d0d5d4; padding:8px 12px; text-align:left;">パス</th>
+      <th style="border:1px solid #d0d5d4; padding:8px 12px; text-align:left;">コンポーネント</th>
+      <th style="border:1px solid #d0d5d4; padding:8px 12px; text-align:left;">用途</th>
+    </tr>
+    <tr>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">/reminders</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">ReminderListPage</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">グループ一覧・内容チェック</td>
+    </tr>
+    <tr style="background:#fafaf9;">
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">/reminders/new</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">ReminderGroupEditPage</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">グループ新規作成</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">/reminders/:id/edit</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">ReminderGroupEditPage</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">グループ編集</td>
+    </tr>
+    <tr style="background:#fafaf9;">
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">/reminders/:id/contents/new</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">ReminderContentEditPage</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">内容（項目）新規作成</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">/reminders/contents/:contentId/edit</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">ReminderContentEditPage</td>
+      <td style="border:1px solid #d0d5d4; padding:8px 12px;">内容（項目）編集</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>

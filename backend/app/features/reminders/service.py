@@ -2,6 +2,7 @@ import datetime as dt
 
 from fastapi import HTTPException
 from sqlalchemy import asc, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.reminders.schemas import ReminderContentResponse, ReminderResponse
@@ -42,6 +43,7 @@ class ReminderService:
         result = await self.db.execute(
             select(Reminder)
             .where(Reminder.home_id == home_id)
+            .options(selectinload(Reminder.contents))
             .order_by(asc(Reminder.created_at))
         )
         return [ReminderResponse.model_validate(r) for r in result.scalars().all()]
