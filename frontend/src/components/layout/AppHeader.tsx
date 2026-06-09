@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
 import { useAuthStore } from "@/store/authStore";
 import { useToggleStatus } from "@/features/settings/hooks/useSettings";
 import { useLogout } from "@/features/auth/hooks/useAuth";
+import { useUnreadActivityCount } from "@/features/activity/hooks/useActivity";
 
 /* ── ユーザーメニュー（ボトムシート） ────────────────────────────── */
 
@@ -170,12 +171,17 @@ function UserMenuSheet({ onClose }: UserMenuSheetProps) {
 
 export function AppHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const home = useAuthStore((s) => s.home);
+  const { data: unreadData } = useUnreadActivityCount();
+  const unreadCount = unreadData?.count ?? 0;
 
   if (!user) return null;
 
   const isAtHome = user.status === "at_home";
+
+  const badgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
 
   return (
     <>
@@ -183,6 +189,24 @@ export function AppHeader() {
         <span className="flex-1 truncate pr-3 text-base font-semibold">
           {home?.name ?? "ホーム"}
         </span>
+
+        {/* Activity bell */}
+        <button
+          type="button"
+          onClick={() => navigate("/activity")}
+          className="relative mr-1 flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={unreadCount > 0 ? `アクティビティ（未読${unreadCount}件）` : "アクティビティ"}
+        >
+          <Bell className="h-5 w-5 text-foreground" />
+          {unreadCount > 0 && (
+            <span
+              className="absolute right-0.5 top-0.5 flex min-w-[16px] items-center justify-center rounded-full bg-destructive px-[3px] py-px text-[9px] font-extrabold leading-none text-white ring-2 ring-card"
+              aria-hidden="true"
+            >
+              {badgeLabel}
+            </span>
+          )}
+        </button>
 
         <button
           type="button"
