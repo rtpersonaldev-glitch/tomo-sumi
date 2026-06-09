@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #28 ワイヤーフレーム — 設定画面</title>
+<style>
+  :root {
+    --primary: #37ab9d;
+    --primary-light: #4dc0b2;
+    --primary-bg: #e8f6f5;
+    --accent: #ffc042;
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --border: #d6eeec;
+    --muted: #586365;
+    --muted-bg: #eef0f0;
+    --destructive: #dc2626;
+    --green: #22c55e;
+    --green-bg: #dcfce7;
+    --green-text: #166534;
+    --slate: #94a3b8;
+    --text: #1a1f2e;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f0f0f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--text);
+    padding: 32px 16px;
+  }
+  h2.section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888;
+    margin: 40px 0 16px;
+    padding-left: 4px;
+  }
+  h2.section-title:first-child { margin-top: 0; }
+
+  /* ── Phone shell ─────────────────────────────────── */
+  .screens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    align-items: flex-start;
+  }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .screen-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-align: center;
+    max-width: 200px;
+  }
+  .phone {
+    width: 360px;
+    background: var(--bg);
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+    border: 6px solid #1a1f2e;
+    position: relative;
+  }
+  .phone.short { /* for modals / shorter content */ }
+
+  /* ── Header ──────────────────────────────────────── */
+  .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-title { flex: 1; font-size: 15px; font-weight: 600; }
+  .header-subtitle { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .avatar-btn {
+    position: relative;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 2px;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .avatar img {
+    width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  }
+  .status-dot {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid var(--card);
+  }
+  .status-dot.at-home { background: var(--green); }
+  .status-dot.away { background: var(--slate); }
+
+  .notif-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--muted-bg);
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    position: relative;
+  }
+  .notif-badge {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 8px; height: 8px;
+    background: var(--destructive);
+    border-radius: 50%;
+    border: 1.5px solid white;
+  }
+
+  /* ── Page body ───────────────────────────────────── */
+  .page { padding: 16px; }
+  .back-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .back-btn {
+    font-size: 13px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .page-title { font-size: 18px; font-weight: 600; flex: 1; }
+
+  /* ── Cards / sections ────────────────────────────── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .card-header {
+    padding: 10px 14px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+  .card-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .card-row:first-child { border-top: none; }
+  .row-label { flex: 1; font-size: 13px; font-weight: 500; }
+  .row-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* ── Avatar upload area ──────────────────────────── */
+  .avatar-upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 12px;
+    gap: 10px;
+  }
+  .avatar-upload-img {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 32px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(55,171,157,0.4);
+  }
+  .avatar-upload-badge {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 26px; height: 26px;
+    background: var(--primary);
+    border-radius: 50%;
+    border: 2.5px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+  }
+  .avatar-hint {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Input ───────────────────────────────────────── */
+  .input-group { padding: 0 14px 14px; }
+  .input-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .input-field {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+  }
+  .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(55,171,157,0.15); }
+
+  /* ── Buttons ─────────────────────────────────────── */
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 0;
+    width: 100%;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+    border-radius: 10px;
+    padding: 10px 0;
+    width: 100%;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 0;
+    width: 100%;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-danger {
+    background: transparent;
+    color: var(--destructive);
+    border: 1.5px solid var(--destructive);
+    border-radius: 10px;
+    padding: 10px 0;
+    width: 100%;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── Toggle switch ───────────────────────────────── */
+  .toggle {
+    width: 44px; height: 24px;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--primary); }
+  .toggle.off { background: #d1d5db; }
+  .toggle-knob {
+    position: absolute;
+    top: 2px;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: left 0.2s;
+  }
+  .toggle.on .toggle-knob { left: 22px; }
+  .toggle.off .toggle-knob { left: 2px; }
+
+  /* ── Status toggle pill ──────────────────────────── */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .status-pill.at-home {
+    background: var(--green-bg);
+    color: var(--green-text);
+  }
+  .status-pill.away {
+    background: var(--muted-bg);
+    color: var(--muted);
+  }
+  .status-dot-sm {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .status-dot-sm.at-home { background: var(--green); }
+  .status-dot-sm.away { background: var(--slate); }
+
+  /* ── Bottom sheet (menu) ─────────────────────────── */
+  .bottom-sheet {
+    background: var(--card);
+    border-radius: 20px 20px 0 0;
+    border: 1px solid var(--border);
+    padding: 12px 0;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 20;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+  }
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .sheet-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .sheet-user-name { font-size: 14px; font-weight: 600; }
+  .sheet-user-email { font-size: 11px; color: var(--muted); }
+  .sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 20px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .sheet-item:hover { background: var(--muted-bg); }
+  .sheet-item-icon {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--muted-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .sheet-item-icon.teal { background: var(--primary-bg); }
+  .sheet-item-icon.amber { background: #fff8e6; }
+  .sheet-item-icon.red { background: #fef2f2; }
+  .sheet-item-label { flex: 1; }
+  .sheet-item-value { font-size: 12px; color: var(--muted); }
+  .sheet-sep { height: 1px; background: var(--border); margin: 6px 0; }
+  .sheet-danger { color: var(--destructive); }
+
+  /* ── Cropper modal ───────────────────────────────── */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-box {
+    background: var(--card);
+    border-radius: 18px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+  .modal-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title { font-size: 15px; font-weight: 700; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--muted-bg);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cropper-area {
+    height: 220px;
+    background: #1a1f2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .cropper-circle {
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    border: 2px dashed rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .crop-img-preview {
+    width: 158px; height: 158px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: linear-gradient(135deg, #37ab9d 0%, #4dc0b2 100%);
+  }
+  .cropper-overlay-text {
+    position: absolute;
+    bottom: 8px;
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    color: rgba(255,255,255,0.6);
+  }
+  .cropper-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .crop-ctrl-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--muted-bg);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .crop-scale {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    position: relative;
+  }
+  .crop-scale-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 55%;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+  .crop-scale-thumb {
+    position: absolute;
+    top: 50%;
+    left: 55%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    background: var(--primary);
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .modal-btn-cancel {
+    flex: 1;
+    padding: 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .modal-btn-ok {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+  }
+
+  /* ── List items ──────────────────────────────────── */
+  .list-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .list-row:first-child { border-top: none; }
+  .list-icon {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .list-icon.teal { background: var(--primary-bg); }
+  .list-icon.blue { background: #e0f0ff; }
+  .list-icon.amber { background: #fff8e6; }
+  .list-icon.red { background: #fef2f2; }
+  .chevron { color: #ccc; font-size: 14px; }
+
+  /* ── Info banner ─────────────────────────────────── */
+  .info-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--primary-bg);
+    border: 1px solid rgba(55,171,157,0.3);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+
+  /* ── Overlay bg (for sheet screens) ─────────────── */
+  .overlay-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+
+  /* ── Tag ─────────────────────────────────────────── */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .tag.at-home { background: var(--green-bg); color: var(--green-text); }
+  .tag.away { background: var(--muted-bg); color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h2 class="section-title">① ヘッダー — 在宅ステータストグル（全ページ共通）</h2>
+<div class="screens">
+
+  <!-- Screen 1A: Header at_home -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="header">
+        <div style="flex:1">
+          <div class="header-title">Tomo-Sumi家</div>
+          <div class="header-subtitle">ホームダッシュボード</div>
+        </div>
+        <button class="notif-btn" aria-label="通知">
+          🔔
+          <div class="notif-badge"></div>
+        </button>
+        <button class="avatar-btn" aria-label="ユーザーメニュー">
+          <div class="avatar">田</div>
+          <span class="status-dot at-home" aria-label="在宅"></span>
+        </button>
+      </div>
+      <div style="height: 80px; display:flex; align-items:center; justify-content:center; color: #aaa; font-size:13px;">
+        ページコンテンツ…
+      </div>
+    </div>
+    <div class="screen-label">在宅状態 — アバターをタップするとメニュー</div>
+  </div>
+
+  <!-- Screen 1B: Header away -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="header">
+        <div style="flex:1">
+          <div class="header-title">Tomo-Sumi家</div>
+          <div class="header-subtitle">ホームダッシュボード</div>
+        </div>
+        <button class="notif-btn" aria-label="通知">🔔</button>
+        <button class="avatar-btn" aria-label="ユーザーメニュー">
+          <div class="avatar" style="background:#586365;">田</div>
+          <span class="status-dot away" aria-label="外出"></span>
+        </button>
+      </div>
+      <div style="height: 80px; display:flex; align-items:center; justify-content:center; color: #aaa; font-size:13px;">
+        ページコンテンツ…
+      </div>
+    </div>
+    <div class="screen-label">外出状態 — ドットがグレーに変わる</div>
+  </div>
+
+</div>
+
+<h2 class="section-title">② ユーザーメニュー（ボトムシート）</h2>
+<div class="screens">
+
+  <!-- Screen 2: User menu bottom sheet -->
+  <div class="screen-wrap">
+    <div class="phone" style="position:relative;">
+      <!-- bg overlay -->
+      <div class="overlay-bg"></div>
+      <div class="header">
+        <div style="flex:1"><div class="header-title">Tomo-Sumi家</div></div>
+        <button class="avatar-btn">
+          <div class="avatar">田</div>
+          <span class="status-dot at-home"></span>
+        </button>
+      </div>
+      <!-- Bottom sheet -->
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <!-- User info -->
+        <div class="sheet-user">
+          <div class="avatar" style="width:44px;height:44px;font-size:20px;">田</div>
+          <div>
+            <div class="sheet-user-name">田中 花子</div>
+            <div class="sheet-user-email">hanako@example.com</div>
+          </div>
+        </div>
+        <!-- Status toggle row -->
+        <div class="sheet-item">
+          <div class="sheet-item-icon teal">🏠</div>
+          <div class="sheet-item-label">
+            <div style="font-weight:600;font-size:13px;">在宅ステータス</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">タップで切り替え</div>
+          </div>
+          <span class="status-pill at-home">
+            <span class="status-dot-sm at-home"></span>
+            在宅
+          </span>
+        </div>
+        <div class="sheet-sep"></div>
+        <!-- Profile settings -->
+        <div class="sheet-item">
+          <div class="sheet-item-icon teal">👤</div>
+          <div class="sheet-item-label" style="font-size:13px;">プロフィール設定</div>
+          <span class="chevron">›</span>
+        </div>
+        <!-- Notification settings -->
+        <div class="sheet-item">
+          <div class="sheet-item-icon amber">🔔</div>
+          <div class="sheet-item-label" style="font-size:13px;">通知設定</div>
+          <span class="chevron">›</span>
+        </div>
+        <!-- Home settings -->
+        <div class="sheet-item">
+          <div class="sheet-item-icon" style="background:#f3f0ff;">⚙️</div>
+          <div class="sheet-item-label" style="font-size:13px;">ホーム設定</div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="sheet-sep"></div>
+        <!-- Logout -->
+        <div class="sheet-item sheet-danger">
+          <div class="sheet-item-icon red">🚪</div>
+          <div class="sheet-item-label" style="font-size:13px;color:var(--destructive);">ログアウト</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">アバタータップで開くメニュー<br>ステータスをタップして即座に切り替え</div>
+  </div>
+
+  <!-- Screen 2B: Status toggled to away -->
+  <div class="screen-wrap">
+    <div class="phone" style="position:relative;">
+      <div class="overlay-bg"></div>
+      <div class="header">
+        <div style="flex:1"><div class="header-title">Tomo-Sumi家</div></div>
+        <button class="avatar-btn">
+          <div class="avatar" style="background:#586365;">田</div>
+          <span class="status-dot away"></span>
+        </button>
+      </div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-user">
+          <div class="avatar" style="width:44px;height:44px;font-size:20px;background:#586365;">田</div>
+          <div>
+            <div class="sheet-user-name">田中 花子</div>
+            <div class="sheet-user-email">hanako@example.com</div>
+          </div>
+        </div>
+        <div class="sheet-item">
+          <div class="sheet-item-icon" style="background:#eef0f0;">🚶</div>
+          <div class="sheet-item-label">
+            <div style="font-weight:600;font-size:13px;">在宅ステータス</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">タップで切り替え</div>
+          </div>
+          <span class="status-pill away">
+            <span class="status-dot-sm away"></span>
+            外出
+          </span>
+        </div>
+        <div class="sheet-sep"></div>
+        <div class="sheet-item">
+          <div class="sheet-item-icon teal">👤</div>
+          <div class="sheet-item-label" style="font-size:13px;">プロフィール設定</div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="sheet-item">
+          <div class="sheet-item-icon amber">🔔</div>
+          <div class="sheet-item-label" style="font-size:13px;">通知設定</div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="sheet-item">
+          <div class="sheet-item-icon" style="background:#f3f0ff;">⚙️</div>
+          <div class="sheet-item-label" style="font-size:13px;">ホーム設定</div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="sheet-sep"></div>
+        <div class="sheet-item sheet-danger">
+          <div class="sheet-item-icon red">🚪</div>
+          <div class="sheet-item-label" style="font-size:13px;color:var(--destructive);">ログアウト</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">外出に切り替えた状態<br>ヘッダーのドットも即時反映</div>
+  </div>
+
+</div>
+
+<h2 class="section-title">③ プロフィール設定ページ（/settings/profile）</h2>
+<div class="screens">
+
+  <!-- Screen 3A: Profile settings main -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="header">
+        <button class="back-btn" style="font-size:18px;color:var(--muted);">←</button>
+        <div class="header-title">プロフィール設定</div>
+      </div>
+      <div class="page" style="padding-top:12px;">
+        <!-- Avatar upload -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="avatar-upload">
+            <div class="avatar-upload-img">
+              田
+              <div class="avatar-upload-badge">✏</div>
+            </div>
+            <div class="avatar-hint">タップして画像を変更</div>
+          </div>
+        </div>
+
+        <!-- Nickname -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">ニックネーム</div>
+          <div class="input-group" style="padding-top:8px;">
+            <input class="input-field" type="text" value="田中 花子" readonly />
+          </div>
+        </div>
+
+        <!-- Email (read-only) -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">メールアドレス（変更不可）</div>
+          <div class="input-group" style="padding-top:8px;">
+            <input class="input-field" type="text" value="hanako@example.com" readonly style="opacity:0.6;cursor:not-allowed;" />
+          </div>
+        </div>
+
+        <button class="btn-primary">保存する</button>
+      </div>
+    </div>
+    <div class="screen-label">プロフィール設定<br>アバタータップ → 画像選択 → トリミング</div>
+  </div>
+
+  <!-- Screen 3B: Profile with image set -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="header">
+        <button class="back-btn" style="font-size:18px;color:var(--muted);">←</button>
+        <div class="header-title">プロフィール設定</div>
+      </div>
+      <div class="page" style="padding-top:12px;">
+        <div class="card" style="margin-bottom:14px;">
+          <div class="avatar-upload">
+            <div class="avatar-upload-img" style="background:none;box-shadow:none;">
+              <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#37ab9d,#4dc0b2);overflow:hidden;">
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#2a8a7e,#37ab9d);display:flex;align-items:center;justify-content:center;color:white;font-size:32px;font-weight:700;">田</div>
+              </div>
+              <div class="avatar-upload-badge">✏</div>
+            </div>
+            <div class="avatar-hint">タップして変更</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">ニックネーム</div>
+          <div class="input-group" style="padding-top:8px;">
+            <input class="input-field" type="text" value="田中 花子（新）" readonly style="border-color:var(--primary);" />
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">メールアドレス（変更不可）</div>
+          <div class="input-group" style="padding-top:8px;">
+            <input class="input-field" type="text" value="hanako@example.com" readonly style="opacity:0.6;" />
+          </div>
+        </div>
+        <button class="btn-primary" style="background:linear-gradient(90deg,#37ab9d,#4dc0b2);">保存する</button>
+      </div>
+    </div>
+    <div class="screen-label">編集後の状態<br>ニックネーム変更 + 画像あり</div>
+  </div>
+
+</div>
+
+<h2 class="section-title">④ 画像クロッパー（モーダル）</h2>
+<div class="screens">
+
+  <!-- Screen 4: Cropper modal -->
+  <div class="screen-wrap">
+    <div class="phone" style="position:relative;">
+      <!-- Background (profile page) -->
+      <div class="header">
+        <button class="back-btn" style="font-size:18px;color:var(--muted);">←</button>
+        <div class="header-title">プロフィール設定</div>
+      </div>
+      <div class="page" style="padding-top:12px;opacity:0.3;">
+        <div class="card"><div class="avatar-upload"><div class="avatar-upload-img">田</div></div></div>
+      </div>
+      <!-- Modal overlay -->
+      <div class="modal-overlay">
+        <div class="modal-box">
+          <div class="modal-title-row">
+            <span class="modal-title">画像をトリミング</span>
+            <button class="modal-close">✕</button>
+          </div>
+          <!-- Cropper area -->
+          <div class="cropper-area">
+            <div class="cropper-circle">
+              <div class="crop-img-preview"></div>
+            </div>
+            <div class="cropper-overlay-text">ドラッグして位置調整</div>
+          </div>
+          <!-- Scale slider -->
+          <div class="cropper-controls">
+            <button class="crop-ctrl-btn">−</button>
+            <div class="crop-scale">
+              <div class="crop-scale-fill"></div>
+              <div class="crop-scale-thumb"></div>
+            </div>
+            <button class="crop-ctrl-btn">+</button>
+            <button class="crop-ctrl-btn" title="回転">↻</button>
+          </div>
+          <!-- Actions -->
+          <div class="modal-actions">
+            <button class="modal-btn-cancel">キャンセル</button>
+            <button class="modal-btn-ok">この画像を使う</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">react-cropperによる<br>円形クロッパーモーダル<br>ズーム・ドラッグ・回転対応</div>
+  </div>
+
+</div>
+
+<h2 class="section-title">⑤ 通知設定ページ（/settings/notifications）</h2>
+<div class="screens">
+
+  <!-- Screen 5A: Notifications ON -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="header">
+        <button class="back-btn" style="font-size:18px;color:var(--muted);">←</button>
+        <div class="header-title">通知設定</div>
+      </div>
+      <div class="page" style="padding-top:12px;">
+
+        <div class="info-banner">
+          💡 通知を有効にすると、お知らせ・リマインダー・チャットの新着をプッシュ通知でお伝えします
+        </div>
+
+        <!-- Push notification toggle -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">プッシュ通知</div>
+          <div class="card-row">
+            <div class="list-icon amber">🔔</div>
+            <div class="row-label">
+              <div>プッシュ通知を受け取る</div>
+              <div class="row-sub">アプリ外でも通知を受信</div>
+            </div>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+
+        <!-- Additional info -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">通知の種類</div>
+          <div class="card-row">
+            <div class="list-icon" style="background:#f0f8ff;">📢</div>
+            <div class="row-label">
+              <div>お知らせ</div>
+              <div class="row-sub">新しいお知らせが届いたとき</div>
+            </div>
+            <span style="font-size:11px;color:var(--primary);font-weight:600;">有効</span>
+          </div>
+          <div class="card-row">
+            <div class="list-icon" style="background:#f0fff0;">⏰</div>
+            <div class="row-label">
+              <div>リマインダー</div>
+              <div class="row-sub">タスクの期限が近づいたとき</div>
+            </div>
+            <span style="font-size:11px;color:var(--primary);font-weight:600;">有効</span>
+          </div>
+          <div class="card-row">
+            <div class="list-icon" style="background:#f5f0ff;">💬</div>
+            <div class="row-label">
+              <div>チャット</div>
+              <div class="row-sub">新しいメッセージが届いたとき</div>
+            </div>
+            <span style="font-size:11px;color:var(--primary);font-weight:600;">有効</span>
+          </div>
+        </div>
+
+        <p style="font-size:10px;color:var(--muted);text-align:center;padding:0 4px;">
+          ※ 通知の許可はデバイスの設定からも変更できます
+        </p>
+      </div>
+    </div>
+    <div class="screen-label">通知 ON 状態</div>
+  </div>
+
+  <!-- Screen 5B: Notifications OFF -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="header">
+        <button class="back-btn" style="font-size:18px;color:var(--muted);">←</button>
+        <div class="header-title">通知設定</div>
+      </div>
+      <div class="page" style="padding-top:12px;">
+
+        <div class="info-banner" style="background:#fff8e6;border-color:rgba(255,192,66,0.4);color:#92670d;">
+          ⚠️ プッシュ通知がオフになっています。重要なお知らせを見逃す可能性があります
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">プッシュ通知</div>
+          <div class="card-row">
+            <div class="list-icon" style="background:#f5f5f5;">🔕</div>
+            <div class="row-label">
+              <div>プッシュ通知を受け取る</div>
+              <div class="row-sub">アプリ外でも通知を受信</div>
+            </div>
+            <div class="toggle off"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;opacity:0.5;">
+          <div class="card-header">通知の種類（無効）</div>
+          <div class="card-row">
+            <div class="list-icon">📢</div>
+            <div class="row-label">
+              <div>お知らせ</div>
+              <div class="row-sub">通知OFF時は配信されません</div>
+            </div>
+            <span style="font-size:11px;color:var(--muted);">無効</span>
+          </div>
+          <div class="card-row">
+            <div class="list-icon">⏰</div>
+            <div class="row-label">
+              <div>リマインダー</div>
+              <div class="row-sub">通知OFF時は配信されません</div>
+            </div>
+            <span style="font-size:11px;color:var(--muted);">無効</span>
+          </div>
+          <div class="card-row">
+            <div class="list-icon">💬</div>
+            <div class="row-label">
+              <div>チャット</div>
+              <div class="row-sub">通知OFF時は配信されません</div>
+            </div>
+            <span style="font-size:11px;color:var(--muted);">無効</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">通知 OFF 状態<br>警告バナーと種別リストがグレーアウト</div>
+  </div>
+
+</div>
+
+</body>
+</html>

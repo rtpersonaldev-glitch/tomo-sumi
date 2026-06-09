@@ -44,6 +44,8 @@ const SeisanCreatePage = lazy(() => import("@/features/costs/pages/SeisanCreateP
 const SeisanDetailPage = lazy(() => import("@/features/costs/pages/SeisanDetailPage"));
 const KoteihiPage = lazy(() => import("@/features/costs/pages/KoteihiPage"));
 const KoteihiEditPage = lazy(() => import("@/features/costs/pages/KoteihiEditPage"));
+const ProfileSettingsPage = lazy(() => import("@/features/settings/pages/ProfileSettingsPage"));
+const NotificationSettingsPage = lazy(() => import("@/features/settings/pages/NotificationSettingsPage"));
 
 export default function App() {
   return (
@@ -71,6 +73,8 @@ export default function App() {
                   <Route path="/" element={<Navigate to="/home" replace />} />
                   <Route path="/home" element={<DashboardPage />} />
                   <Route path="/settings/home" element={<HomeSettingsPage />} />
+                  <Route path="/settings/profile" element={<ProfileSettingsPage />} />
+                  <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
                   <Route path="/announces" element={<AnnounceListPage />} />
                   <Route path="/announces/new" element={<AnnounceEditPage />} />
                   <Route path="/announces/:id" element={<AnnounceDetailPage />} />
