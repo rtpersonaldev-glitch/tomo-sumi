@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #29 ワイヤーフレーム — アクティビティ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f0f0ec; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1a1e21; }
+  h2 { font-size: 13px; font-weight: 700; color: #586365; margin: 32px 0 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .screens { display: flex; flex-wrap: wrap; gap: 40px; padding: 32px; align-items: flex-start; }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .label { font-size: 11px; font-weight: 700; color: #37ab9d; text-transform: uppercase; letter-spacing: .06em; }
+  .note { font-size: 11px; color: #586365; max-width: 240px; text-align: center; line-height: 1.5; }
+
+  /* Phone shell */
+  .phone { width: 375px; background: #f7f6f1; border-radius: 40px; border: 8px solid #1a1e21; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+
+  /* Header */
+  .app-header { position: sticky; top: 0; z-index: 30; height: 56px; background: rgba(255,255,255,.95); border-bottom: 1px solid #dcecea; display: flex; align-items: center; padding: 0 16px; gap: 10px; backdrop-filter: blur(8px); }
+  .home-name { flex: 1; font-size: 15px; font-weight: 600; color: #1a1e21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .header-bell-btn { position: relative; width: 36px; height: 36px; border-radius: 50%; background: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bell-icon { font-size: 18px; }
+  .unread-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; background: #e83f3f; border-radius: 99px; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #fff; }
+  .unread-badge span { font-size: 9px; font-weight: 800; color: #fff; line-height: 1; }
+  .avatar-btn { position: relative; width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer; overflow: hidden; }
+  .avatar-circle { width: 36px; height: 36px; border-radius: 50%; background: #37ab9d; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; }
+  .status-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; border: 2px solid #fff; }
+
+  /* Page content */
+  .page { padding: 20px 16px; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .page-title { font-size: 20px; font-weight: 600; }
+
+  /* Activity list */
+  .activity-list { display: flex; flex-direction: column; gap: 8px; }
+  .activity-card { border-radius: 12px; border: 1px solid #dcecea; background: #fff; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
+  .activity-card.unread { border-left: 3px solid #37ab9d; background: #f0fbfa; }
+  .activity-avatar { width: 36px; height: 36px; border-radius: 50%; background: #37ab9d; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .activity-avatar.blue { background: #4a90d9; }
+  .activity-avatar.orange { background: #f5a623; }
+  .activity-body { flex: 1; min-width: 0; }
+  .activity-text { font-size: 13px; font-weight: 500; line-height: 1.4; }
+  .activity-text strong { color: #37ab9d; }
+  .activity-meta { margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+  .activity-time { font-size: 11px; color: #586365; }
+  .activity-category { font-size: 10px; font-weight: 700; color: #586365; background: #f0f0ec; border-radius: 4px; padding: 1px 5px; }
+  .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: #37ab9d; margin-top: 4px; flex-shrink: 0; }
+
+  /* Section label */
+  .section-label { font-size: 10px; font-weight: 700; color: #586365; text-transform: uppercase; letter-spacing: .06em; padding: 4px 0 8px; }
+
+  /* Empty state */
+  .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 0; color: #586365; }
+  .empty-icon { font-size: 40px; }
+  .empty-text { font-size: 13px; }
+
+  /* Loading */
+  .loading-state { display: flex; justify-content: center; padding: 48px 0; }
+  .spinner { width: 24px; height: 24px; border: 3px solid #dcecea; border-top-color: #37ab9d; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Read all badge section */
+  .read-all-bar { background: #f0fbfa; border: 1px solid #dcecea; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .read-all-bar span { font-size: 12px; color: #37ab9d; font-weight: 600; flex: 1; }
+  .read-all-bar .auto-label { font-size: 10px; color: #586365; background: #dcecea; border-radius: 4px; padding: 2px 6px; font-weight: 600; }
+
+  /* Annotations */
+  .annotation { font-size: 10px; color: #e83f3f; margin-top: 6px; font-weight: 600; }
+  .annotation-green { color: #37ab9d; }
+
+  /* Divider */
+  hr.divider { border: none; border-top: 1px solid #dcecea; margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div style="padding: 24px 32px 0; font-size: 20px; font-weight: 700; color: #1a1e21;">
+  Issue #29 — アクティビティ画面ワイヤーフレーム
+</div>
+<div style="padding: 6px 32px 0; font-size: 13px; color: #586365;">
+  アクティビティログ一覧 ＋ ヘッダー未読バッジ
+</div>
+
+<div class="screens">
+
+  <!-- ① ヘッダー：未読あり状態 -->
+  <div class="screen-wrap">
+    <div class="label">① ヘッダー（未読あり）</div>
+    <div class="phone" style="border-radius: 16px; height: auto;">
+      <div class="app-header">
+        <span class="home-name">山田家</span>
+        <div class="header-actions">
+          <button class="header-bell-btn" aria-label="アクティビティ">
+            <span class="bell-icon">🔔</span>
+            <div class="unread-badge"><span>3</span></div>
+          </button>
+          <button class="avatar-btn" aria-label="ユーザーメニュー">
+            <div class="avatar-circle">山</div>
+            <span class="status-dot"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="note">ベルアイコンをタップ → ActivityPage へ遷移<br>バッジは未読件数。99件超は「99+」</div>
+  </div>
+
+  <!-- ② ヘッダー：既読済み状態 -->
+  <div class="screen-wrap">
+    <div class="label">② ヘッダー（既読済み）</div>
+    <div class="phone" style="border-radius: 16px; height: auto;">
+      <div class="app-header">
+        <span class="home-name">山田家</span>
+        <div class="header-actions">
+          <button class="header-bell-btn" aria-label="アクティビティ">
+            <span class="bell-icon">🔔</span>
+            <!-- バッジなし -->
+          </button>
+          <button class="avatar-btn" aria-label="ユーザーメニュー">
+            <div class="avatar-circle">山</div>
+            <span class="status-dot"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="note">未読ゼロの時はバッジなし</div>
+  </div>
+
+  <!-- ③ ActivityPage：ローディング -->
+  <div class="screen-wrap">
+    <div class="label">③ ActivityPage（ローディング）</div>
+    <div class="phone" style="height: 420px;">
+      <div class="app-header">
+        <span class="home-name">山田家</span>
+        <div class="header-actions">
+          <button class="header-bell-btn"><span class="bell-icon">🔔</span></button>
+          <button class="avatar-btn"><div class="avatar-circle">山</div><span class="status-dot"></span></button>
+        </div>
+      </div>
+      <div class="page">
+        <div class="page-header">
+          <h1 class="page-title">アクティビティ</h1>
+        </div>
+        <div class="loading-state">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+    <div class="note">取得中はスピナーを表示</div>
+  </div>
+
+  <!-- ④ ActivityPage：一覧（未読あり） -->
+  <div class="screen-wrap">
+    <div class="label">④ ActivityPage（一覧・未読あり）</div>
+    <div class="phone" style="height: 680px; overflow-y: auto;">
+      <div class="app-header">
+        <span class="home-name">山田家</span>
+        <div class="header-actions">
+          <button class="header-bell-btn">
+            <span class="bell-icon">🔔</span>
+            <div class="unread-badge"><span>3</span></div>
+          </button>
+          <button class="avatar-btn"><div class="avatar-circle">山</div><span class="status-dot"></span></button>
+        </div>
+      </div>
+      <div class="page">
+        <div class="page-header">
+          <h1 class="page-title">アクティビティ</h1>
+        </div>
+
+        <!-- 自動既読の説明バー -->
+        <div class="read-all-bar">
+          <span>ページを開くと自動で既読になります</span>
+          <span class="auto-label">自動</span>
+        </div>
+
+        <div class="section-label">新着（3件）</div>
+        <div class="activity-list">
+
+          <div class="activity-card unread">
+            <div class="activity-avatar">太</div>
+            <div class="activity-body">
+              <div class="activity-text"><strong>太郎</strong>さんがTODO「買い出しリスト」を完了しました</div>
+              <div class="activity-meta">
+                <span class="activity-category">TODO</span>
+                <span class="activity-time">5分前</span>
+              </div>
+            </div>
+            <div class="unread-dot"></div>
+          </div>
+
+          <div class="activity-card unread">
+            <div class="activity-avatar blue">花</div>
+            <div class="activity-body">
+              <div class="activity-text"><strong>花子</strong>さんがスケジュール「夕食会」を作成しました</div>
+              <div class="activity-meta">
+                <span class="activity-category">スケジュール</span>
+                <span class="activity-time">23分前</span>
+              </div>
+            </div>
+            <div class="unread-dot"></div>
+          </div>
+
+          <div class="activity-card unread">
+            <div class="activity-avatar orange">太</div>
+            <div class="activity-body">
+              <div class="activity-text"><strong>太郎</strong>さんが支出「スーパー食材費 ¥3,240」を登録しました</div>
+              <div class="activity-meta">
+                <span class="activity-category">家計</span>
+                <span class="activity-time">1時間前</span>
+              </div>
+            </div>
+            <div class="unread-dot"></div>
+          </div>
+
+        </div>
+
+        <hr class="divider" style="margin: 16px 0;" />
+        <div class="section-label">過去のアクティビティ</div>
+        <div class="activity-list">
+
+          <div class="activity-card">
+            <div class="activity-avatar blue">花</div>
+            <div class="activity-body">
+              <div class="activity-text"><strong>花子</strong>さんがお知らせ「今月の清算について」を投稿しました</div>
+              <div class="activity-meta">
+                <span class="activity-category">お知らせ</span>
+                <span class="activity-time">昨日 18:30</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-avatar">太</div>
+            <div class="activity-body">
+              <div class="activity-text"><strong>太郎</strong>さんが清算「6月分清算」を作成しました</div>
+              <div class="activity-meta">
+                <span class="activity-category">家計</span>
+                <span class="activity-time">昨日 12:00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-avatar blue">花</div>
+            <div class="activity-body">
+              <div class="activity-text"><strong>花子</strong>さんがリマインダー「薬を飲む」を追加しました</div>
+              <div class="activity-meta">
+                <span class="activity-category">リマインダー</span>
+                <span class="activity-time">2日前</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="note">ページ表示直後に <code>POST /api/activity/mark-as-read</code> を呼び出し、<br>その後 unread-count を再取得してバッジをクリア</div>
+    <div class="annotation annotation-green">※ 新着セクションと既読セクションは視覚的に分割</div>
+  </div>
+
+  <!-- ⑤ ActivityPage：空状態 -->
+  <div class="screen-wrap">
+    <div class="label">⑤ ActivityPage（空状態）</div>
+    <div class="phone" style="height: 420px;">
+      <div class="app-header">
+        <span class="home-name">山田家</span>
+        <div class="header-actions">
+          <button class="header-bell-btn"><span class="bell-icon">🔔</span></button>
+          <button class="avatar-btn"><div class="avatar-circle">山</div><span class="status-dot"></span></button>
+        </div>
+      </div>
+      <div class="page">
+        <div class="page-header">
+          <h1 class="page-title">アクティビティ</h1>
+        </div>
+        <div class="empty-state">
+          <span class="empty-icon">📋</span>
+          <p class="empty-text">まだアクティビティがありません</p>
+        </div>
+      </div>
+    </div>
+    <div class="note">データゼロ時はイラスト＋メッセージ</div>
+  </div>
+
+</div>
+
+<!-- 設計メモ -->
+<div style="padding: 0 32px 48px; max-width: 900px;">
+  <h2>設計メモ</h2>
+  <table style="border-collapse: collapse; font-size: 12px; width: 100%;">
+    <thead>
+      <tr style="background: #dcecea;">
+        <th style="padding: 8px 12px; text-align: left; border: 1px solid #b8d8d5;">要素</th>
+        <th style="padding: 8px 12px; text-align: left; border: 1px solid #b8d8d5;">仕様</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">未読バッジ取得</td><td style="padding: 8px 12px; border: 1px solid #b8d8d5;"><code>GET /api/activity/unread-count</code> → AppHeaderで30秒間隔refetchInterval</td></tr>
+      <tr><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">未読バッジ表示</td><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">ベルアイコン右上に赤バッジ。99件超は「99+」</td></tr>
+      <tr><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">ベルクリック</td><td style="padding: 8px 12px; border: 1px solid #b8d8d5;"><code>navigate("/activity")</code></td></tr>
+      <tr><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">既読処理</td><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">ActivityPage の <code>useEffect</code> で mount時に <code>POST /api/activity/mark-as-read</code> → unread-count を invalidate</td></tr>
+      <tr><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">アクティビティ一覧</td><td style="padding: 8px 12px; border: 1px solid #b8d8d5;"><code>GET /api/activity/{home_id}</code> で取得。未読/既読を <code>is_read</code> フラグで判別して2セクションに分割</td></tr>
+      <tr><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">アクティビティカード</td><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">ユーザーアバター（アイコン or 頭文字）＋アクション説明文＋カテゴリバッジ＋相対時間</td></tr>
+      <tr><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">未読カード</td><td style="padding: 8px 12px; border: 1px solid #b8d8d5;">左border teal、背景を薄いteal、右端に緑ドット</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>
