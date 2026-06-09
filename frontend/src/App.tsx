@@ -47,6 +47,7 @@ const KoteihiEditPage = lazy(() => import("@/features/costs/pages/KoteihiEditPag
 const ProfileSettingsPage = lazy(() => import("@/features/settings/pages/ProfileSettingsPage"));
 const NotificationSettingsPage = lazy(() => import("@/features/settings/pages/NotificationSettingsPage"));
 const ActivityPage = lazy(() => import("@/features/activity/pages/ActivityPage"));
+const MenuPage = lazy(() => import("@/features/menu/pages/MenuPage"));
 
 export default function App() {
   return (
@@ -115,6 +116,7 @@ export default function App() {
                   <Route path="/costs/koteihi/:id/edit" element={<KoteihiEditPage />} />
                   <Route path="/costs/:id" element={<CostDetailPage />} />
                   <Route path="/costs/:id/edit" element={<CostEditPage />} />
+                  <Route path="/menu" element={<MenuPage />} />
                 </Route>
               </Route>
             </Route>
