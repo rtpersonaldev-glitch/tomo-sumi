@@ -265,7 +265,7 @@ export default function ChatPage() {
 
   /* ── Render ─────────────────────────────────────────────── */
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
@@ -289,7 +289,7 @@ export default function ChatPage() {
       {/* Message list */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto bg-secondary/20 px-4 py-3"
+        className="min-h-0 flex-1 overflow-y-auto bg-secondary/20 px-4 py-3"
       >
         <div className="mx-auto max-w-3xl space-y-3">
           {/* Load more history */}
