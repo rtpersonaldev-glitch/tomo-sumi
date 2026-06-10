@@ -124,6 +124,36 @@ async def test_create_announce(client: AsyncClient) -> None:
     assert data["is_liked"] is False
 
 
+async def test_created_by_user_in_response(client: AsyncClient) -> None:
+    """お知らせレスポンスに created_by_user（作成者情報）が含まれる"""
+    await _register_and_login(client, nickname="作成者テスト")
+    home_id = await _create_and_select_home(client)
+    await client.post("/api/announces", json=_DEFAULT_ANNOUNCE)
+    resp = await client.get(f"/api/announces/{home_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    creator = data[0]["created_by_user"]
+    assert creator is not None
+    assert creator["nickname"] == "作成者テスト"
+    assert "id" in creator
+    assert "icon_url" in creator
+
+
+async def test_created_by_user_in_detail(client: AsyncClient) -> None:
+    """お知らせ詳細レスポンスにも created_by_user が含まれる"""
+    await _register_and_login(client, nickname="詳細テストユーザー")
+    await _create_and_select_home(client)
+    create_resp = await client.post("/api/announces", json=_DEFAULT_ANNOUNCE)
+    announce_id = create_resp.json()["id"]
+    resp = await client.get(f"/api/announces/{announce_id}/detail")
+    assert resp.status_code == 200
+    data = resp.json()
+    creator = data["created_by_user"]
+    assert creator is not None
+    assert creator["nickname"] == "詳細テストユーザー"
+
+
 async def test_create_announce_unauthenticated(client: AsyncClient) -> None:
     """未認証時は 401 を返す"""
     resp = await client.post("/api/announces", json=_DEFAULT_ANNOUNCE)

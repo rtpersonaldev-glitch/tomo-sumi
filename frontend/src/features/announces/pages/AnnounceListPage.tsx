@@ -51,13 +51,31 @@ function AnnounceCard({
       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
         {announce.content}
       </p>
-      <div className="flex items-center justify-between pt-0.5">
+      <div className="flex items-center gap-2 flex-wrap border-t border-border/50 pt-2">
         <span className="text-xs text-muted-foreground">
           期限: {format(parseISO(announce.end_date), "yyyy年M月d日", { locale: ja })}
         </span>
+        {announce.created_by_user && (
+          <div className="flex items-center gap-1" aria-label={`投稿者: ${announce.created_by_user.nickname}`}>
+            {announce.created_by_user.icon_url ? (
+              <img
+                src={announce.created_by_user.icon_url}
+                alt={announce.created_by_user.nickname}
+                className="h-[18px] w-[18px] rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                {announce.created_by_user.nickname.charAt(0)}
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {announce.created_by_user.nickname}
+            </span>
+          </div>
+        )}
         <span
           className={cn(
-            "text-xs flex items-center gap-1",
+            "ml-auto text-xs flex items-center gap-1",
             announce.is_liked ? "text-red-500" : "text-muted-foreground",
           )}
           aria-label={`いいね ${announce.like_count}件`}

@@ -1,3 +1,9 @@
+export interface AnnounceUserInfo {
+  id: number;
+  nickname: string;
+  icon_url: string | null;
+}
+
 export interface AnnounceResponse {
   id: number;
   home_id: number;
@@ -8,6 +14,7 @@ export interface AnnounceResponse {
   like_count: number;
   is_liked: boolean;
   created_at: string;
+  created_by_user: AnnounceUserInfo | null;
 }
 
 export interface AnnounceLikeResponse {
