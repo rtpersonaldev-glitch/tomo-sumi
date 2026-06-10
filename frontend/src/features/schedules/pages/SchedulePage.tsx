@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import type { EventClickArg } from "@fullcalendar/core";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
@@ -56,26 +55,105 @@ function MemberChip({ member }: { member: HomeMemberResponse | null }) {
   );
 }
 
+function ScheduleCard({
+  schedule,
+  members,
+  onClick,
+}: {
+  schedule: ScheduleResponse;
+  members: HomeMemberResponse[];
+  onClick: () => void;
+}) {
+  const creator = findMember(members, schedule.created_by);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-xl border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors shadow-sm dark:shadow-none"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold text-sm leading-snug">{schedule.title}</span>
+        <span className="text-muted-foreground text-xs shrink-0" aria-hidden>
+          ›
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        {format(parseISO(schedule.start_day), "HH:mm")} 〜{" "}
+        {format(parseISO(schedule.end_day), "HH:mm")}
+      </p>
+      {schedule.memo && (
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{schedule.memo}</p>
+      )}
+      {creator && (
+        <div className="mt-1.5">
+          <MemberChip member={creator} />
+        </div>
+      )}
+    </button>
+  );
+}
+
 export default function SchedulePage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("calendar");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const { data: schedules, isLoading, isError } = useSchedules();
   const { data: members = [] } = useHomeMembers();
 
-  const events =
-    schedules?.map((s) => ({
-      id: String(s.id),
-      title: s.title,
-      start: s.start_day,
-      end: s.end_day,
-    })) ?? [];
+  const scheduleDates = useMemo(() => {
+    const s = new Set<string>();
+    for (const schedule of schedules ?? []) {
+      s.add(format(parseISO(schedule.start_day), "yyyy-MM-dd"));
+    }
+    return s;
+  }, [schedules]);
 
-  const handleEventClick = (info: EventClickArg) => {
-    navigate(`/schedules/${info.event.id}`);
-  };
+  const selectedDateSchedules = useMemo(() => {
+    if (!selectedDate) return [];
+    return (schedules ?? []).filter(
+      (s) => format(parseISO(s.start_day), "yyyy-MM-dd") === selectedDate,
+    );
+  }, [schedules, selectedDate]);
 
   const grouped = groupByDate(schedules ?? []);
+
+  const dayCellContent = useCallback(
+    (arg: { date: Date }) => {
+      const day = arg.date.getDay();
+      const dateStr = format(arg.date, "yyyy-MM-dd");
+      const isSelected = dateStr === selectedDate;
+      const hasEvent = scheduleDates.has(dateStr);
+      return (
+        <div className="flex flex-col items-center gap-0.5 py-0.5">
+          <span
+            className={cn(
+              "flex h-6 w-6 items-center justify-center rounded-full text-xs leading-none",
+              isSelected
+                ? "bg-primary font-bold text-primary-foreground"
+                : day === 0
+                  ? "text-red-500"
+                  : day === 6
+                    ? "text-blue-500"
+                    : "",
+            )}
+          >
+            {arg.date.getDate()}
+          </span>
+          {hasEvent && (
+            <span
+              className={cn(
+                "h-1 w-1 rounded-full",
+                isSelected ? "bg-primary-foreground" : "bg-primary",
+              )}
+              aria-hidden
+            />
+          )}
+        </div>
+      );
+    },
+    [selectedDate, scheduleDates],
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 space-y-4">
@@ -84,7 +162,11 @@ export default function SchedulePage() {
         <h1 className="text-xl font-semibold">スケジュール</h1>
         <button
           type="button"
-          onClick={() => navigate("/schedules/new")}
+          onClick={() =>
+            navigate(
+              selectedDate ? `/schedules/new?date=${selectedDate}` : "/schedules/new",
+            )
+          }
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-all"
         >
           ＋ 作成
@@ -125,25 +207,54 @@ export default function SchedulePage() {
 
       {/* Calendar tab */}
       {tab === "calendar" && !isLoading && !isError && (
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:shadow-none [&_.fc-button]:rounded-lg [&_.fc-button]:border-border [&_.fc-button-primary]:bg-primary [&_.fc-button-primary]:border-primary [&_.fc-today-button]:opacity-80">
-          <FullCalendar
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            locale="ja"
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "",
-            }}
-            buttonText={{ today: "今日" }}
-            events={events}
-            eventClick={handleEventClick}
-            dateClick={(info) => navigate(`/schedules/new?date=${info.dateStr}`)}
-            height="auto"
-            eventDisplay="block"
-            eventColor="#37ab9d"
-          />
-        </div>
+        <>
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:shadow-none [&_.fc-button]:rounded-lg [&_.fc-button]:border-border [&_.fc-button-primary]:bg-primary [&_.fc-button-primary]:border-primary [&_.fc-today-button]:opacity-80 [&_.fc-daygrid-day-top]:justify-center [&_.fc-daygrid-day-number]:p-0">
+            <FullCalendar
+              plugins={[dayGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              locale="ja"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "",
+              }}
+              buttonText={{ today: "今日" }}
+              events={[]}
+              dateClick={(info) => setSelectedDate(info.dateStr)}
+              height="auto"
+              dayCellContent={dayCellContent}
+            />
+          </div>
+
+          {selectedDate ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground">
+                {format(parseISO(selectedDate), "M月d日（E）", { locale: ja })}の予定
+              </p>
+              {selectedDateSchedules.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
+                  <span className="text-3xl" aria-hidden>
+                    📭
+                  </span>
+                  <p className="text-sm">この日の予定はありません</p>
+                </div>
+              ) : (
+                selectedDateSchedules.map((s) => (
+                  <ScheduleCard
+                    key={s.id}
+                    schedule={s}
+                    members={members}
+                    onClick={() => navigate(`/schedules/${s.id}`)}
+                  />
+                ))
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground py-4">
+              日付をタップして予定を確認
+            </p>
+          )}
+        </>
       )}
 
       {/* List tab */}
@@ -163,38 +274,14 @@ export default function SchedulePage() {
                 {format(parseISO(dateKey), "M月d日（E）", { locale: ja })}
               </p>
               <div className="space-y-2">
-                {items.map((s) => {
-                  const creator = findMember(members, s.created_by);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => navigate(`/schedules/${s.id}`)}
-                      className="w-full text-left rounded-xl border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors shadow-sm dark:shadow-none"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-sm leading-snug">{s.title}</span>
-                        <span className="text-muted-foreground text-xs shrink-0" aria-hidden>
-                          ›
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {format(parseISO(s.start_day), "HH:mm")} 〜{" "}
-                        {format(parseISO(s.end_day), "HH:mm")}
-                      </p>
-                      {s.memo && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                          {s.memo}
-                        </p>
-                      )}
-                      {creator && (
-                        <div className="mt-1.5">
-                          <MemberChip member={creator} />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                {items.map((s) => (
+                  <ScheduleCard
+                    key={s.id}
+                    schedule={s}
+                    members={members}
+                    onClick={() => navigate(`/schedules/${s.id}`)}
+                  />
+                ))}
               </div>
             </div>
           ))}
