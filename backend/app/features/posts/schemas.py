@@ -30,6 +30,7 @@ class PostDetailResponse(BaseModel):
     home_id: int
     content: str
     picture_urls: list[str]
+    picture_ids: list[int]
     like_count: int
     is_liked: bool
     comments: list[PostCommentResponse]

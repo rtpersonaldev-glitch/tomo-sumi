@@ -1,3 +1,4 @@
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
@@ -11,7 +12,6 @@ from app.features.posts.schemas import (
     PostDetailResponse,
     PostLikeResponse,
     PostListResponse,
-    PostUpdateRequest,
 )
 from app.features.posts.service import PostService
 from app.models.home import Home
@@ -67,16 +67,24 @@ async def get_post(
 @router.put("/{post_id}", response_model=PostDetailResponse)
 async def update_post(
     post_id: int,
-    body: PostUpdateRequest,
+    content: str = Form(...),
+    new_images: Annotated[list[UploadFile], File()] = [],
+    delete_picture_ids: str = Form(default="[]"),
     current_home: Home = Depends(get_current_home),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PostDetailResponse:
+    try:
+        ids_to_delete = [int(i) for i in json.loads(delete_picture_ids)]
+    except (json.JSONDecodeError, ValueError, TypeError):
+        ids_to_delete = []
     return await PostService(db).update_post(
         post_id=post_id,
         home_id=current_home.id,
         user_id=current_user.id,
-        content=body.content,
+        content=content,
+        new_images=new_images,
+        delete_picture_ids=ids_to_delete,
     )
 
 

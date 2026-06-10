@@ -164,9 +164,11 @@ async def test_update_post(client: AsyncClient) -> None:
     await _create_and_select_home(client)
     create_resp = await client.post("/api/posts", data={"content": "元の内容"})
     post_id = create_resp.json()["id"]
-    resp = await client.put(f"/api/posts/{post_id}", json={"content": "更新後の内容"})
+    resp = await client.put(f"/api/posts/{post_id}", data={"content": "更新後の内容"})
     assert resp.status_code == 200
-    assert resp.json()["content"] == "更新後の内容"
+    data = resp.json()
+    assert data["content"] == "更新後の内容"
+    assert "picture_ids" in data
 
 
 async def test_update_post_wrong_home(client: AsyncClient, db: AsyncSession) -> None:
@@ -179,8 +181,69 @@ async def test_update_post_wrong_home(client: AsyncClient, db: AsyncSession) -> 
     post = Post(home_id=other_home.id, content={"text": "他の投稿"})
     db.add(post)
     await db.flush()
-    resp = await client.put(f"/api/posts/{post.id}", json={"content": "変更試み"})
+    resp = await client.put(f"/api/posts/{post.id}", data={"content": "変更試み"})
     assert resp.status_code == 403
+
+
+async def test_update_post_add_image(client: AsyncClient, tmp_path: Path) -> None:
+    """投稿編集で画像を追加できる"""
+    await _register_and_login(client)
+    await _create_and_select_home(client)
+    create_resp = await client.post("/api/posts", data={"content": "画像追加前"})
+    post_id = create_resp.json()["id"]
+    assert create_resp.json()["picture_urls"] == []
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(255, 0, 0)).save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.put(
+            f"/api/posts/{post_id}",
+            data={"content": "画像追加後"},
+            files=[("new_images", ("new.png", png_bytes, "image/png"))],
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["content"] == "画像追加後"
+    assert len(data["picture_urls"]) == 1
+    assert len(data["picture_ids"]) == 1
+
+
+async def test_update_post_delete_image(client: AsyncClient, tmp_path: Path) -> None:
+    """投稿編集で既存画像を削除できる"""
+    await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color=(0, 255, 0)).save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        create_resp = await client.post(
+            "/api/posts",
+            data={"content": "画像削除テスト"},
+            files=[("images", ("img.png", png_bytes, "image/png"))],
+        )
+    assert len(create_resp.json()["picture_ids"]) == 1
+    picture_id = create_resp.json()["picture_ids"][0]
+    post_id = create_resp.json()["id"]
+
+    import json as _json
+    with patch.object(fs, "MEDIA_ROOT", tmp_path):
+        resp = await client.put(
+            f"/api/posts/{post_id}",
+            data={
+                "content": "画像削除後",
+                "delete_picture_ids": _json.dumps([picture_id]),
+            },
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["picture_urls"] == []
+    assert data["picture_ids"] == []
 
 
 # ─── DELETE /api/posts/{id} ──────────────────────────────────────────────────

@@ -23,6 +23,7 @@ export interface PostDetailResponse {
   home_id: number;
   content: string;
   picture_urls: string[];
+  picture_ids: number[];
   like_count: number;
   is_liked: boolean;
   comments: PostCommentResponse[];
