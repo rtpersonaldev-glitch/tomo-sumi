@@ -78,7 +78,7 @@ export default function JoinHomePage() {
             <input
               id="code"
               type="text"
-              placeholder="XXXX-XXXX"
+              placeholder="XXXXXXXXXXX"
               autoComplete="off"
               aria-describedby={errors.code ? "code-error" : undefined}
               aria-invalid={!!errors.code}
