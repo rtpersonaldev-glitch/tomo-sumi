@@ -105,6 +105,23 @@ export default function AnnounceDetailPage() {
           <span>作成: {format(parseISO(data.created_at), "yyyy年M月d日", { locale: ja })}</span>
           <span aria-label={`いいね ${data.like_count}件`}>❤️ {data.like_count} いいね</span>
         </div>
+        {data.created_by_user && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>投稿者:</span>
+            {data.created_by_user.icon_url ? (
+              <img
+                src={data.created_by_user.icon_url}
+                alt={data.created_by_user.nickname}
+                className="h-6 w-6 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {data.created_by_user.nickname.charAt(0)}
+              </div>
+            )}
+            <span className="font-medium text-foreground">{data.created_by_user.nickname}</span>
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}

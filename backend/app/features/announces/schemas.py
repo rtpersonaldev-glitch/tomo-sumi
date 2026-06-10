@@ -19,6 +19,12 @@ class AnnounceUpdateRequest(AnnounceBase):
     pass
 
 
+class AnnounceUserInfo(BaseModel):
+    id: int
+    nickname: str
+    icon_url: str | None = None
+
+
 class AnnounceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -31,6 +37,7 @@ class AnnounceResponse(BaseModel):
     like_count: int
     is_liked: bool
     created_at: datetime
+    created_by_user: AnnounceUserInfo | None = None
 
 
 class AnnounceLikeResponse(BaseModel):

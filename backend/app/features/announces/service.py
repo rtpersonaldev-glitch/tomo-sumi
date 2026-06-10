@@ -5,10 +5,12 @@ from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.features.announces.schemas import AnnounceLikeResponse, AnnounceResponse
+from app.core.config import settings
+from app.features.announces.schemas import AnnounceLikeResponse, AnnounceResponse, AnnounceUserInfo
 from app.models.announce import Announce, AnnounceLike
 from app.utils.activity_logger import log_activity
 from app.utils.fcm import send_push_to_home
+from app.utils.file_storage import get_media_url
 
 
 class AnnounceService:
@@ -18,7 +20,7 @@ class AnnounceService:
     async def _get_or_403(self, announce_id: int, home_id: int) -> Announce:
         result = await self.db.execute(
             select(Announce)
-            .options(joinedload(Announce.likes))
+            .options(joinedload(Announce.likes), joinedload(Announce.creator))
             .where(Announce.id == announce_id)
         )
         announce = result.scalars().unique().one_or_none()
@@ -29,6 +31,16 @@ class AnnounceService:
         return announce
 
     def _to_response(self, announce: Announce, user_id: int) -> AnnounceResponse:
+        creator = announce.creator
+        created_by_user = (
+            AnnounceUserInfo(
+                id=creator.id,
+                nickname=creator.nickname,
+                icon_url=get_media_url(creator.icon_path, settings.MEDIA_BASE_URL),
+            )
+            if creator
+            else None
+        )
         return AnnounceResponse(
             id=announce.id,
             home_id=announce.home_id,
@@ -39,6 +51,7 @@ class AnnounceService:
             like_count=len(announce.likes),
             is_liked=any(like.user_id == user_id for like in announce.likes),
             created_at=announce.created_at,
+            created_by_user=created_by_user,
         )
 
     async def list_announces(
@@ -54,7 +67,7 @@ class AnnounceService:
             raise HTTPException(status_code=403, detail="現在選択中のホームのみ参照できます")
         query = (
             select(Announce)
-            .options(joinedload(Announce.likes))
+            .options(joinedload(Announce.likes), joinedload(Announce.creator))
             .where(Announce.home_id == home_id)
         )
         if search:
@@ -101,7 +114,7 @@ class AnnounceService:
         await self.db.flush()
         result = await self.db.execute(
             select(Announce)
-            .options(joinedload(Announce.likes))
+            .options(joinedload(Announce.likes), joinedload(Announce.creator))
             .where(Announce.id == announce.id)
         )
         announce = result.scalars().unique().one()

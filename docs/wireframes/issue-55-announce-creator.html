@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issue #55 ワイヤーフレーム — お知らせ投稿者表示</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f0f4f3;
+    padding: 32px 16px;
+    color: #1e2a2a;
+  }
+  h2 { font-size: 13px; font-weight: 700; color: #586365; letter-spacing: .08em;
+       text-transform: uppercase; margin-bottom: 10px; }
+  .screens {
+    display: flex; flex-wrap: wrap; gap: 40px; justify-content: flex-start;
+  }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+  /* ---- Phone frame ---- */
+  .phone {
+    width: 375px;
+    background: #faf8f5;
+    border-radius: 28px;
+    border: 2px solid #c9d5d4;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+    display: flex; flex-direction: column;
+  }
+
+  /* ---- App Header ---- */
+  .app-header {
+    background: #ffffff;
+    border-bottom: 1px solid #d8e5e4;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    min-height: 52px;
+  }
+  .app-header .back-btn { font-size: 13px; color: #37ab9d; cursor: pointer; }
+  .app-header h1 { font-size: 17px; font-weight: 600; flex: 1; }
+  .app-header .action-btn {
+    background: #37ab9d; color: #fff; border: none;
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ---- Content ---- */
+  .content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ---- Search ---- */
+  .search-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1.5px solid #c9d5d4;
+    border-radius: 10px; padding: 9px 12px;
+  }
+  .search-bar input { border: none; outline: none; flex: 1; font-size: 14px; background: transparent; }
+  .filter-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .chip {
+    border: 1.5px solid #c9d5d4; border-radius: 20px;
+    padding: 4px 12px; font-size: 12px; font-weight: 500;
+    background: #fff; color: #586365; cursor: pointer;
+  }
+  .chip.active { background: #37ab9d; color: #fff; border-color: #37ab9d; }
+  .sort-btn {
+    margin-left: auto; border: 1.5px solid #c9d5d4; border-radius: 8px;
+    padding: 4px 10px; font-size: 12px; background: #fff; color: #586365;
+    cursor: pointer;
+  }
+
+  /* ---- Announce Card ---- */
+  .announce-card {
+    background: #fff; border: 1.5px solid #d8e5e4; border-radius: 14px;
+    padding: 14px; display: flex; flex-direction: column; gap: 8px;
+    cursor: pointer;
+  }
+  .card-top { display: flex; align-items: flex-start; gap: 8px; }
+  .priority-badge {
+    border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 700;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .priority-high { background: #fde8e8; color: #d93025; }
+  .priority-medium { background: #fff3cd; color: #9a6c00; }
+  .priority-low { background: #edf0f0; color: #586365; }
+  .card-title { font-size: 15px; font-weight: 600; flex: 1; line-height: 1.35; }
+  .card-content { font-size: 13px; color: #586365; line-height: 1.55; }
+
+  /* ---- Card footer (変更箇所) ---- */
+  .card-footer {
+    display: flex; align-items: center; gap: 6px;
+    justify-content: space-between; flex-wrap: wrap;
+    padding-top: 2px;
+    border-top: 1px solid #f0f4f3;
+    margin-top: 2px;
+  }
+  .card-meta { font-size: 11px; color: #8fa3a3; }
+
+  /* ★ 投稿者情報 (新規追加) */
+  .creator-info {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .avatar-sm {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #37ab9d; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; flex-shrink: 0;
+    overflow: hidden;
+  }
+  .avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+  .creator-name { font-size: 11px; color: #586365; }
+
+  .like-count {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 12px; color: #586365; margin-left: auto;
+  }
+  .like-count.liked { color: #d93025; }
+
+  /* ---- Detail page ---- */
+  .detail-section {
+    background: #fff; border: 1.5px solid #d8e5e4; border-radius: 14px; padding: 16px;
+  }
+  .detail-title { font-size: 19px; font-weight: 700; line-height: 1.4; margin-bottom: 6px; }
+  .detail-meta-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .detail-content {
+    font-size: 14px; line-height: 1.75; color: #2c3e3e; white-space: pre-wrap;
+  }
+  .divider { border: none; border-top: 1px solid #e8efef; margin: 14px 0; }
+
+  /* ★ 詳細の投稿者行 (変更箇所) */
+  .detail-info-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: #8fa3a3; gap: 8px; flex-wrap: wrap;
+  }
+  .detail-creator-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #586365;
+    margin-top: 8px;
+  }
+  .avatar-md {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #37ab9d; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .creator-label { color: #8fa3a3; margin-right: 2px; }
+
+  /* ---- Action buttons ---- */
+  .action-row { display: flex; gap: 10px; }
+  .like-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: 2px solid #d8e5e4; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; color: #586365;
+  }
+  .like-btn.liked { border-color: #d93025; color: #d93025; background: #fde8e8; }
+  .push-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: 2px solid #37ab9d; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; color: #37ab9d;
+  }
+  .edit-row { display: flex; gap: 8px; }
+  .edit-btn {
+    flex: 1; border: 1.5px solid #c9d5d4; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 13px; font-weight: 600; color: #586365; cursor: pointer;
+    text-align: center;
+  }
+  .delete-btn {
+    flex: 1; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 10px;
+    background: #fff; font-size: 13px; font-weight: 600; color: #d93025; cursor: pointer;
+    text-align: center;
+  }
+
+  /* ---- Annotation ---- */
+  .note {
+    font-size: 11px; color: #586365; background: #e8f4f3; border-left: 3px solid #37ab9d;
+    border-radius: 0 6px 6px 0; padding: 6px 10px; max-width: 375px;
+  }
+  .highlight { background: #fffbcc; border-radius: 3px; padding: 1px 3px; font-weight: 600; }
+
+  /* ---- Bottom Tab ---- */
+  .bottom-tab {
+    background: #fff; border-top: 1px solid #d8e5e4;
+    padding: 8px 0 10px;
+    display: flex; justify-content: space-around;
+  }
+  .tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tab-icon { font-size: 20px; }
+  .tab-label { font-size: 10px; color: #8fa3a3; }
+  .tab-item.active .tab-label { color: #37ab9d; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h2 style="font-size:20px;font-weight:800;color:#1e2a2a;letter-spacing:normal;text-transform:none;margin-bottom:6px;">
+  Issue #55 ワイヤーフレーム — お知らせ投稿者表示
+</h2>
+<p style="font-size:13px;color:#586365;margin-bottom:6px;">
+  お知らせ一覧カード・詳細ページに作成者アイコン＋名前を追加する変更点を確認する
+</p>
+<p style="font-size:12px;color:#8fa3a3;margin-bottom:32px;">
+  黄色ハイライト部分が新規追加箇所
+</p>
+
+<div class="screens">
+
+  <!-- =========================================================
+       画面 1: お知らせ一覧 (カード変更)
+       ========================================================= -->
+  <div class="screen-wrap">
+    <h2>① AnnounceListPage — カードに投稿者を追加</h2>
+    <div class="phone" style="min-height:760px;">
+      <div class="app-header">
+        <h1>📢 お知らせ</h1>
+        <button class="action-btn">＋ 作成</button>
+      </div>
+      <div class="content">
+        <div class="search-bar">
+          <span>🔍</span>
+          <input type="text" placeholder="タイトル・内容で検索" />
+        </div>
+        <div class="filter-row">
+          <span class="chip active">すべて</span>
+          <span class="chip">🔴 高</span>
+          <span class="chip">🟡 中</span>
+          <span class="chip">⚪ 低</span>
+          <button class="sort-btn">↕ 新しい順 ▾</button>
+        </div>
+        <p style="font-size:12px;color:#8fa3a3;">3件</p>
+
+        <!-- Card 1: 高優先度 -->
+        <div class="announce-card">
+          <div class="card-top">
+            <span class="priority-badge priority-high">🔴 高</span>
+            <span class="card-title">4月の家賃・光熱費について</span>
+          </div>
+          <p class="card-content">今月の家賃と光熱費の支払い期日が近づいています。各自確認して...</p>
+          <!-- ★ フッター変更: 期限 ＋ 投稿者 ＋ いいね -->
+          <div class="card-footer" style="background:#fffbcc;border-radius:6px;padding:4px 6px;">
+            <span class="card-meta">期限: 2026/06/30</span>
+            <span class="creator-info">
+              <span class="avatar-sm">田</span>
+              <span class="creator-name">田中さん</span>
+            </span>
+            <span class="like-count liked">❤️ 2</span>
+          </div>
+        </div>
+
+        <!-- Card 2: 中優先度 (アイコンあり) -->
+        <div class="announce-card">
+          <div class="card-top">
+            <span class="priority-badge priority-medium">🟡 中</span>
+            <span class="card-title">共用スペース掃除当番</span>
+          </div>
+          <p class="card-content">今週末はリビングと洗面所の大掃除をお願いします。</p>
+          <div class="card-footer" style="background:#fffbcc;border-radius:6px;padding:4px 6px;">
+            <span class="card-meta">期限: 2026/07/05</span>
+            <span class="creator-info">
+              <!-- アイコン画像ありパターン -->
+              <span class="avatar-sm" style="background:#e8f4f3;color:#37ab9d;">佐</span>
+              <span class="creator-name">佐藤さん</span>
+            </span>
+            <span class="like-count">🤍 1</span>
+          </div>
+        </div>
+
+        <!-- Card 3: 低優先度 (created_by=null の場合) -->
+        <div class="announce-card">
+          <div class="card-top">
+            <span class="priority-badge priority-low">⚪ 低</span>
+            <span class="card-title">Wi-Fiルーター更新のお知らせ</span>
+          </div>
+          <p class="card-content">来月にルーターを新機種に交換予定です。</p>
+          <div class="card-footer" style="background:#fffbcc;border-radius:6px;padding:4px 6px;">
+            <span class="card-meta">期限: 2026/07/31</span>
+            <!-- created_by_user = null の場合は非表示 -->
+            <span class="creator-info">
+              <span class="avatar-sm">山</span>
+              <span class="creator-name">山田さん</span>
+            </span>
+            <span class="like-count">🤍 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-tab">
+        <div class="tab-item"><span class="tab-icon">🏠</span><span class="tab-label">ホーム</span></div>
+        <div class="tab-item"><span class="tab-icon">💬</span><span class="tab-label">チャット</span></div>
+        <div class="tab-item"><span class="tab-icon">📰</span><span class="tab-label">投稿</span></div>
+        <div class="tab-item"><span class="tab-icon">📅</span><span class="tab-label">予定</span></div>
+        <div class="tab-item active"><span class="tab-icon">📢</span><span class="tab-label" style="color:#37ab9d;font-weight:600;">お知らせ</span></div>
+      </div>
+    </div>
+    <div class="note">
+      <span class="highlight">★ 変更箇所</span><br>
+      ・カードフッターに投稿者アイコン（18px丸）＋ニックネームを追加<br>
+      ・アイコン画像あり → img表示、なし → ニックネーム頭文字（primary色背景）<br>
+      ・created_by_user が null の場合は投稿者欄を非表示<br>
+      ・既存の「期限」「いいね」は位置変わらず
+    </div>
+  </div>
+
+  <!-- =========================================================
+       画面 2: お知らせ詳細 (メタ情報に投稿者追加)
+       ========================================================= -->
+  <div class="screen-wrap">
+    <h2>② AnnounceDetailPage — 詳細に投稿者を追加</h2>
+    <div class="phone" style="min-height:760px;">
+      <div class="app-header">
+        <button class="back-btn">‹ 戻る</button>
+        <h1>お知らせ詳細</h1>
+      </div>
+      <div class="content">
+        <div class="detail-section">
+          <div class="detail-meta-row">
+            <span class="priority-badge priority-high">🔴 高優先度</span>
+            <span style="font-size:12px;color:#8fa3a3;">期限: 2026年6月30日</span>
+          </div>
+          <h2 class="detail-title">4月の家賃・光熱費について</h2>
+          <hr class="divider" />
+
+          <p class="detail-content">今月の家賃と光熱費の支払い期日が近づいています。各自確認して期日内にお支払いをお願いします。
+
+口座情報は共有フォルダの「支払い情報.pdf」に記載されています。
+
+不明点があれば管理者まで連絡してください。</p>
+
+          <hr class="divider" />
+
+          <!-- ★ 変更箇所: 作成日・いいね数 + 投稿者行 -->
+          <div style="background:#fffbcc;border-radius:6px;padding:6px 8px;">
+            <div class="detail-info-row">
+              <span>作成: 2026年6月1日</span>
+              <span>❤️ 2 いいね</span>
+            </div>
+            <!-- ★ 新規追加: 投稿者行 -->
+            <div class="detail-creator-row">
+              <span class="creator-label">投稿者:</span>
+              <span class="avatar-md">田</span>
+              <span style="font-size:13px;font-weight:600;">田中さん</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-row">
+          <button class="like-btn liked">❤️ いいね済み (2)</button>
+          <button class="push-btn">🔔 通知を送る</button>
+        </div>
+
+        <!-- Edit / Delete -->
+        <div class="detail-section" style="padding:12px;">
+          <p style="font-size:11px;color:#8fa3a3;margin-bottom:10px;">作成者のみ操作可能</p>
+          <div class="edit-row">
+            <button class="edit-btn">✏️ 編集</button>
+            <button class="delete-btn">🗑️ 削除</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-tab">
+        <div class="tab-item"><span class="tab-icon">🏠</span><span class="tab-label">ホーム</span></div>
+        <div class="tab-item"><span class="tab-icon">💬</span><span class="tab-label">チャット</span></div>
+        <div class="tab-item"><span class="tab-icon">📰</span><span class="tab-label">投稿</span></div>
+        <div class="tab-item"><span class="tab-icon">📅</span><span class="tab-label">予定</span></div>
+        <div class="tab-item active"><span class="tab-icon">📢</span><span class="tab-label" style="color:#37ab9d;font-weight:600;">お知らせ</span></div>
+      </div>
+    </div>
+    <div class="note">
+      <span class="highlight">★ 変更箇所</span><br>
+      ・詳細カード下部（作成日・いいね数の直下）に「投稿者:」行を追加<br>
+      ・アイコン（24px丸）＋ニックネームを表示<br>
+      ・created_by_user が null の場合は投稿者行を非表示
+    </div>
+  </div>
+
+</div>
+
+<!-- 変更サマリー -->
+<div style="margin-top:40px;background:#fff;border:1.5px solid #d8e5e4;border-radius:14px;padding:20px;max-width:860px;">
+  <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">変更サマリー (Issue #55)</h3>
+  <table style="font-size:13px;border-collapse:collapse;width:100%;">
+    <tr style="background:#f0f4f3;">
+      <th style="text-align:left;padding:6px 10px;border:1px solid #d8e5e4;">対象</th>
+      <th style="text-align:left;padding:6px 10px;border:1px solid #d8e5e4;">変更内容</th>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">Backend: announce.py (model)</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">Announce に <code>creator</code> relationship 追加（User via created_by）</td>
+    </tr>
+    <tr style="background:#f0f4f3;">
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">Backend: schemas.py</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;"><code>AnnounceUserInfo</code> 追加、<code>AnnounceResponse</code> に <code>created_by_user</code> 追加</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">Backend: service.py</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">クエリに <code>joinedload(Announce.creator)</code> 追加、<code>_to_response</code> に user info 追加</td>
+    </tr>
+    <tr style="background:#f0f4f3;">
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">Frontend: types.ts</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;"><code>AnnounceUserInfo</code>型追加、<code>AnnounceResponse</code> に <code>created_by_user</code> 追加</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">Frontend: AnnounceListPage</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">カードフッターに投稿者アバター＋名前を追加</td>
+    </tr>
+    <tr style="background:#f0f4f3;">
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">Frontend: AnnounceDetailPage</td>
+      <td style="padding:6px 10px;border:1px solid #d8e5e4;">詳細メタ情報に投稿者行を追加</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>
