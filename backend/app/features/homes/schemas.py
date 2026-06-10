@@ -69,5 +69,5 @@ class DashboardScheduleResponse(BaseModel):
 
 class DashboardResponse(BaseModel):
     members: list[HomeMemberResponse]
-    upcoming_schedules: list[DashboardScheduleResponse]
+    today_schedules: list[DashboardScheduleResponse]
     unread_announce_count: int

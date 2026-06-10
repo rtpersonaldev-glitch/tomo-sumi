@@ -117,13 +117,14 @@ class HomeService:
         members = list(members_result.scalars().all())
 
         now = datetime.now(tz=UTC)
-        week_later = now + timedelta(days=7)
+        today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+        today_end = today_start + timedelta(days=1)
         schedules_result = await self.db.execute(
             select(Schedule)
             .where(
                 Schedule.home_id == home_id,
-                Schedule.start_day >= now,
-                Schedule.start_day <= week_later,
+                Schedule.start_day >= today_start,
+                Schedule.start_day < today_end,
             )
             .order_by(Schedule.start_day)
             .limit(10)

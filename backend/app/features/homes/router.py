@@ -45,7 +45,7 @@ async def get_dashboard(
     members, schedules, announce_count = await HomeService(db).get_dashboard(current_home.id)
     return DashboardResponse(
         members=[HomeMemberResponse.model_validate(m) for m in members],
-        upcoming_schedules=[DashboardScheduleResponse.model_validate(s) for s in schedules],
+        today_schedules=[DashboardScheduleResponse.model_validate(s) for s in schedules],
         unread_announce_count=announce_count,
     )
 

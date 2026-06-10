@@ -1,7 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "../hooks/useHome";
@@ -52,6 +51,7 @@ function MemberAvatar({ member }: { member: HomeMemberResponse }) {
 
 function ScheduleItem({ schedule }: { schedule: DashboardScheduleResponse }) {
   const startDate = new Date(schedule.start_day);
+  const endDate = new Date(schedule.end_day);
   return (
     <div className="flex items-start gap-3 border-b border-border/50 px-4 py-3 last:border-b-0">
       <span className="w-12 flex-shrink-0 text-xs font-bold text-primary pt-0.5">
@@ -61,7 +61,7 @@ function ScheduleItem({ schedule }: { schedule: DashboardScheduleResponse }) {
       <div>
         <p className="text-sm font-medium">{schedule.title}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {format(startDate, "M月d日(E)", { locale: ja })}
+          {format(startDate, "HH:mm")} 〜 {format(endDate, "HH:mm")}
         </p>
       </div>
     </div>
@@ -147,28 +147,28 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Upcoming schedules */}
+      {/* Today's schedules */}
       <section aria-labelledby="schedules-heading">
         <div className="flex items-center justify-between mb-3">
           <h2
             id="schedules-heading"
             className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
           >
-            直近のスケジュール
+            今日のスケジュール
           </h2>
-          {data.upcoming_schedules.length > 0 && (
+          {data.today_schedules.length > 0 && (
             <span className="text-xs font-semibold text-primary">
-              {data.upcoming_schedules.length}件
+              {data.today_schedules.length}件
             </span>
           )}
         </div>
         <div className="overflow-hidden rounded-xl border border-border bg-card">
-          {data.upcoming_schedules.length === 0 ? (
+          {data.today_schedules.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              直近のスケジュールはありません
+              今日のスケジュールはありません
             </p>
           ) : (
-            data.upcoming_schedules.map((schedule) => (
+            data.today_schedules.map((schedule) => (
               <ScheduleItem key={schedule.id} schedule={schedule} />
             ))
           )}
