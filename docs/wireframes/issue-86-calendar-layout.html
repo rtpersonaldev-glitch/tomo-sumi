@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Issue #86 ワイヤーフレーム — カレンダーレイアウト</title>
+  <style>
+    /* ── ブランドカラー（16_ui_design.md 準拠） ── */
+    :root {
+      --bg:           #f7f5f0;
+      --fg:           #1a1d27;
+      --primary:      #37ab9d;
+      --primary-fg:   #ffffff;
+      --card:         #ffffff;
+      --border:       #d4e8e5;
+      --muted-bg:     #e8f0ef;
+      --muted-fg:     #586365;
+      --sat:          #3b82f6;   /* blue-500 */
+      --sun:          #ef4444;   /* red-500 */
+      --dot:          #37ab9d;
+      --selected-bg:  #e0f5f3;
+      --selected-border: #37ab9d;
+      --today-bg:     #f0faf9;
+      --today-border: #4dc0b2;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── ページラッパー ── */
+    .page {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+    }
+
+    /* ── ヘッダー ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .header h1 { font-size: 20px; font-weight: 600; }
+    .btn-create {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--primary);
+      color: var(--primary-fg);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ── タブ ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #e5eeec;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      width: fit-content;
+      margin-bottom: 16px;
+    }
+    .tab {
+      border: none;
+      background: transparent;
+      border-radius: 7px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--muted-fg);
+    }
+    .tab.active {
+      background: var(--card);
+      color: var(--fg);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* ── カレンダーカード ── */
+    .calendar-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+
+    /* ── カレンダーナビ ── */
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .cal-nav button {
+      background: var(--muted-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--fg);
+    }
+    .cal-title { font-size: 14px; font-weight: 700; }
+
+    /* ── カレンダーグリッド ── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    /* 曜日ヘッダー */
+    .cal-header-cell {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 0;
+      color: var(--muted-fg);
+    }
+    .cal-header-cell.sat { color: var(--sat); }
+    .cal-header-cell.sun { color: var(--sun); }
+
+    /* 日付セル */
+    .cal-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 4px 0 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      min-height: 44px;
+      position: relative;
+      transition: background 0.1s;
+    }
+    .cal-cell:hover { background: var(--muted-bg); }
+    .cal-cell.other-month { opacity: 0.3; }
+    .cal-cell.today {
+      background: var(--today-bg);
+      border: 1px solid var(--today-border);
+    }
+    .cal-cell.selected {
+      background: var(--selected-bg);
+      border: 1px solid var(--selected-border);
+    }
+
+    /* 日付数字 */
+    .cal-day-num {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      padding-top: 2px;
+    }
+    .cal-cell.sat .cal-day-num { color: var(--sat); }
+    .cal-cell.sun .cal-day-num { color: var(--sun); }
+    .cal-cell.today .cal-day-num { font-weight: 700; }
+    .cal-cell.selected .cal-day-num { font-weight: 700; color: var(--primary); }
+
+    /* 予定ドット */
+    .cal-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--dot);
+      margin-top: 2px;
+    }
+
+    /* ── 選択日スケジュール ── */
+    .day-detail {
+      margin-top: 4px;
+    }
+    .day-detail-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .day-detail-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .day-detail-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* スケジュールカード */
+    .schedule-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .schedule-card:hover { border-color: rgba(55,171,157,0.4); }
+    .schedule-card-left {}
+    .schedule-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .schedule-card-time {
+      font-size: 12px;
+      color: var(--muted-fg);
+    }
+    .schedule-card-memo {
+      font-size: 11px;
+      color: var(--muted-fg);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+    .schedule-card-arrow {
+      color: var(--muted-fg);
+      font-size: 16px;
+    }
+    .member-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .member-avatar {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--primary-fg);
+    }
+    .member-name { font-size: 11px; color: var(--muted-fg); }
+
+    .empty-day {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted-fg);
+      font-size: 13px;
+    }
+
+    /* ── ボトムナビ（参考） ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      color: var(--muted-fg);
+    }
+    .nav-item.active { color: var(--primary); }
+    .nav-icon { font-size: 20px; }
+
+    /* ── 凡例 ── */
+    .legend {
+      background: #fffef0;
+      border: 1px solid #ffe580;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: #665500;
+      line-height: 1.8;
+    }
+    .legend strong { font-size: 13px; display: block; margin-bottom: 4px; }
+    .legend ul { padding-left: 16px; }
+
+    /* ── 2画面並列 ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+    }
+    .col-label {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted-fg);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="two-col">
+
+  <!-- ────────── 画面A: 日付未選択状態 ────────── -->
+  <div>
+    <div class="col-label">① 日付を未選択の状態</div>
+    <div class="page" style="padding: 0; margin: 0;">
+
+      <div class="header">
+        <h1>スケジュール</h1>
+        <!-- 日付未選択なので作成ボタンは /schedules/new に遷移 -->
+        <button class="btn-create">＋ 作成</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">📅 カレンダー</button>
+        <button class="tab">📋 一覧</button>
+      </div>
+
+      <div class="calendar-card">
+        <!-- ナビ -->
+        <div class="cal-nav">
+          <button>‹</button>
+          <span class="cal-title">2026年6月</span>
+          <button>今日</button>
+          <button>›</button>
+        </div>
+
+        <!-- 曜日ヘッダー -->
+        <div class="cal-grid">
+          <div class="cal-header-cell sun">日</div>
+          <div class="cal-header-cell">月</div>
+          <div class="cal-header-cell">火</div>
+          <div class="cal-header-cell">水</div>
+          <div class="cal-header-cell">木</div>
+          <div class="cal-header-cell">金</div>
+          <div class="cal-header-cell sat">土</div>
+
+          <!-- Week 1 (6/1 = Mon) -->
+          <div class="cal-cell other-month sun"><span class="cal-day-num">1</span></div>
+          <div class="cal-cell"><span class="cal-day-num">1</span></div>
+          <div class="cal-cell"><span class="cal-day-num">2</span></div>
+          <div class="cal-cell"><span class="cal-day-num">3</span></div>
+          <div class="cal-cell"><span class="cal-day-num">4</span></div>
+          <div class="cal-cell"><span class="cal-day-num">5</span></div>
+          <div class="cal-cell sat"><span class="cal-day-num">6</span></div>
+
+          <!-- Week 2 -->
+          <div class="cal-cell sun"><span class="cal-day-num">7</span></div>
+          <div class="cal-cell"><span class="cal-day-num">8</span></div>
+          <div class="cal-cell"><span class="cal-day-num">9</span></div>
+          <div class="cal-cell today"><span class="cal-day-num">10</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">11</span></div>
+          <div class="cal-cell"><span class="cal-day-num">12</span><div class="cal-dot"></div></div>
+          <div class="cal-cell sat"><span class="cal-day-num">13</span></div>
+
+          <!-- Week 3 -->
+          <div class="cal-cell sun"><span class="cal-day-num">14</span></div>
+          <div class="cal-cell"><span class="cal-day-num">15</span></div>
+          <div class="cal-cell"><span class="cal-day-num">16</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">17</span></div>
+          <div class="cal-cell"><span class="cal-day-num">18</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">19</span></div>
+          <div class="cal-cell sat"><span class="cal-day-num">20</span></div>
+
+          <!-- Week 4 -->
+          <div class="cal-cell sun"><span class="cal-day-num">21</span></div>
+          <div class="cal-cell"><span class="cal-day-num">22</span></div>
+          <div class="cal-cell"><span class="cal-day-num">23</span></div>
+          <div class="cal-cell"><span class="cal-day-num">24</span></div>
+          <div class="cal-cell"><span class="cal-day-num">25</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">26</span></div>
+          <div class="cal-cell sat"><span class="cal-day-num">27</span></div>
+
+          <!-- Week 5 -->
+          <div class="cal-cell sun"><span class="cal-day-num">28</span></div>
+          <div class="cal-cell"><span class="cal-day-num">29</span></div>
+          <div class="cal-cell"><span class="cal-day-num">30</span></div>
+          <div class="cal-cell other-month"><span class="cal-day-num">1</span></div>
+          <div class="cal-cell other-month"><span class="cal-day-num">2</span></div>
+          <div class="cal-cell other-month"><span class="cal-day-num">3</span></div>
+          <div class="cal-cell other-month sat"><span class="cal-day-num">4</span></div>
+        </div>
+      </div>
+
+      <!-- 未選択時のヒント -->
+      <div style="text-align:center; padding: 16px; color: var(--muted-fg); font-size: 13px;">
+        日付をタップして予定を確認
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────── 画面B: 日付選択後・予定あり ────────── -->
+  <div>
+    <div class="col-label">② 6/10（今日）をタップした状態</div>
+    <div class="page" style="padding: 0; margin: 0;">
+
+      <div class="header">
+        <h1>スケジュール</h1>
+        <!-- 日付選択済み → 作成ボタンはその日付を引数に渡す -->
+        <button class="btn-create" title="/schedules/new?date=2026-06-10">＋ 作成</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">📅 カレンダー</button>
+        <button class="tab">📋 一覧</button>
+      </div>
+
+      <div class="calendar-card">
+        <div class="cal-nav">
+          <button>‹</button>
+          <span class="cal-title">2026年6月</span>
+          <button>今日</button>
+          <button>›</button>
+        </div>
+
+        <div class="cal-grid">
+          <div class="cal-header-cell sun">日</div>
+          <div class="cal-header-cell">月</div>
+          <div class="cal-header-cell">火</div>
+          <div class="cal-header-cell">水</div>
+          <div class="cal-header-cell">木</div>
+          <div class="cal-header-cell">金</div>
+          <div class="cal-header-cell sat">土</div>
+
+          <div class="cal-cell other-month sun"><span class="cal-day-num">1</span></div>
+          <div class="cal-cell"><span class="cal-day-num">1</span></div>
+          <div class="cal-cell"><span class="cal-day-num">2</span></div>
+          <div class="cal-cell"><span class="cal-day-num">3</span></div>
+          <div class="cal-cell"><span class="cal-day-num">4</span></div>
+          <div class="cal-cell"><span class="cal-day-num">5</span></div>
+          <div class="cal-cell sat"><span class="cal-day-num">6</span></div>
+
+          <div class="cal-cell sun"><span class="cal-day-num">7</span></div>
+          <div class="cal-cell"><span class="cal-day-num">8</span></div>
+          <div class="cal-cell"><span class="cal-day-num">9</span></div>
+          <!-- 10日: today + selected -->
+          <div class="cal-cell today selected"><span class="cal-day-num">10</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">11</span></div>
+          <div class="cal-cell"><span class="cal-day-num">12</span><div class="cal-dot"></div></div>
+          <div class="cal-cell sat"><span class="cal-day-num">13</span></div>
+
+          <div class="cal-cell sun"><span class="cal-day-num">14</span></div>
+          <div class="cal-cell"><span class="cal-day-num">15</span></div>
+          <div class="cal-cell"><span class="cal-day-num">16</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">17</span></div>
+          <div class="cal-cell"><span class="cal-day-num">18</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">19</span></div>
+          <div class="cal-cell sat"><span class="cal-day-num">20</span></div>
+
+          <div class="cal-cell sun"><span class="cal-day-num">21</span></div>
+          <div class="cal-cell"><span class="cal-day-num">22</span></div>
+          <div class="cal-cell"><span class="cal-day-num">23</span></div>
+          <div class="cal-cell"><span class="cal-day-num">24</span></div>
+          <div class="cal-cell"><span class="cal-day-num">25</span><div class="cal-dot"></div></div>
+          <div class="cal-cell"><span class="cal-day-num">26</span></div>
+          <div class="cal-cell sat"><span class="cal-day-num">27</span></div>
+
+          <div class="cal-cell sun"><span class="cal-day-num">28</span></div>
+          <div class="cal-cell"><span class="cal-day-num">29</span></div>
+          <div class="cal-cell"><span class="cal-day-num">30</span></div>
+          <div class="cal-cell other-month"><span class="cal-day-num">1</span></div>
+          <div class="cal-cell other-month"><span class="cal-day-num">2</span></div>
+          <div class="cal-cell other-month"><span class="cal-day-num">3</span></div>
+          <div class="cal-cell other-month sat"><span class="cal-day-num">4</span></div>
+        </div>
+      </div>
+
+      <!-- 選択日のスケジュール一覧 -->
+      <div class="day-detail">
+        <div class="day-detail-header">
+          <span class="day-detail-title">6月10日（水）の予定</span>
+          <div class="day-detail-line"></div>
+        </div>
+
+        <!-- カード1 -->
+        <div class="schedule-card">
+          <div class="schedule-card-left">
+            <div class="schedule-card-title">病院の予約</div>
+            <div class="schedule-card-time">10:00 〜 11:30</div>
+            <div class="member-chip">
+              <span class="member-avatar">山</span>
+              <span class="member-name">山田太郎</span>
+            </div>
+          </div>
+          <span class="schedule-card-arrow">›</span>
+        </div>
+
+        <!-- カード2（メモあり） -->
+        <div class="schedule-card">
+          <div class="schedule-card-left">
+            <div class="schedule-card-title">子供の参観日</div>
+            <div class="schedule-card-time">13:00 〜 15:00</div>
+            <div class="schedule-card-memo">持ち物：上履き・名札</div>
+            <div class="member-chip">
+              <span class="member-avatar">花</span>
+              <span class="member-name">山田花子</span>
+            </div>
+          </div>
+          <span class="schedule-card-arrow">›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /two-col -->
+
+<!-- ── 凡例（ページ下部） ── -->
+<div style="max-width: 1000px; margin: 0 auto; padding: 0 16px 40px;">
+  <div class="legend">
+    <strong>🗒 Issue #86 変更点まとめ</strong>
+    <ul>
+      <li><strong>土曜の日付数字 → 青色</strong>（`text-blue-500`）</li>
+      <li><strong>日曜の日付数字 → 赤色</strong>（`text-red-500`）</li>
+      <li><strong>「日」を削除</strong>：日付は数字のみ表示（例: "15" ← 従来 "15日"）</li>
+      <li><strong>予定あり → セルに点（●）表示</strong>：複数予定でも点は1つ</li>
+      <li><strong>セルクリック → 遷移しない</strong>：カレンダー下に当日の予定一覧を表示</li>
+      <li><strong>「作成」ボタン</strong>：日付選択済みなら <code>/schedules/new?date=YYYY-MM-DD</code> に遷移、未選択なら <code>/schedules/new</code></li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>
