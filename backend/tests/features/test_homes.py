@@ -259,7 +259,7 @@ async def test_get_dashboard(client: AsyncClient, db: AsyncSession) -> None:
     db.add(
         Schedule(
             home_id=home_id,
-            title="直近の予定",
+            title="今日の予定",
             memo="",
             start_day=now + timedelta(hours=2),
             end_day=now + timedelta(hours=3),
@@ -281,9 +281,88 @@ async def test_get_dashboard(client: AsyncClient, db: AsyncSession) -> None:
     data = resp.json()
     assert len(data["members"]) == 1
     assert data["members"][0]["nickname"] == "ダッシュボードユーザー"
-    assert len(data["upcoming_schedules"]) == 1
-    assert data["upcoming_schedules"][0]["title"] == "直近の予定"
+    assert len(data["today_schedules"]) == 1
+    assert data["today_schedules"][0]["title"] == "今日の予定"
     assert data["unread_announce_count"] == 1
+
+
+async def test_dashboard_today_schedules_excludes_yesterday(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """昨日のスケジュールは今日のスケジュールに表示されない"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+
+    now = datetime.now(tz=UTC)
+    yesterday = now - timedelta(days=1)
+    db.add(
+        Schedule(
+            home_id=home_id,
+            title="昨日の予定",
+            memo="",
+            start_day=yesterday,
+            end_day=yesterday + timedelta(hours=1),
+        )
+    )
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["today_schedules"]) == 0
+
+
+async def test_dashboard_today_schedules_excludes_tomorrow(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """明日のスケジュールは今日のスケジュールに表示されない"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+
+    now = datetime.now(tz=UTC)
+    tomorrow = now + timedelta(days=1)
+    db.add(
+        Schedule(
+            home_id=home_id,
+            title="明日の予定",
+            memo="",
+            start_day=tomorrow,
+            end_day=tomorrow + timedelta(hours=1),
+        )
+    )
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["today_schedules"]) == 0
+
+
+async def test_dashboard_today_schedules_includes_past_start_today(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """今日の開始済み（現在時刻より前）のスケジュールも表示される"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+
+    now = datetime.now(tz=UTC)
+    today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    db.add(
+        Schedule(
+            home_id=home_id,
+            title="今日早朝の予定",
+            memo="",
+            start_day=today_start,
+            end_day=today_start + timedelta(hours=1),
+        )
+    )
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["today_schedules"]) == 1
+    assert data["today_schedules"][0]["title"] == "今日早朝の予定"
 
 
 async def test_get_dashboard_no_home(client: AsyncClient) -> None:

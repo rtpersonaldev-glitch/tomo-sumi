@@ -26,6 +26,6 @@ export interface DashboardScheduleResponse {
 
 export interface DashboardResponse {
   members: HomeMemberResponse[];
-  upcoming_schedules: DashboardScheduleResponse[];
+  today_schedules: DashboardScheduleResponse[];
   unread_announce_count: number;
 }
