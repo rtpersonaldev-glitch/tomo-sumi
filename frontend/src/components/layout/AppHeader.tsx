@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -9,17 +10,85 @@ import { useToggleStatus } from "@/features/settings/hooks/useSettings";
 import { useLogout } from "@/features/auth/hooks/useAuth";
 import { useUnreadActivityCount } from "@/features/activity/hooks/useActivity";
 
+/* ── ログアウト確認モーダル ────────────────────────────────────────── */
+
+interface LogoutConfirmModalProps {
+  onConfirm: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+}
+
+function LogoutConfirmModal({ onConfirm, onCancel, isPending }: LogoutConfirmModalProps) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-[60] flex items-center justify-center px-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+    >
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onCancel}
+        aria-hidden="true"
+      />
+      <motion.div
+        className="relative z-10 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-dialog-title"
+      >
+        <h2 id="logout-dialog-title" className="text-base font-semibold">
+          ログアウト
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          本当にログアウトしますか？
+        </p>
+        <div className="mt-5 flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isPending}
+            className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          >
+            キャンセル
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          >
+            {isPending ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ログアウト中...
+              </span>
+            ) : (
+              "ログアウト"
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ── ユーザーメニュー（ボトムシート） ────────────────────────────── */
 
 interface UserMenuSheetProps {
   onClose: () => void;
+  onLogoutRequest: () => void;
 }
 
-function UserMenuSheet({ onClose }: UserMenuSheetProps) {
+function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const toggleStatus = useToggleStatus();
-  const logout = useLogout();
 
   if (!user) return null;
 
@@ -33,13 +102,9 @@ function UserMenuSheet({ onClose }: UserMenuSheetProps) {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
     onClose();
-    try {
-      await logout.mutateAsync();
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
+    onLogoutRequest();
   };
 
   const handleNav = (path: string) => {
@@ -149,15 +214,14 @@ function UserMenuSheet({ onClose }: UserMenuSheetProps) {
         {/* Logout */}
         <button
           type="button"
-          onClick={handleLogout}
-          disabled={logout.isPending}
-          className="flex w-full items-center gap-3 px-5 py-3.5 transition-colors hover:bg-destructive/5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          onClick={handleLogoutClick}
+          className="flex w-full items-center gap-3 px-5 py-3.5 transition-colors hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-red-50 text-base dark:bg-red-950/30">
             🚪
           </div>
           <span className="flex-1 text-left text-sm font-medium text-destructive">
-            {logout.isPending ? "ログアウト中…" : "ログアウト"}
+            ログアウト
           </span>
         </button>
 
@@ -171,17 +235,28 @@ function UserMenuSheet({ onClose }: UserMenuSheetProps) {
 
 export function AppHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const home = useAuthStore((s) => s.home);
   const { data: unreadData } = useUnreadActivityCount();
   const unreadCount = unreadData?.count ?? 0;
+  const logout = useLogout();
 
   if (!user) return null;
 
   const isAtHome = user.status === "at_home";
 
   const badgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
+
+  const handleConfirmLogout = async () => {
+    try {
+      await logout.mutateAsync();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      setLogoutConfirmOpen(false);
+    }
+  };
 
   return (
     <>
@@ -237,7 +312,22 @@ export function AppHeader() {
         </button>
       </header>
 
-      {menuOpen && <UserMenuSheet onClose={() => setMenuOpen(false)} />}
+      {menuOpen && (
+        <UserMenuSheet
+          onClose={() => setMenuOpen(false)}
+          onLogoutRequest={() => setLogoutConfirmOpen(true)}
+        />
+      )}
+
+      <AnimatePresence>
+        {logoutConfirmOpen && (
+          <LogoutConfirmModal
+            onConfirm={handleConfirmLogout}
+            onCancel={() => setLogoutConfirmOpen(false)}
+            isPending={logout.isPending}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
