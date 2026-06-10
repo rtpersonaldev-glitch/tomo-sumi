@@ -119,7 +119,17 @@ function PostCard({
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm dark:shadow-none">
-      <div className="px-4 pt-3 pb-2">
+      {/* クリックで詳細へ遷移するコンテンツエリア */}
+      <div
+        className="px-4 pt-3 pb-2 cursor-pointer"
+        onClick={() => navigate(`/posts/${post.id}`)}
+        role="button"
+        tabIndex={0}
+        aria-label={`投稿詳細を見る`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") navigate(`/posts/${post.id}`);
+        }}
+      >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <CreatorChip userId={post.created_by} members={members} />
@@ -128,7 +138,10 @@ function PostCard({
             </span>
           </div>
           {isOwn && (
-            <div className="flex gap-1 shrink-0">
+            <div
+              className="flex gap-1 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 onClick={() => navigate(`/posts/${post.id}/edit`)}
@@ -151,10 +164,7 @@ function PostCard({
         </div>
 
         {preview && (
-          <p
-            className="text-sm leading-relaxed text-foreground line-clamp-3 mb-2 cursor-pointer"
-            onClick={() => navigate(`/posts/${post.id}`)}
-          >
+          <p className="text-sm leading-relaxed text-foreground line-clamp-3 mb-2">
             {preview}
           </p>
         )}
