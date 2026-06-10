@@ -88,7 +88,6 @@ export default function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
-              placeholder="••••••••"
               aria-describedby={errors.password ? "password-error" : undefined}
               aria-invalid={!!errors.password}
               className={`${inputBase} ${errors.password ? "border-destructive" : "border-input"}`}
