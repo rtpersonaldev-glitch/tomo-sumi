@@ -62,7 +62,9 @@ export const useUpdateHome = () => {
       const formData = new FormData();
       formData.append("name", name);
       if (image) formData.append("home_image", image);
-      const { data } = await apiClient.put<HomeResponse>(`/api/homes/${homeId}`, formData);
+      const { data } = await apiClient.put<HomeResponse>(`/api/homes/${homeId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       return data;
     },
     onSuccess: (data) => {
