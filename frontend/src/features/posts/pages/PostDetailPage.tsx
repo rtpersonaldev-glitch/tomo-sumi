@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -128,7 +129,25 @@ export default function PostDetailPage() {
 
   const [commentText, setCommentText] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (lightboxIndex === null || !post) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowLeft")
+        setLightboxIndex((i) =>
+          i === null ? null : (i - 1 + post.picture_urls.length) % post.picture_urls.length,
+        );
+      if (e.key === "ArrowRight")
+        setLightboxIndex((i) =>
+          i === null ? null : (i + 1) % post.picture_urls.length,
+        );
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIndex, post]);
 
   const author = post ? members.find((m) => m.id === post.created_by) : undefined;
   const isOwn = currentUserId != null && post?.created_by === currentUserId;
@@ -264,23 +283,26 @@ export default function PostDetailPage() {
             <div
               className={cn(
                 "mt-3 grid gap-1.5 overflow-hidden rounded-lg",
-                post.picture_urls.length === 1
-                  ? "grid-cols-1"
-                  : post.picture_urls.length === 2
-                    ? "grid-cols-2"
-                    : "grid-cols-2",
+                post.picture_urls.length === 1 ? "grid-cols-1" : "grid-cols-2",
               )}
             >
               {post.picture_urls.map((url, i) => (
-                <img
+                <button
                   key={url}
-                  src={url}
-                  alt={`投稿画像 ${i + 1}`}
-                  className={cn(
-                    "w-full object-cover",
-                    post.picture_urls.length === 1 ? "max-h-80" : "h-40",
-                  )}
-                />
+                  type="button"
+                  onClick={() => setLightboxIndex(i)}
+                  aria-label={`投稿画像 ${i + 1} を拡大`}
+                  className="block w-full overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <img
+                    src={url}
+                    alt={`投稿画像 ${i + 1}`}
+                    className={cn(
+                      "w-full object-cover transition-opacity hover:opacity-90",
+                      post.picture_urls.length === 1 ? "max-h-80" : "h-40",
+                    )}
+                  />
+                </button>
               ))}
             </div>
           )}
@@ -338,6 +360,83 @@ export default function PostDetailPage() {
           </span>
         </div>
       </div>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxIndex !== null && (
+          <motion.div
+            className="fixed inset-0 z-[70] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="画像を拡大表示"
+          >
+            <div
+              className="absolute inset-0 bg-black/85"
+              onClick={() => setLightboxIndex(null)}
+              aria-hidden="true"
+            />
+
+            <button
+              type="button"
+              onClick={() => setLightboxIndex(null)}
+              aria-label="閉じる"
+              className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <motion.img
+              key={lightboxIndex}
+              src={post.picture_urls[lightboxIndex]}
+              alt={`投稿画像 ${lightboxIndex + 1}`}
+              className="relative z-10 max-h-[85vh] max-w-[calc(100%-8rem)] object-contain rounded-lg"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            />
+
+            {post.picture_urls.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLightboxIndex(
+                      (i) =>
+                        i === null
+                          ? null
+                          : (i - 1 + post.picture_urls.length) % post.picture_urls.length,
+                    )
+                  }
+                  aria-label="前の画像"
+                  className="absolute left-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLightboxIndex((i) =>
+                      i === null ? null : (i + 1) % post.picture_urls.length,
+                    )
+                  }
+                  aria-label="次の画像"
+                  className="absolute right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">
+                  {lightboxIndex + 1} / {post.picture_urls.length}
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Comments */}
       <div className="rounded-xl border border-border bg-card shadow-sm dark:shadow-none overflow-hidden">
