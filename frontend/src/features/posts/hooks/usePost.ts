@@ -53,8 +53,24 @@ export const useUpdatePost = () => {
   const qc = useQueryClient();
   const homeId = useAuthStore((s) => s.home?.id);
   return useMutation({
-    mutationFn: async ({ id, content }: { id: number; content: string }) => {
-      const { data } = await apiClient.put<PostDetailResponse>(`/api/posts/${id}`, { content });
+    mutationFn: async ({
+      id,
+      content,
+      newImages = [],
+      deletePictureIds = [],
+    }: {
+      id: number;
+      content: string;
+      newImages?: File[];
+      deletePictureIds?: number[];
+    }) => {
+      const formData = new FormData();
+      formData.append("content", content);
+      newImages.forEach((img) => formData.append("new_images", img));
+      formData.append("delete_picture_ids", JSON.stringify(deletePictureIds));
+      const { data } = await apiClient.put<PostDetailResponse>(`/api/posts/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       return data;
     },
     onSuccess: (_data, { id }) => {
