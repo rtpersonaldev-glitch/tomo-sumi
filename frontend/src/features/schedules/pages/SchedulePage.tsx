@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -97,6 +97,21 @@ export default function SchedulePage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("calendar");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const calendarRef = useRef<FullCalendar>(null);
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth() + 1);
+
+  const yearOptions = useMemo(() => {
+    const thisYear = new Date().getFullYear();
+    return Array.from({ length: 21 }, (_, i) => thisYear - 10 + i);
+  }, []);
+
+  const handleDatesSet = useCallback((arg: { view: { currentStart: Date } }) => {
+    const d = arg.view.currentStart;
+    setCalYear(d.getFullYear());
+    setCalMonth(d.getMonth() + 1);
+  }, []);
 
   const { data: schedules, isLoading, isError } = useSchedules();
   const { data: members = [] } = useHomeMembers();
@@ -208,21 +223,79 @@ export default function SchedulePage() {
       {/* Calendar tab */}
       {tab === "calendar" && !isLoading && !isError && (
         <>
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:shadow-none [&_.fc-button]:rounded-lg [&_.fc-button]:border-border [&_.fc-button-primary]:bg-primary [&_.fc-button-primary]:border-primary [&_.fc-today-button]:opacity-80 [&_.fc-daygrid-day-top]:justify-center [&_.fc-daygrid-day-number]:p-0">
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:shadow-none [&_.fc-daygrid-day-top]:justify-center [&_.fc-daygrid-day-number]:p-0">
+            {/* Custom calendar toolbar */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => calendarRef.current?.getApi().prev()}
+                  aria-label="前の月"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-sm hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={() => calendarRef.current?.getApi().today()}
+                  className="flex h-8 items-center px-3 rounded-lg border border-border bg-background text-xs font-medium hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  今日
+                </button>
+                <button
+                  type="button"
+                  onClick={() => calendarRef.current?.getApi().next()}
+                  aria-label="次の月"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-sm hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  ›
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={calYear}
+                  onChange={(e) => {
+                    const y = parseInt(e.target.value, 10);
+                    calendarRef.current?.getApi().gotoDate(new Date(y, calMonth - 1, 1));
+                  }}
+                  aria-label="年を選択"
+                  className="h-8 rounded-lg border border-border bg-background px-2 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>
+                      {y}年
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={calMonth}
+                  onChange={(e) => {
+                    const m = parseInt(e.target.value, 10);
+                    calendarRef.current?.getApi().gotoDate(new Date(calYear, m - 1, 1));
+                  }}
+                  aria-label="月を選択"
+                  className="h-8 rounded-lg border border-border bg-background px-2 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1}月
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <FullCalendar
+              ref={calendarRef}
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               locale="ja"
-              headerToolbar={{
-                left: "prev,next today",
-                center: "title",
-                right: "",
-              }}
-              buttonText={{ today: "今日" }}
+              headerToolbar={false}
               events={[]}
               dateClick={(info) => setSelectedDate(info.dateStr)}
               height="auto"
               dayCellContent={dayCellContent}
+              datesSet={handleDatesSet}
             />
           </div>
 
