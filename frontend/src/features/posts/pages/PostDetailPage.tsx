@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -17,6 +17,72 @@ import {
   useDeletePost,
 } from "../hooks/usePost";
 import type { PostCommentResponse } from "../types";
+
+function Lightbox({
+  urls,
+  initialIndex,
+  onClose,
+}: {
+  urls: string[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [current, setCurrent] = useState(initialIndex);
+  const pic = urls[current];
+
+  const handlePrev = () => setCurrent((i) => (i - 1 + urls.length) % urls.length);
+  const handleNext = () => setCurrent((i) => (i + 1) % urls.length);
+
+  if (!pic) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+      role="dialog"
+      aria-modal
+      aria-label="画像を拡大表示"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="閉じる"
+        className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      <img
+        src={pic}
+        alt={`投稿画像 ${current + 1}`}
+        className="max-h-[70vh] max-w-full rounded-lg object-contain"
+      />
+
+      <div className="flex items-center gap-8 mt-5">
+        <button
+          type="button"
+          onClick={handlePrev}
+          disabled={urls.length <= 1}
+          aria-label="前の画像"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition-colors disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <span className="text-sm text-white/70">
+          {current + 1} / {urls.length}
+        </span>
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={urls.length <= 1}
+          aria-label="次の画像"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition-colors disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function MemberAvatar({
   member,
@@ -128,6 +194,7 @@ export default function PostDetailPage() {
 
   const [commentText, setCommentText] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const author = post ? members.find((m) => m.id === post.created_by) : undefined;
@@ -187,6 +254,7 @@ export default function PostDetailPage() {
   }
 
   return (
+    <>
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -264,23 +332,26 @@ export default function PostDetailPage() {
             <div
               className={cn(
                 "mt-3 grid gap-1.5 overflow-hidden rounded-lg",
-                post.picture_urls.length === 1
-                  ? "grid-cols-1"
-                  : post.picture_urls.length === 2
-                    ? "grid-cols-2"
-                    : "grid-cols-2",
+                post.picture_urls.length === 1 ? "grid-cols-1" : "grid-cols-2",
               )}
             >
               {post.picture_urls.map((url, i) => (
-                <img
+                <button
                   key={url}
-                  src={url}
-                  alt={`投稿画像 ${i + 1}`}
-                  className={cn(
-                    "w-full object-cover",
-                    post.picture_urls.length === 1 ? "max-h-80" : "h-40",
-                  )}
-                />
+                  type="button"
+                  onClick={() => setLightboxIndex(i)}
+                  aria-label={`投稿画像 ${i + 1} を拡大`}
+                  className="block w-full overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <img
+                    src={url}
+                    alt={`投稿画像 ${i + 1}`}
+                    className={cn(
+                      "w-full object-cover transition-opacity hover:opacity-90",
+                      post.picture_urls.length === 1 ? "max-h-80" : "h-40",
+                    )}
+                  />
+                </button>
               ))}
             </div>
           )}
@@ -399,5 +470,14 @@ export default function PostDetailPage() {
         </div>
       </div>
     </div>
+
+    {lightboxIndex !== null && post.picture_urls.length > 0 && (
+      <Lightbox
+        urls={post.picture_urls}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+      />
+    )}
+    </>
   );
 }
