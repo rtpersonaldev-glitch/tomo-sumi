@@ -67,7 +67,7 @@ export default function ReminderContentEditPage() {
       date: "",
       time: "",
       repeat: "",
-      is_active: false,
+      is_active: true,
     },
   });
 
