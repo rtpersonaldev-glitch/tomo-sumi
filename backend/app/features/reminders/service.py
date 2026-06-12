@@ -220,3 +220,22 @@ class ReminderService:
         content.updated_by = user_id
         await self.db.flush()
         return ReminderContentResponse.model_validate(content)
+
+    async def delete_content(
+        self, content_id: int, home_id: int, user_id: int
+    ) -> None:
+        content = await self._get_content_or_403(content_id, home_id)
+        reminder_id = content.reminder_id
+        await self.db.delete(content)
+        await log_activity(
+            self.db,
+            home_id,
+            user_id,
+            "リマインダー内容を削除しました",
+            "reminder_content",
+            content_id,
+        )
+        await self.db.flush()
+        reminder = await self._get_reminder_with_contents_or_403(reminder_id, home_id)
+        all_active = len(reminder.contents) > 0 and all(c.is_active for c in reminder.contents)
+        reminder.complete_flag = all_active
