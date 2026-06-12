@@ -8,8 +8,6 @@ import { getErrorMessage } from "@/utils/error";
 import { useAlbum, useCreateAlbum, useDeletePicture, useUpdateAlbum } from "../hooks/useAlbum";
 import type { AlbumPictureResponse } from "../types";
 
-const MAX_IMAGES = 5;
-
 export default function AlbumEditPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
@@ -155,7 +153,7 @@ export default function AlbumEditPage() {
           <span className="text-sm font-medium">
             写真
             <span className="ml-1.5 text-xs text-muted-foreground">
-              （{totalCount}/{MAX_IMAGES}枚・各10MBまで）
+              （{totalCount}枚・各10MBまで）
             </span>
           </span>
         </div>
@@ -201,18 +199,16 @@ export default function AlbumEditPage() {
           ))}
 
           {/* add button */}
-          {totalCount < MAX_IMAGES && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-primary hover:border-primary/60 hover:bg-secondary/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              style={{ width: 72, height: 72 }}
-              aria-label="写真を追加"
-            >
-              <span className="text-xl leading-none">＋</span>
-              <span className="text-[10px] font-semibold">追加</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-primary hover:border-primary/60 hover:bg-secondary/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ width: 72, height: 72 }}
+            aria-label="写真を追加"
+          >
+            <span className="text-xl leading-none">＋</span>
+            <span className="text-[10px] font-semibold">追加</span>
+          </button>
         </div>
 
         <input
