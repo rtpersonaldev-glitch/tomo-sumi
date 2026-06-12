@@ -8,19 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 
-class Reminder(Base, TimestampMixin):
-    __tablename__ = "reminders"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    home_id: Mapped[int] = mapped_column(ForeignKey("homes.id"), nullable=False, index=True)
-    list_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    complete_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-
-    contents: Mapped[list[ReminderContent]] = relationship(
-        "ReminderContent", back_populates="reminder"
-    )
-
-
 class ReminderContent(Base, TimestampMixin):
     __tablename__ = "reminder_contents"
 
@@ -34,3 +21,16 @@ class ReminderContent(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     reminder: Mapped[Reminder] = relationship("Reminder", back_populates="contents")
+
+
+class Reminder(Base, TimestampMixin):
+    __tablename__ = "reminders"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    home_id: Mapped[int] = mapped_column(ForeignKey("homes.id"), nullable=False, index=True)
+    list_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    complete_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    contents: Mapped[list[ReminderContent]] = relationship(
+        "ReminderContent", back_populates="reminder", order_by=ReminderContent.created_at
+    )
