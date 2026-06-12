@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
-import { useAlbum, useDeleteAlbum, useDeletePicture } from "../hooks/useAlbum";
+import { useAlbum, useDeleteAlbum } from "../hooks/useAlbum";
 import type { AlbumPictureResponse } from "../types";
 
 function Lightbox({
@@ -17,27 +17,10 @@ function Lightbox({
   onClose: () => void;
 }) {
   const [current, setCurrent] = useState(initialIndex);
-  const deletePicture = useDeletePicture();
-
-  const albumId = pictures[0]?.album_id;
   const pic = pictures[current];
 
   const handlePrev = () => setCurrent((i) => (i - 1 + pictures.length) % pictures.length);
   const handleNext = () => setCurrent((i) => (i + 1) % pictures.length);
-
-  const handleDeletePic = async () => {
-    if (!pic || !albumId) return;
-    try {
-      await deletePicture.mutateAsync({ albumId, picId: pic.id });
-      if (pictures.length === 1) {
-        onClose();
-      } else {
-        setCurrent((i) => Math.min(i, pictures.length - 2));
-      }
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  };
 
   if (!pic) return null;
 
@@ -86,19 +69,6 @@ function Lightbox({
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>
-
-      <button
-        type="button"
-        onClick={handleDeletePic}
-        disabled={deletePicture.isPending}
-        className="mt-3 flex items-center gap-1.5 rounded-lg bg-destructive px-4 py-2 text-xs font-semibold text-white hover:opacity-90 transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-      >
-        {deletePicture.isPending ? (
-          <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-        ) : (
-          "🗑 この写真を削除"
-        )}
-      </button>
     </div>
   );
 }
