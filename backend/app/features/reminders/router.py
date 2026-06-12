@@ -55,6 +55,20 @@ async def update_reminder_content(
     )
 
 
+@router.delete("/contents/{content_id}", status_code=204)
+async def delete_reminder_content(
+    content_id: int,
+    current_home: Home = Depends(get_current_home),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await ReminderService(db).delete_content(
+        content_id=content_id,
+        home_id=current_home.id,
+        user_id=current_user.id,
+    )
+
+
 @router.post("/contents/{content_id}/toggle", response_model=ReminderContentResponse)
 async def toggle_reminder_content(
     content_id: int,

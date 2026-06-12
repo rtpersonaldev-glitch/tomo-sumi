@@ -146,6 +146,26 @@ export const useReminderContent = (contentId: number | undefined, enabled = true
     enabled: enabled && !!contentId,
   });
 
+export const useDeleteReminderContent = () => {
+  const qc = useQueryClient();
+  const homeId = useAuthStore((s) => s.home?.id);
+  return useMutation({
+    mutationFn: async ({
+      contentId,
+    }: {
+      contentId: number;
+      reminderId: number;
+    }) => {
+      await apiClient.delete(`/api/reminders/contents/${contentId}`);
+      return contentId;
+    },
+    onSuccess: (_data, { reminderId }) => {
+      qc.invalidateQueries({ queryKey: ["reminders", homeId] });
+      qc.invalidateQueries({ queryKey: ["reminder", reminderId] });
+    },
+  });
+};
+
 export const useToggleReminderContent = () => {
   const qc = useQueryClient();
   const homeId = useAuthStore((s) => s.home?.id);
