@@ -76,3 +76,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* FullCalendar: デザインシステムのカラートークンで上書き（ダークモード対応） */
+.fc {
+  --fc-border-color: hsl(var(--border));
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: hsl(var(--muted));
+  --fc-neutral-text-color: hsl(var(--muted-foreground));
+  --fc-today-bg-color: hsl(var(--primary) / 0.08);
+}
+
+.fc-col-header-cell-cushion {
+  color: hsl(var(--muted-foreground));
+  text-decoration: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
