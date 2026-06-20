@@ -9,6 +9,7 @@ class AnnounceBase(BaseModel):
     content: str = Field(..., min_length=1, max_length=300)
     priority: Literal["high", "medium", "low"]
     end_date: date
+    recipient_ids: list[int] = Field(default_factory=list)
 
 
 class AnnounceCreateRequest(AnnounceBase):
@@ -36,6 +37,7 @@ class AnnounceResponse(BaseModel):
     end_date: date
     like_count: int
     is_liked: bool
+    recipient_ids: list[int]
     created_at: datetime
     created_by_user: AnnounceUserInfo | None = None
 

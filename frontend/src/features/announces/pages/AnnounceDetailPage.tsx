@@ -6,6 +6,7 @@ import { ja } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
+import { useHomeMembers } from "@/features/home/hooks/useHome";
 import {
   useAnnounce,
   useDeleteAnnounce,
@@ -21,6 +22,7 @@ export default function AnnounceDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const { data, isLoading, isError } = useAnnounce(announceId);
+  const { data: homeMembers = [] } = useHomeMembers();
   const toggleLike = useToggleLike(announceId);
   const sendPush = useSendPush();
   const deleteAnnounce = useDeleteAnnounce();
@@ -100,6 +102,39 @@ export default function AnnounceDetailPage() {
           {data.content}
         </p>
         <hr className="border-border" />
+
+        {/* 宛先 */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground shrink-0">宛先:</span>
+          {data.recipient_ids.length === 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              👥 全員
+            </span>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              {data.recipient_ids.map((uid) => {
+                const member = homeMembers.find((m) => m.id === uid);
+                if (!member) return null;
+                return (
+                  <div key={uid} className="flex items-center gap-1">
+                    {member.icon_url ? (
+                      <img
+                        src={member.icon_url}
+                        alt={member.nickname}
+                        className="h-5 w-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                        {member.nickname.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-xs text-foreground">{member.nickname}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>作成: {format(parseISO(data.created_at), "yyyy年M月d日", { locale: ja })}</span>

@@ -3,7 +3,7 @@ from datetime import date
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.announce import Announce
+from app.models.announce import Announce, AnnounceRecipient
 from app.models.home import Home
 
 _SEQ = 0
@@ -413,3 +413,144 @@ async def test_activity_log_on_delete(client: AsyncClient) -> None:
     logs_resp = await client.get(f"/api/activity/{home_id}")
     logs = logs_resp.json()
     assert any("削除" in log["action"] for log in logs)
+
+
+# ─── 宛先（recipient_ids）機能 ────────────────────────────────────────────────
+
+
+async def test_create_announce_with_recipients(client: AsyncClient) -> None:
+    """recipient_ids を指定して作成すると、レスポンスにも含まれる"""
+    user_id = await _register_and_login(client)
+    await _create_and_select_home(client)
+    resp = await client.post(
+        "/api/announces",
+        json={**_DEFAULT_ANNOUNCE, "recipient_ids": [user_id]},
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["recipient_ids"] == [user_id]
+
+
+async def test_list_announces_no_recipients_visible_to_all(client: AsyncClient) -> None:
+    """recipient_ids が空のお知らせは全員に表示される"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    await client.post("/api/announces", json={**_DEFAULT_ANNOUNCE, "recipient_ids": []})
+    resp = await client.get(f"/api/announces/{home_id}")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
+
+
+async def test_list_announces_recipient_filter(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """宛先指定のお知らせは宛先ユーザーにのみ表示される"""
+    user1_id = await _register_and_login(client, email="recip1@example.com", nickname="user1")
+    home_id = await _create_and_select_home(client)
+
+    # user2 を同ホームに招待コードで追加
+    invite_resp = await client.get(f"/api/homes/{home_id}/invitation-code")
+    code = invite_resp.json()["code"]
+
+    # user2 でログインしてホームに参加
+    user2_id = await _register_and_login(client, email="recip2@example.com", nickname="user2")
+    await client.post(f"/api/homes/join/{code}")
+    await client.post(f"/api/auth/home-login/{home_id}")
+
+    # user2 として user1 宛のお知らせを直接DBに作成
+    announce = Announce(
+        home_id=home_id,
+        title="user1宛お知らせ",
+        content="内容",
+        priority="medium",
+        end_date=date(2099, 12, 31),
+        created_by=user1_id,
+    )
+    db.add(announce)
+    await db.flush()
+    db.add(AnnounceRecipient(announce_id=announce.id, user_id=user1_id))
+    await db.flush()
+
+    # user2 は一覧に表示されない
+    resp_user2 = await client.get(f"/api/announces/{home_id}")
+    assert resp_user2.status_code == 200
+    assert all(a["id"] != announce.id for a in resp_user2.json())
+
+    # user1 に切り替えて確認
+    await _register_and_login(client, email="recip1@example.com")
+    await client.post(f"/api/auth/home-login/{home_id}")
+    resp_user1 = await client.get(f"/api/announces/{home_id}")
+    assert resp_user1.status_code == 200
+    assert any(a["id"] == announce.id for a in resp_user1.json())
+
+
+async def test_get_announce_detail_not_in_recipients(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """宛先に含まれないユーザーが詳細を取得しようとすると 403"""
+    user1_id = await _register_and_login(client, email="detail1@example.com", nickname="u1")
+    home_id = await _create_and_select_home(client)
+
+    invite_resp = await client.get(f"/api/homes/{home_id}/invitation-code")
+    code = invite_resp.json()["code"]
+
+    await _register_and_login(client, email="detail2@example.com", nickname="u2")
+    await client.post(f"/api/homes/join/{code}")
+    await client.post(f"/api/auth/home-login/{home_id}")
+
+    announce = Announce(
+        home_id=home_id,
+        title="user1宛のみ",
+        content="内容",
+        priority="medium",
+        end_date=date(2099, 12, 31),
+        created_by=user1_id,
+    )
+    db.add(announce)
+    await db.flush()
+    db.add(AnnounceRecipient(announce_id=announce.id, user_id=user1_id))
+    await db.flush()
+
+    # user2（非宛先）が詳細取得 → 403
+    resp = await client.get(f"/api/announces/{announce.id}/detail")
+    assert resp.status_code == 403
+
+
+async def test_update_announce_recipients(client: AsyncClient) -> None:
+    """更新で recipient_ids を変更できる"""
+    user_id = await _register_and_login(client)
+    await _create_and_select_home(client)
+    create_resp = await client.post(
+        "/api/announces",
+        json={**_DEFAULT_ANNOUNCE, "recipient_ids": [user_id]},
+    )
+    announce_id = create_resp.json()["id"]
+
+    update_resp = await client.put(
+        f"/api/announces/{announce_id}",
+        json={**_DEFAULT_ANNOUNCE, "recipient_ids": []},
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["recipient_ids"] == []
+
+
+async def test_delete_announce_with_recipients(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """宛先付きお知らせを削除すると recipients もカスケード削除される"""
+    user_id = await _register_and_login(client)
+    await _create_and_select_home(client)
+    create_resp = await client.post(
+        "/api/announces",
+        json={**_DEFAULT_ANNOUNCE, "recipient_ids": [user_id]},
+    )
+    announce_id = create_resp.json()["id"]
+
+    del_resp = await client.delete(f"/api/announces/{announce_id}")
+    assert del_resp.status_code == 204
+
+    remaining = await db.execute(
+        __import__("sqlalchemy", fromlist=["select"]).select(AnnounceRecipient)
+        .where(AnnounceRecipient.announce_id == announce_id)
+    )
+    assert remaining.scalars().all() == []

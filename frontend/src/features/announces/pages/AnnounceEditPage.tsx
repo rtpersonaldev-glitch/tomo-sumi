@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
+import { useHomeMembers } from "@/features/home/hooks/useHome";
 import { useAnnounce, useCreateAnnounce, useUpdateAnnounce } from "../hooks/useAnnounce";
 import type { AnnounceFormValues } from "../types";
 
@@ -21,6 +22,7 @@ const schema = z.object({
     .max(300, "300文字以内で入力してください"),
   priority: z.enum(["high", "medium", "low"]),
   end_date: z.string().min(1, "期限日を選択してください"),
+  recipient_ids: z.array(z.number()),
 });
 
 const PRIORITIES = [
@@ -54,8 +56,11 @@ export default function AnnounceEditPage() {
   const announceId = id ? parseInt(id, 10) : undefined;
 
   const { data: existing, isLoading: loadingExisting } = useAnnounce(announceId, isEdit);
+  const { data: homeMembers = [] } = useHomeMembers();
   const createAnnounce = useCreateAnnounce();
   const updateAnnounce = useUpdateAnnounce();
+
+  const [recipientMode, setRecipientMode] = useState<"all" | "specific">("all");
 
   const {
     register,
@@ -70,6 +75,7 @@ export default function AnnounceEditPage() {
       content: "",
       priority: "medium",
       end_date: "",
+      recipient_ids: [],
     },
   });
 
@@ -79,22 +85,38 @@ export default function AnnounceEditPage() {
       setValue("content", existing.content);
       setValue("priority", existing.priority);
       setValue("end_date", existing.end_date);
+      setValue("recipient_ids", existing.recipient_ids);
+      if (existing.recipient_ids.length > 0) {
+        setRecipientMode("specific");
+      }
     }
   }, [existing, isEdit, setValue]);
 
   const priority = watch("priority");
   const titleValue = watch("title");
   const contentValue = watch("content");
+  const recipientIds = watch("recipient_ids");
   const isPending = createAnnounce.isPending || updateAnnounce.isPending;
 
+  const toggleRecipient = (uid: number) => {
+    const next = recipientIds.includes(uid)
+      ? recipientIds.filter((x) => x !== uid)
+      : [...recipientIds, uid];
+    setValue("recipient_ids", next);
+  };
+
   const onSubmit = async (values: AnnounceFormValues) => {
+    const payload: AnnounceFormValues = {
+      ...values,
+      recipient_ids: recipientMode === "specific" ? values.recipient_ids : [],
+    };
     try {
       if (isEdit && announceId) {
-        await updateAnnounce.mutateAsync({ id: announceId, body: values });
+        await updateAnnounce.mutateAsync({ id: announceId, body: payload });
         toast.success("お知らせを更新しました");
         navigate(`/announces/${announceId}`);
       } else {
-        const created = await createAnnounce.mutateAsync(values);
+        const created = await createAnnounce.mutateAsync(payload);
         toast.success("お知らせを作成しました");
         navigate(`/announces/${created.id}`);
       }
@@ -151,11 +173,7 @@ export default function AnnounceEditPage() {
           />
           <div className="flex items-center justify-between">
             {errors.title ? (
-              <span
-                id="title-error"
-                role="alert"
-                className="flex items-center gap-1 text-xs text-destructive"
-              >
+              <span id="title-error" role="alert" className="flex items-center gap-1 text-xs text-destructive">
                 <span aria-hidden>⚠</span>
                 {errors.title.message}
               </span>
@@ -186,11 +204,7 @@ export default function AnnounceEditPage() {
           />
           <div className="flex items-center justify-between">
             {errors.content ? (
-              <span
-                id="content-error"
-                role="alert"
-                className="flex items-center gap-1 text-xs text-destructive"
-              >
+              <span id="content-error" role="alert" className="flex items-center gap-1 text-xs text-destructive">
                 <span aria-hidden>⚠</span>
                 {errors.content.message}
               </span>
@@ -239,11 +253,7 @@ export default function AnnounceEditPage() {
             {...register("end_date")}
           />
           {errors.end_date ? (
-            <span
-              id="end-date-error"
-              role="alert"
-              className="flex items-center gap-1 text-xs text-destructive"
-            >
+            <span id="end-date-error" role="alert" className="flex items-center gap-1 text-xs text-destructive">
               <span aria-hidden>⚠</span>
               {errors.end_date.message}
             </span>
@@ -251,6 +261,100 @@ export default function AnnounceEditPage() {
             <p id="end-date-hint" className="text-xs text-muted-foreground">
               この日以降は一覧から非表示になります
             </p>
+          )}
+        </div>
+
+        {/* Recipients */}
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            宛先
+          </p>
+          {/* Toggle */}
+          <div
+            className="flex rounded-lg border border-border bg-secondary/30 p-1 gap-1"
+            role="group"
+            aria-label="宛先の種類を選択"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setRecipientMode("all");
+                setValue("recipient_ids", []);
+              }}
+              aria-pressed={recipientMode === "all"}
+              className={cn(
+                "flex-1 rounded-md py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                recipientMode === "all"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              全員
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecipientMode("specific")}
+              aria-pressed={recipientMode === "specific"}
+              className={cn(
+                "flex-1 rounded-md py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                recipientMode === "specific"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              個人指定
+            </button>
+          </div>
+
+          {recipientMode === "all" ? (
+            <p className="text-xs text-muted-foreground">ホーム全員に表示されます</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-3 pt-1" role="group" aria-label="宛先メンバーを選択">
+                {homeMembers.map((m) => {
+                  const selected = recipientIds.includes(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => toggleRecipient(m.id)}
+                      aria-pressed={selected}
+                      className="flex flex-col items-center gap-1 rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <div
+                        className={cn(
+                          "rounded-full p-0.5",
+                          selected ? "ring-2 ring-primary ring-offset-1" : "",
+                        )}
+                      >
+                        {m.icon_url ? (
+                          <img
+                            src={m.icon_url}
+                            alt={m.nickname}
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                            {m.nickname.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[10px]",
+                          selected ? "font-semibold text-primary" : "text-muted-foreground",
+                        )}
+                      >
+                        {m.nickname}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                選択した人のみにお知らせが表示されます
+              </p>
+            </>
           )}
         </div>
 
