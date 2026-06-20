@@ -102,6 +102,7 @@ async def create_cost(
     payment_method: str = Form(""),
     memo: str = Form(""),
     dish_count: int | None = Form(None),
+    seikyusaki_json: str = Form(default="[]"),
     receipt_image: UploadFile | None = File(None),
     current_home: Home = Depends(get_current_home),
     current_user: User = Depends(get_current_user),
@@ -117,6 +118,7 @@ async def create_cost(
         payment_method=payment_method,
         memo=memo,
         dish_count=dish_count,
+        seikyusaki_json=seikyusaki_json,
         receipt_image=receipt_image,
     )
 
@@ -141,6 +143,7 @@ async def update_cost(
     payment_method: str = Form(""),
     memo: str = Form(""),
     dish_count: int | None = Form(None),
+    seikyusaki_json: str = Form(default="[]"),
     receipt_image: UploadFile | None = File(None),
     current_home: Home = Depends(get_current_home),
     current_user: User = Depends(get_current_user),
@@ -157,6 +160,7 @@ async def update_cost(
         payment_method=payment_method,
         memo=memo,
         dish_count=dish_count,
+        seikyusaki_json=seikyusaki_json,
         receipt_image=receipt_image,
     )
 

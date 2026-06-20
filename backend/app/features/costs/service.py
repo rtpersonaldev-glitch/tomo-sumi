@@ -1,3 +1,4 @@
+import json as json_module
 from datetime import date
 
 from fastapi import HTTPException, UploadFile
@@ -65,6 +66,31 @@ class CostService:
             select(Seikyusaki).where(Seikyusaki.cost_id == cost_id)
         )
         return list(result.scalars().all())
+
+    async def _save_seikyusaki(self, cost_id: int, seikyusaki_json: str) -> None:
+        for s in await self._get_seikyusaki(cost_id):
+            await self.db.delete(s)
+
+        try:
+            data = json_module.loads(seikyusaki_json) if seikyusaki_json else []
+        except Exception:
+            data = []
+
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            uid = item.get("user_id")
+            amount = item.get("amount", 0)
+            dish_count = item.get("dish_count")
+            if uid is not None and amount > 0:
+                self.db.add(
+                    Seikyusaki(
+                        cost_id=cost_id,
+                        payer_user_id=uid,
+                        amount=amount,
+                        dish_count=dish_count,
+                    )
+                )
 
     async def _build_cost_response(self, cost: Cost) -> CostResponse:
         category_name: str | None = None
@@ -212,7 +238,8 @@ class CostService:
         payment_method: str,
         memo: str,
         dish_count: int | None,
-        receipt_image: UploadFile | None,
+        seikyusaki_json: str = "[]",
+        receipt_image: UploadFile | None = None,
     ) -> CostResponse:
         receipt_path: str | None = None
         if receipt_image and receipt_image.filename:
@@ -232,6 +259,9 @@ class CostService:
         )
         self.db.add(cost)
         await self.db.flush()
+
+        await self._save_seikyusaki(cost.id, seikyusaki_json)
+
         await log_activity(self.db, home_id, user_id, "支出を追加しました", "cost", cost.id)
         return await self._build_cost_response(cost)
 
@@ -251,7 +281,8 @@ class CostService:
         payment_method: str,
         memo: str,
         dish_count: int | None,
-        receipt_image: UploadFile | None,
+        seikyusaki_json: str = "[]",
+        receipt_image: UploadFile | None = None,
     ) -> CostResponse:
         cost = await self._get_cost_or_403(cost_id, home_id)
 
@@ -271,6 +302,7 @@ class CostService:
         cost.dish_count = dish_count
         cost.updated_by = user_id
 
+        await self._save_seikyusaki(cost.id, seikyusaki_json)
         await self.db.flush()
         return await self._build_cost_response(cost)
 

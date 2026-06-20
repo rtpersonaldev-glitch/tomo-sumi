@@ -109,8 +109,31 @@ export default function CostEditPage() {
     setPayerUserId(existingCost.payer_user_id);
     setMemo(existingCost.memo);
     if (existingCost.receipt_image_url) setReceiptPreview(existingCost.receipt_image_url);
-    if (existingCost.dish_count) {
+
+    const sei = existingCost.seikyusaki;
+    if (existingCost.dish_count != null) {
       setMethod("dish");
+    } else if (sei.length > 0) {
+      setMethod("direct");
+    }
+
+    if (sei.length > 0) {
+      const targetIds = sei
+        .filter((s): s is typeof s & { payer_user_id: number } => s.payer_user_id != null)
+        .map((s) => s.payer_user_id);
+      setBillingTargets(targetIds);
+
+      const inputs: Record<number, MemberBillInput> = {};
+      for (const s of sei) {
+        if (s.payer_user_id != null) {
+          inputs[s.payer_user_id] = {
+            userId: s.payer_user_id,
+            dishCount: s.dish_count ?? 1,
+            amount: s.amount,
+          };
+        }
+      }
+      setMemberInputs(inputs);
     }
   }, [existingCost]);
 
@@ -168,6 +191,42 @@ export default function CostEditPage() {
       return;
     }
 
+    /* 請求先（seikyusaki）データを構築 */
+    type SeikyusakiItem = { user_id: number; amount: number; dish_count: number | null };
+    const seikyusakiData: SeikyusakiItem[] = [];
+
+    if (billingTargets.length > 0 && amountNum > 0) {
+      if (method === "equal") {
+        const n = billingTargets.length;
+        const share = Math.floor(amountNum / n);
+        billingTargets.forEach((uid, i) => {
+          seikyusakiData.push({
+            user_id: uid,
+            amount: i === n - 1 ? amountNum - share * (n - 1) : share,
+            dish_count: null,
+          });
+        });
+      } else if (method === "dish" && totalDishCount > 0) {
+        const n = billingTargets.length;
+        const perDish = Math.floor(amountNum / totalDishCount);
+        let remaining = amountNum;
+        billingTargets.forEach((uid, i) => {
+          const dc = memberInputs[uid]?.dishCount ?? 1;
+          const amt = i === n - 1 ? remaining : perDish * dc;
+          if (i !== n - 1) remaining -= amt;
+          seikyusakiData.push({ user_id: uid, amount: amt, dish_count: dc });
+        });
+      } else if (method === "direct") {
+        billingTargets.forEach((uid) => {
+          seikyusakiData.push({
+            user_id: uid,
+            amount: memberInputs[uid]?.amount ?? 0,
+            dish_count: null,
+          });
+        });
+      }
+    }
+
     const fd = new FormData();
     fd.append("purchase_date", purchaseDate);
     fd.append("amount", amount);
@@ -179,6 +238,7 @@ export default function CostEditPage() {
     if (method === "dish" && totalDishCount > 0) {
       fd.append("dish_count", String(totalDishCount));
     }
+    fd.append("seikyusaki_json", JSON.stringify(seikyusakiData));
     if (receiptFile) fd.append("receipt_image", receiptFile);
 
     try {
