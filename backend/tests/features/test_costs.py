@@ -798,6 +798,30 @@ async def test_reject_meisai(client: AsyncClient, db: AsyncSession) -> None:
     assert data["payer_memo"] is None
     assert data["complete_flag"] is False
 
+    # 差し戻し時にお知らせが作成される
+    from app.models.announce import Announce, AnnounceRecipient
+
+    from sqlalchemy import desc as _desc
+
+    ann_result = await db.execute(
+        select(Announce)
+        .where(
+            Announce.home_id == home_id,
+            Announce.link_url == f"/costs/seisan/{seisan_id}",
+            Announce.title.contains("差し戻し"),
+        )
+        .order_by(_desc(Announce.id))
+        .limit(1)
+    )
+    ann = ann_result.scalar_one()
+    assert ann is not None
+    recipient_result = await db.execute(
+        select(AnnounceRecipient).where(AnnounceRecipient.announce_id == ann.id)
+    )
+    recipient_ids = [r.user_id for r in recipient_result.scalars().all()]
+    assert user1_id in recipient_ids
+    assert user2_id in recipient_ids
+
 
 async def test_reject_meisai_by_wrong_user(client: AsyncClient, db: AsyncSession) -> None:
     """支払者は差し戻しできない"""

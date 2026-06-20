@@ -764,4 +764,26 @@ class CostService:
         m.updated_by = user_id
         await self.db.flush()
 
+        announce_user_ids: set[int] = set()
+        if m.from_user_id:
+            announce_user_ids.add(m.from_user_id)
+        if m.to_user_id:
+            announce_user_ids.add(m.to_user_id)
+
+        if announce_user_ids:
+            ann = Announce(
+                home_id=home_id,
+                title=f"「{seisan.title}」の清算が差し戻されました"[:50],
+                content="受取人が支払いを差し戻しました。再度支払い完了の手続きをしてください。",
+                priority="high",
+                end_date=date.today() + timedelta(days=7),
+                link_url=f"/costs/seisan/{seisan.id}",
+                created_by=user_id,
+            )
+            self.db.add(ann)
+            await self.db.flush()
+            for uid in announce_user_ids:
+                self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
+            await self.db.flush()
+
         return await self._build_meisai_response(m)
