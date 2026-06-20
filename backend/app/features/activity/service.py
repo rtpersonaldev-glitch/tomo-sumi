@@ -3,9 +3,11 @@ from datetime import UTC, datetime
 from sqlalchemy import exists, func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.features.activity.schemas import ActivityLogResponse
 from app.models.activity import ActivityLog, ActivityReadStatus
 from app.models.user import User
+from app.utils.file_storage import get_media_url
 
 
 class ActivityService:
@@ -38,7 +40,7 @@ class ActivityService:
                 target_id=log.target_id,
                 user_id=log.user_id,
                 nickname=nickname,
-                icon_url=icon_path,
+                icon_url=get_media_url(icon_path, settings.MEDIA_BASE_URL),
                 is_read=read_id is not None,
                 created_at=log.created_at,
             )
