@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { ImageIcon, Loader2, Settings } from "lucide-react";
+import { ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -264,26 +264,16 @@ export default function CostEditPage() {
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
             カテゴリ
           </label>
-          <div className="flex gap-2">
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}
-              className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">未分類</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
-            <Link
-              to="/costs/categories"
-              className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="カテゴリを管理"
-            >
-              <Settings className="h-3.5 w-3.5" />
-              管理
-            </Link>
-          </div>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">未分類</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* 支払者 */}
