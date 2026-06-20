@@ -70,6 +70,203 @@ function MemberPicker({ label, members, selectedIds, onToggle, single }: MemberP
   );
 }
 
+/* ── Calculator modal ─────────────────────────────────────────────── */
+
+interface CalcModalProps {
+  onClose: () => void;
+  onApply: (value: number) => void;
+  receiptPreview: string | null;
+  initialValue: string;
+}
+
+function calcCls(variant: "num" | "op" | "clr" | "back" | "eq"): string {
+  const base =
+    "rounded-xl py-3.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors active:scale-95";
+  switch (variant) {
+    case "num":  return `${base} bg-card border border-border text-foreground hover:bg-muted`;
+    case "op":   return `${base} bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20`;
+    case "clr":  return `${base} bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20`;
+    case "back": return `${base} bg-muted text-muted-foreground border border-border hover:bg-muted/60`;
+    case "eq":   return `${base} bg-primary text-primary-foreground hover:opacity-90`;
+  }
+}
+
+function CalcModal({ onClose, onApply, receiptPreview, initialValue }: CalcModalProps) {
+  const [display, setDisplay] = useState<string>(() => {
+    const n = parseFloat(initialValue);
+    return !isNaN(n) && n > 0 ? String(n) : "0";
+  });
+  const [expr, setExpr] = useState("");
+  const [pending, setPending] = useState<{ val: number; op: string } | null>(null);
+  const [justDone, setJustDone] = useState(false);
+
+  const fmt = (n: number) => {
+    if (!isFinite(n)) return "0";
+    return String(Math.round(n * 1e10) / 1e10);
+  };
+
+  const compute = (a: number, b: number, op: string): number => {
+    switch (op) {
+      case "+": return a + b;
+      case "−": return a - b;
+      case "×": return a * b;
+      case "÷": return b !== 0 ? a / b : 0;
+      default:  return b;
+    }
+  };
+
+  const handleDigit = (d: string) => {
+    if (justDone) {
+      setDisplay(d === "." ? "0." : d);
+      setJustDone(false);
+      return;
+    }
+    if (display === "0" && d !== ".") { setDisplay(d); return; }
+    if (d === "." && display.includes(".")) return;
+    setDisplay(display + d);
+  };
+
+  const handleOp = (op: string) => {
+    const val = parseFloat(display);
+    if (pending && !justDone) {
+      const res = compute(pending.val, val, pending.op);
+      const resStr = fmt(res);
+      setDisplay(resStr);
+      setExpr(`${resStr} ${op}`);
+      setPending({ val: res, op });
+    } else {
+      setExpr(`${display} ${op}`);
+      setPending({ val: val, op });
+    }
+    setJustDone(true);
+  };
+
+  const handleEquals = () => {
+    if (!pending) return;
+    const val = parseFloat(display);
+    const res = compute(pending.val, val, pending.op);
+    const resStr = fmt(res);
+    setExpr(`${pending.val} ${pending.op} ${display} =`);
+    setDisplay(resStr);
+    setPending(null);
+    setJustDone(true);
+  };
+
+  const handleClear = () => {
+    setDisplay("0");
+    setExpr("");
+    setPending(null);
+    setJustDone(false);
+  };
+
+  const handleBack = () => {
+    if (justDone) return;
+    setDisplay(display.length <= 1 ? "0" : display.slice(0, -1));
+  };
+
+  const handleToggle = () => {
+    const val = parseFloat(display);
+    if (!isNaN(val)) setDisplay(fmt(-val));
+  };
+
+  const resultNum = parseFloat(display);
+  const canApply = isFinite(resultNum) && resultNum > 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center md:p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      {/* モーダル本体: スマホ=縦並び / PC=横並び */}
+      <div className="flex w-full flex-col overflow-hidden rounded-t-2xl bg-background md:max-w-2xl md:flex-row md:rounded-2xl md:max-h-[80vh]">
+
+        {/* 画像エリア */}
+        <div className="flex h-48 flex-shrink-0 items-start justify-center overflow-y-auto bg-black md:h-auto md:w-2/5">
+          {receiptPreview ? (
+            <img src={receiptPreview} alt="レシート" className="w-full" />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500">
+              <ImageIcon className="h-8 w-8 opacity-40" />
+              <span className="text-xs opacity-60">画像なし</span>
+            </div>
+          )}
+        </div>
+
+        {/* 電卓エリア */}
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          {/* ヘッダー */}
+          <div className="flex items-center border-b border-border px-4 py-3">
+            <span className="flex-1 text-sm font-bold">電卓</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="閉じる"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="flex flex-1 flex-col p-3">
+            {/* ディスプレイ */}
+            <p className="mb-0.5 min-h-[16px] text-right text-[11px] text-muted-foreground">
+              {expr}
+            </p>
+            <div className="mb-3 overflow-x-auto rounded-xl border border-border bg-muted/30 px-4 py-3 text-right text-3xl font-bold">
+              {display}
+            </div>
+
+            {/* ボタングリッド */}
+            <div className="mb-3 grid grid-cols-4 gap-1.5">
+              <button type="button" onClick={handleClear}   className={calcCls("clr")} aria-label="クリア">C</button>
+              <button type="button" onClick={handleToggle}  className={calcCls("back")} aria-label="符号反転">+/−</button>
+              <button type="button" onClick={handleBack}    className={calcCls("back")} aria-label="削除">⌫</button>
+              <button type="button" onClick={() => handleOp("÷")} className={calcCls("op")}>÷</button>
+
+              {["7","8","9"].map((d) => (
+                <button key={d} type="button" onClick={() => handleDigit(d)} className={calcCls("num")}>{d}</button>
+              ))}
+              <button type="button" onClick={() => handleOp("×")} className={calcCls("op")}>×</button>
+
+              {["4","5","6"].map((d) => (
+                <button key={d} type="button" onClick={() => handleDigit(d)} className={calcCls("num")}>{d}</button>
+              ))}
+              <button type="button" onClick={() => handleOp("−")} className={calcCls("op")}>−</button>
+
+              {["1","2","3"].map((d) => (
+                <button key={d} type="button" onClick={() => handleDigit(d)} className={calcCls("num")}>{d}</button>
+              ))}
+              <button type="button" onClick={() => handleOp("+")} className={calcCls("op")}>＋</button>
+
+              <button
+                type="button"
+                onClick={() => handleDigit("0")}
+                className={cn(calcCls("num"), "col-span-2")}
+              >
+                0
+              </button>
+              <button type="button" onClick={() => handleDigit(".")} className={calcCls("num")}>.</button>
+              <button type="button" onClick={handleEquals} className={calcCls("eq")} aria-label="計算">=</button>
+            </div>
+
+            {/* 反映ボタン */}
+            <button
+              type="button"
+              onClick={() => { onApply(Math.round(resultNum)); }}
+              disabled={!canApply}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:opacity-90"
+            >
+              {canApply
+                ? `¥${Math.round(resultNum).toLocaleString()} を反映`
+                : "金額を入力してください"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main page ────────────────────────────────────────────────────── */
 
 export default function CostEditPage() {
@@ -97,8 +294,11 @@ export default function CostEditPage() {
 
   /* 清算方法 */
   const [method, setMethod] = useState<SeisanMethod>("equal");
-  const [billingTargets, setBillingTargets] = useState<number[]>([]); // 請求先ユーザーIDs
+  const [billingTargets, setBillingTargets] = useState<number[]>([]);
   const [memberInputs, setMemberInputs] = useState<Record<number, MemberBillInput>>({});
+
+  /* 電卓モーダル */
+  const [showCalc, setShowCalc] = useState(false);
 
   /* 初期化: 編集時に既存データをセット */
   useEffect(() => {
@@ -208,11 +408,11 @@ export default function CostEditPage() {
         });
       } else if (method === "dish" && totalDishCount > 0) {
         const n = billingTargets.length;
-        const perDish = Math.floor(amountNum / totalDishCount);
+        const perDishLocal = Math.floor(amountNum / totalDishCount);
         let remaining = amountNum;
         billingTargets.forEach((uid, i) => {
           const dc = memberInputs[uid]?.dishCount ?? 1;
-          const amt = i === n - 1 ? remaining : perDish * dc;
+          const amt = i === n - 1 ? remaining : perDishLocal * dc;
           if (i !== n - 1) remaining -= amt;
           seikyusakiData.push({ user_id: uid, amount: amt, dish_count: dc });
         });
@@ -234,7 +434,6 @@ export default function CostEditPage() {
     if (payerUserId != null) fd.append("payer_user_id", String(payerUserId));
     fd.append("payment_method", "");
     fd.append("memo", memo);
-    /* 食数割のときのみ合計皿数を送る */
     if (method === "dish" && totalDishCount > 0) {
       fd.append("dish_count", String(totalDishCount));
     }
@@ -291,6 +490,48 @@ export default function CostEditPage() {
       </div>
 
       <div className="space-y-5">
+        {/* ★ レシート画像（最上部） */}
+        <div>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            レシート画像
+          </label>
+          {receiptPreview ? (
+            <div className="relative inline-block">
+              <img
+                src={receiptPreview}
+                alt="レシート"
+                className="h-32 w-32 rounded-xl object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-[10px] text-white"
+                aria-label="画像を削除"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border py-6 text-muted-foreground hover:border-primary hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ImageIcon className="h-6 w-6" />
+              <span className="text-xs">タップして画像を追加</span>
+              <span className="text-[10px] text-muted-foreground/60">JPEG / PNG / WebP</span>
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleFileChange}
+            aria-hidden
+          />
+        </div>
+
         {/* 購入日・金額 */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -308,14 +549,24 @@ export default function CostEditPage() {
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
               金額（円） <span className="text-destructive">*</span>
             </label>
-            <input
-              type="number"
-              min={1}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="3240"
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                min={1}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="3240"
+                className="w-full rounded-lg border border-border bg-card py-2 pl-3 pr-10 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCalc(true)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="電卓を開く"
+              >
+                🧮
+              </button>
+            </div>
           </div>
         </div>
 
@@ -476,49 +727,17 @@ export default function CostEditPage() {
             className="w-full resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-
-        {/* レシート画像 */}
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            レシート画像
-          </label>
-          {receiptPreview ? (
-            <div className="relative inline-block">
-              <img
-                src={receiptPreview}
-                alt="レシート"
-                className="h-32 w-32 rounded-xl object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
-                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-[10px] text-white"
-                aria-label="画像を削除"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border py-6 text-muted-foreground hover:border-primary hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ImageIcon className="h-6 w-6" />
-              <span className="text-xs">タップして画像を追加</span>
-              <span className="text-[10px] text-muted-foreground/60">JPEG / PNG / WebP</span>
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={handleFileChange}
-            aria-hidden
-          />
-        </div>
       </div>
+
+      {/* 電卓モーダル */}
+      {showCalc && (
+        <CalcModal
+          onClose={() => setShowCalc(false)}
+          onApply={(val) => { setAmount(String(val)); setShowCalc(false); }}
+          receiptPreview={receiptPreview}
+          initialValue={amount}
+        />
+      )}
     </div>
   );
 }
