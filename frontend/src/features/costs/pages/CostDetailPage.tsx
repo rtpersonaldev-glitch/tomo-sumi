@@ -1,5 +1,6 @@
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
+import { ja } from "date-fns/locale";
 import { Loader2, Lock, Pencil, Receipt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
@@ -100,7 +101,7 @@ export default function CostDetailPage() {
         <div className="flex items-center justify-between px-4 py-3 text-sm">
           <span className="text-muted-foreground">購入日</span>
           <span className="font-medium">
-            {format(parseISO(cost.purchase_date), "yyyy/M/d（E）")}
+            {format(parseISO(cost.purchase_date), "yyyy/M/d（E）", { locale: ja })}
           </span>
         </div>
         <div className="flex items-center justify-between px-4 py-3 text-sm">
