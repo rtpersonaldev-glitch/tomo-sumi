@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -16,6 +16,8 @@ import {
   useToggleReminderContent,
 } from "../hooks/useReminder";
 import type { ReminderResponse } from "../types";
+
+type StatusFilter = "all" | "incomplete" | "complete";
 
 const REPEAT_LABEL: Record<string, string> = {
   daily: "毎日",
@@ -315,6 +317,25 @@ export default function ReminderListPage() {
   const toggleContent = useToggleReminderContent();
   const currentUserId = useAuthStore((s) => s.user?.id);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const filteredReminders = useMemo(() => {
+    if (!reminders) return [];
+    const q = searchQuery.trim().toLowerCase();
+    return reminders.filter((r) => {
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "complete" && r.complete_flag) ||
+        (statusFilter === "incomplete" && !r.complete_flag);
+      const matchesQuery =
+        q === "" ||
+        r.list_name.toLowerCase().includes(q) ||
+        r.contents.some((c) => c.title.toLowerCase().includes(q));
+      return matchesStatus && matchesQuery;
+    });
+  }, [reminders, searchQuery, statusFilter]);
+
   const handleToggle = (contentId: number, reminderId: number) => {
     toggleContent.mutate(
       { contentId, reminderId },
@@ -324,6 +345,11 @@ export default function ReminderListPage() {
 
   const handleDeleteContent = () => {};
 
+  const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+    { value: "all", label: "すべて" },
+    { value: "incomplete", label: "未完了" },
+    { value: "complete", label: "完了" },
+  ];
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-4">
@@ -337,6 +363,47 @@ export default function ReminderListPage() {
           ＋ 作成
         </button>
       </div>
+
+      {/* フィルターバー */}
+      {!isLoading && !isError && (reminders?.length ?? 0) > 0 && (
+        <div className="space-y-2">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+              🔍
+            </span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="キーワードで検索..."
+              aria-label="リマインダーを検索"
+              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+            />
+          </div>
+          <div
+            className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit"
+            role="group"
+            aria-label="完了ステータスで絞り込み"
+          >
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setStatusFilter(tab.value)}
+                aria-pressed={statusFilter === tab.value}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-semibold transition-all",
+                  statusFilter === tab.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex justify-center py-12">
@@ -359,8 +426,15 @@ export default function ReminderListPage() {
             </div>
           )}
 
+          {(reminders?.length ?? 0) > 0 && filteredReminders.length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+              <span className="text-4xl" aria-hidden>🔍</span>
+              <p className="text-sm">条件に一致するリマインダーがありません</p>
+            </div>
+          )}
+
           <div className="space-y-4">
-            {reminders?.map((reminder) => (
+            {filteredReminders.map((reminder) => (
               <GroupCard
                 key={reminder.id}
                 reminder={reminder}

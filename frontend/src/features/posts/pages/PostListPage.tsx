@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -119,7 +119,6 @@ function PostCard({
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm dark:shadow-none">
-      {/* クリックで詳細へ遷移するコンテンツエリア */}
       <div
         className="px-4 pt-3 pb-2 cursor-pointer"
         onClick={() => navigate(`/posts/${post.id}`)}
@@ -238,6 +237,21 @@ export default function PostListPage() {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const toggleLike = useToggleLike();
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMemberId, setSelectedMemberId] = useState<number | "all">("all");
+
+  const filteredPosts = useMemo(() => {
+    if (!posts) return [];
+    const q = searchQuery.trim().toLowerCase();
+    return posts.filter((post) => {
+      const matchesMember =
+        selectedMemberId === "all" || post.created_by === selectedMemberId;
+      const matchesQuery =
+        q === "" || stripHtml(post.content).toLowerCase().includes(q);
+      return matchesMember && matchesQuery;
+    });
+  }, [posts, searchQuery, selectedMemberId]);
+
   const handleToggleLike = (postId: number) => {
     toggleLike.mutate(postId, {
       onError: (err) => toast.error(getErrorMessage(err)),
@@ -256,6 +270,44 @@ export default function PostListPage() {
           ＋ 作成
         </button>
       </div>
+
+      {/* フィルターバー */}
+      {!isLoading && !isError && (posts?.length ?? 0) > 0 && (
+        <div className="space-y-2">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+              🔍
+            </span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="キーワードで検索..."
+              aria-label="投稿を検索"
+              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+            />
+          </div>
+          {members.length > 0 && (
+            <select
+              value={selectedMemberId}
+              onChange={(e) =>
+                setSelectedMemberId(
+                  e.target.value === "all" ? "all" : parseInt(e.target.value, 10),
+                )
+              }
+              aria-label="投稿者で絞り込み"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all cursor-pointer"
+            >
+              <option value="all">全員</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nickname}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex justify-center py-12">
@@ -280,8 +332,17 @@ export default function PostListPage() {
             </div>
           )}
 
+          {(posts?.length ?? 0) > 0 && filteredPosts.length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+              <span className="text-4xl" aria-hidden>
+                🔍
+              </span>
+              <p className="text-sm">条件に一致する投稿がありません</p>
+            </div>
+          )}
+
           <div className="space-y-4">
-            {posts?.map((post) => (
+            {filteredPosts.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
