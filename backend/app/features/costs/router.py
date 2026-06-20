@@ -80,6 +80,16 @@ async def confirm_meisai(
     return await CostService(db).confirm_meisai(meisai_id, current_home.id, current_user.id)
 
 
+@router.post("/seisan-meisai/{meisai_id}/reject", response_model=SeisanMeisaiResponse)
+async def reject_meisai(
+    meisai_id: int,
+    current_home: Home = Depends(get_current_home),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SeisanMeisaiResponse:
+    return await CostService(db).reject_meisai(meisai_id, current_home.id, current_user.id)
+
+
 @router.put("/koteihi/{koteihi_id}", response_model=KoteihiResponse)
 async def update_koteihi(
     koteihi_id: int,

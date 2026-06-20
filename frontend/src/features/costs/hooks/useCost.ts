@@ -342,3 +342,20 @@ export const useConfirmMeisai = () => {
     },
   });
 };
+
+export const useRejectMeisai = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (meisaiId: number) => {
+      const { data } = await apiClient.post<SeisanMeisaiResponse>(
+        `/api/costs/seisan-meisai/${meisaiId}/reject`,
+      );
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["seisan", data.seisan_id] });
+      qc.invalidateQueries({ queryKey: ["seisan-pending"] });
+      qc.invalidateQueries({ queryKey: ["seisan-completed"] });
+    },
+  });
+};

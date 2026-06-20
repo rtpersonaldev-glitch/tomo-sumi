@@ -738,3 +738,30 @@ class CostService:
         await self._check_seisan_complete(seisan)
 
         return await self._build_meisai_response(m)
+
+    async def reject_meisai(
+        self, meisai_id: int, home_id: int, user_id: int
+    ) -> SeisanMeisaiResponse:
+        m = await self.db.get(SeisanMeisai, meisai_id)
+        if not m:
+            raise HTTPException(status_code=404, detail="清算明細が見つかりません")
+
+        seisan = await self.db.get(Seisan, m.seisan_id)
+        if not seisan or seisan.home_id != home_id:
+            raise HTTPException(status_code=403, detail="この清算明細へのアクセス権限がありません")
+
+        if m.to_user_id is not None and m.to_user_id != user_id:
+            raise HTTPException(status_code=403, detail="受取人のみ差し戻しできます")
+
+        if not m.payer_confirmed:
+            raise HTTPException(status_code=400, detail="支払い元がまだ完了していません")
+
+        if m.complete_flag:
+            raise HTTPException(status_code=400, detail="既に完了済みの明細は差し戻しできません")
+
+        m.payer_confirmed = False
+        m.payer_memo = None
+        m.updated_by = user_id
+        await self.db.flush()
+
+        return await self._build_meisai_response(m)

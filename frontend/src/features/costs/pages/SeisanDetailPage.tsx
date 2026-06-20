@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
 import { useAuthStore } from "@/store/authStore";
-import { useSeisan, useCompleteMeisai, useConfirmMeisai } from "../hooks/useCost";
+import { useSeisan, useCompleteMeisai, useConfirmMeisai, useRejectMeisai } from "../hooks/useCost";
 import { UserAvatar } from "../components/UserAvatar";
 import type { CostResponse, SeisanMeisaiResponse } from "../types";
 
@@ -112,6 +112,171 @@ function CompleteModal({ meisai, onClose, onConfirm, isPending }: CompleteModalP
   );
 }
 
+/* ── 受取確認モーダル ─────────────────────────────────────────────── */
+
+interface ReceiptConfirmModalProps {
+  meisai: SeisanMeisaiResponse;
+  onClose: () => void;
+  onConfirm: () => void;
+  isPending: boolean;
+}
+
+function ReceiptConfirmModal({ meisai, onClose, onConfirm, isPending }: ReceiptConfirmModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center px-4 pb-safe"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="receipt-confirm-modal-title"
+    >
+      <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl">
+        <h2 id="receipt-confirm-modal-title" className="mb-1 text-base font-bold">
+          受取確認
+        </h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          支払いを受け取ったことを確認します
+        </p>
+
+        <div className="mb-4 flex items-center justify-center gap-4 rounded-xl bg-secondary/40 px-4 py-3">
+          <div className="flex flex-col items-center gap-1">
+            <UserAvatar
+              nickname={meisai.from_nickname ?? ""}
+              iconUrl={meisai.from_icon_url}
+              userId={meisai.from_user_id ?? 0}
+              size="sm"
+            />
+            <span className="text-xs">{meisai.from_nickname}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lg">💳</span>
+            <span className="text-base font-bold">¥{meisai.amount.toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <UserAvatar
+              nickname={meisai.to_nickname ?? ""}
+              iconUrl={meisai.to_icon_url}
+              userId={meisai.to_user_id ?? 0}
+              size="sm"
+            />
+            <span className="text-xs">{meisai.to_nickname}</span>
+          </div>
+        </div>
+
+        {meisai.payer_memo && (
+          <div className="mb-4 rounded-r-lg border-l-2 border-primary bg-secondary/40 px-3 py-2">
+            <p className="mb-0.5 text-[10px] font-semibold text-primary">
+              {meisai.from_nickname}さんのメモ
+            </p>
+            <p className="text-xs text-foreground">{meisai.payer_memo}</p>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary/40 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            キャンセル
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            受取確認する
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 差し戻しモーダル ─────────────────────────────────────────────── */
+
+interface RejectModalProps {
+  meisai: SeisanMeisaiResponse;
+  onClose: () => void;
+  onReject: () => void;
+  isPending: boolean;
+}
+
+function RejectModal({ meisai, onClose, onReject, isPending }: RejectModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center px-4 pb-safe"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reject-modal-title"
+    >
+      <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl">
+        <h2 id="reject-modal-title" className="mb-1 text-base font-bold">
+          差し戻し
+        </h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          支払い完了を差し戻します。支払い元に再確認を促します。
+        </p>
+
+        <div className="mb-4 flex items-center justify-center gap-4 rounded-xl bg-secondary/40 px-4 py-3">
+          <div className="flex flex-col items-center gap-1">
+            <UserAvatar
+              nickname={meisai.from_nickname ?? ""}
+              iconUrl={meisai.from_icon_url}
+              userId={meisai.from_user_id ?? 0}
+              size="sm"
+            />
+            <span className="text-xs">{meisai.from_nickname}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lg">↩️</span>
+            <span className="text-base font-bold">¥{meisai.amount.toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <UserAvatar
+              nickname={meisai.to_nickname ?? ""}
+              iconUrl={meisai.to_icon_url}
+              userId={meisai.to_user_id ?? 0}
+              size="sm"
+            />
+            <span className="text-xs">{meisai.to_nickname}</span>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary/40 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            キャンセル
+          </button>
+          <button
+            type="button"
+            onClick={onReject}
+            disabled={isPending}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-destructive py-2.5 text-sm font-semibold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "↩️"
+            )}
+            差し戻す
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── 明細カード ───────────────────────────────────────────────────── */
 
 interface MeisaiCardProps {
@@ -119,10 +284,12 @@ interface MeisaiCardProps {
   currentUserId: number | null;
   onComplete: () => void;
   onConfirm: () => void;
+  onReject: () => void;
   isConfirmPending: boolean;
+  isRejectPending: boolean;
 }
 
-function MeisaiCard({ m, currentUserId, onComplete, onConfirm, isConfirmPending }: MeisaiCardProps) {
+function MeisaiCard({ m, currentUserId, onComplete, onConfirm, onReject, isConfirmPending, isRejectPending }: MeisaiCardProps) {
   const isMine = m.from_user_id === currentUserId || m.to_user_id === currentUserId;
   const isFromMe = m.from_user_id === currentUserId;
   const isToMe = m.to_user_id === currentUserId;
@@ -198,15 +365,26 @@ function MeisaiCard({ m, currentUserId, onComplete, onConfirm, isConfirmPending 
               支払済み
             </span>
             {isToMe && (
-              <button
-                type="button"
-                onClick={onConfirm}
-                disabled={isConfirmPending}
-                className="ml-auto flex items-center gap-1 rounded-lg border border-primary bg-card px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {isConfirmPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                受取確認する
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onReject}
+                  disabled={isRejectPending || isConfirmPending}
+                  className="flex items-center gap-1 rounded-lg border border-destructive/50 bg-card px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {isRejectPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "↩️"}
+                  差し戻す
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  disabled={isConfirmPending || isRejectPending}
+                  className="flex items-center gap-1 rounded-lg border border-primary bg-card px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {isConfirmPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                  受取確認する
+                </button>
+              </div>
             )}
           </>
         ) : (
@@ -276,7 +454,10 @@ export default function SeisanDetailPage() {
   const { data: seisan, isLoading } = useSeisan(seisanId);
   const completeMeisai = useCompleteMeisai();
   const confirmMeisai = useConfirmMeisai();
+  const rejectMeisai = useRejectMeisai();
   const [targetMeisai, setTargetMeisai] = useState<SeisanMeisaiResponse | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<SeisanMeisaiResponse | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<SeisanMeisaiResponse | null>(null);
   const [costsOpen, setCostsOpen] = useState(false);
 
   const handleComplete = async (memo: string) => {
@@ -290,10 +471,23 @@ export default function SeisanDetailPage() {
     }
   };
 
-  const handleConfirm = async (meisaiId: number) => {
+  const handleConfirm = async () => {
+    if (!confirmTarget) return;
     try {
-      await confirmMeisai.mutateAsync(meisaiId);
+      await confirmMeisai.mutateAsync(confirmTarget.id);
       toast.success("受取確認しました");
+      setConfirmTarget(null);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectTarget) return;
+    try {
+      await rejectMeisai.mutateAsync(rejectTarget.id);
+      toast.success("差し戻しました");
+      setRejectTarget(null);
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -361,8 +555,10 @@ export default function SeisanDetailPage() {
                 m={m}
                 currentUserId={currentUserId}
                 onComplete={() => setTargetMeisai(m)}
-                onConfirm={() => handleConfirm(m.id)}
+                onConfirm={() => setConfirmTarget(m)}
+                onReject={() => setRejectTarget(m)}
                 isConfirmPending={confirmMeisai.isPending}
+                isRejectPending={rejectMeisai.isPending}
               />
             ))}
           </div>
@@ -402,6 +598,26 @@ export default function SeisanDetailPage() {
           onClose={() => setTargetMeisai(null)}
           onConfirm={handleComplete}
           isPending={completeMeisai.isPending}
+        />
+      )}
+
+      {/* 受取確認モーダル */}
+      {confirmTarget && (
+        <ReceiptConfirmModal
+          meisai={confirmTarget}
+          onClose={() => setConfirmTarget(null)}
+          onConfirm={handleConfirm}
+          isPending={confirmMeisai.isPending}
+        />
+      )}
+
+      {/* 差し戻しモーダル */}
+      {rejectTarget && (
+        <RejectModal
+          meisai={rejectTarget}
+          onClose={() => setRejectTarget(null)}
+          onReject={handleReject}
+          isPending={rejectMeisai.isPending}
         />
       )}
     </>
