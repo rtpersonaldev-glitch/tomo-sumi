@@ -33,7 +33,11 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<{ detail: string | Array<{ msg: string }> }>) => {
     const config = error.config as RetryableConfig | undefined;
-    if (error.response?.status === 401 && config && !config._retry) {
+    const isAuthEndpoint =
+      config?.url?.includes("/api/auth/login") ||
+      config?.url?.includes("/api/auth/refresh");
+
+    if (error.response?.status === 401 && config && !config._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
