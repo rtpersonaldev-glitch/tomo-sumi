@@ -81,6 +81,20 @@ class CostService:
 
         seikyusaki_list = await self._get_seikyusaki(cost.id)
 
+        seikyu_responses: list[SeikyusakiResponse] = []
+        for s in seikyusaki_list:
+            s_user = await self.db.get(User, s.payer_user_id) if s.payer_user_id else None
+            seikyu_responses.append(
+                SeikyusakiResponse(
+                    id=s.id,
+                    payer_user_id=s.payer_user_id,
+                    nickname=s_user.nickname if s_user else None,
+                    icon_url=get_media_url(s_user.icon_path, settings.MEDIA_BASE_URL) if s_user else None,
+                    amount=s.amount,
+                    dish_count=s.dish_count,
+                )
+            )
+
         return CostResponse(
             id=cost.id,
             home_id=cost.home_id,
@@ -96,15 +110,7 @@ class CostService:
             memo=cost.memo,
             dish_count=cost.dish_count,
             seisan_id=cost.seisan_id,
-            seikyusaki=[
-                SeikyusakiResponse(
-                    id=s.id,
-                    payer_user_id=s.payer_user_id,
-                    amount=s.amount,
-                    dish_count=s.dish_count,
-                )
-                for s in seikyusaki_list
-            ],
+            seikyusaki=seikyu_responses,
             created_at=cost.created_at,
         )
 
