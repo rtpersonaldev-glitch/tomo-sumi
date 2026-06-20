@@ -92,18 +92,28 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{home?.name ?? "ホーム"}</h1>
-        <button
-          type="button"
-          onClick={() => navigate("/settings/home")}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="ホーム設定"
-        >
-          設定
-        </button>
-      </div>
+      {/* Home image header */}
+      <button
+        type="button"
+        onClick={() => navigate("/settings/home")}
+        className="relative w-full overflow-hidden rounded-xl shadow-sm transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="ホーム設定を開く"
+      >
+        <div className="aspect-[16/6] w-full bg-muted">
+          {home?.homeImagePath ? (
+            <img
+              src={home.homeImagePath}
+              alt={home.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-primary/30 to-primary/10" />
+          )}
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
+          <p className="text-base font-semibold text-white">{home?.name ?? "ホーム"}</p>
+        </div>
+      </button>
 
       {/* Unread announce banner */}
       {data.unread_announce_count > 0 && (
