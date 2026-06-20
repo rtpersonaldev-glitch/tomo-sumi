@@ -76,14 +76,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-@keyframes slider-progress {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
-@layer utilities {
-  .animate-slider-progress {
-    animation: slider-progress 4s linear forwards;
-  }
-}

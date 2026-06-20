@@ -160,72 +160,75 @@ function AnnounceSlider({
     );
   }
 
-  const current = announces[index];
   const showControls = announces.length > 1 || hasMore;
 
   return (
     <div>
-      <div className="relative px-7">
-        {announces.length > 1 && (
-          <button
-            type="button"
-            onClick={goPrev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
-            aria-label="前のお知らせ"
-          >
-            ‹
-          </button>
-        )}
-
-        <AnnounceCard announce={current} onClick={() => onCardClick(current.id)} />
-
-        {announces.length > 1 && (
-          <button
-            type="button"
-            onClick={goNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
-            aria-label="次のお知らせ"
-          >
-            ›
-          </button>
-        )}
+      {/* スライドトラック：overflow-hidden でカードをクリップ */}
+      <div className="overflow-hidden">
+        <div
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${index * 100}%)` }}
+        >
+          {announces.map((announce) => (
+            <div key={announce.id} className="w-full flex-shrink-0">
+              <AnnounceCard announce={announce} onClick={() => onCardClick(announce.id)} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {announces.length > 1 && (
-        <div className="mt-3 h-0.5 rounded-full bg-border overflow-hidden">
-          <div
-            key={timerKey}
-            className="h-full bg-primary origin-left animate-slider-progress"
-          />
-        </div>
-      )}
-
+      {/* コントロール行：‹ ドット › */}
       {showControls && (
-        <div className="flex justify-center items-center gap-1.5 mt-2" role="tablist" aria-label="お知らせ">
-          {announces.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              role="tab"
-              aria-selected={i === index}
-              aria-label={`${i + 1}件目`}
-              onClick={() => goTo(i)}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                i === index ? "w-4 bg-primary" : "w-1.5 bg-border hover:bg-muted-foreground",
-              )}
-            />
-          ))}
-          {hasMore && (
+        <div className="flex items-center justify-center gap-4 mt-3">
+          {announces.length > 1 && (
             <button
               type="button"
-              onClick={onMoreClick}
-              className="flex items-center gap-0.5 ml-0.5"
-              aria-label="他にもお知らせがあります。一覧を見る"
+              onClick={goPrev}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+              aria-label="前のお知らせ"
             >
-              <span className="h-1 w-1 rounded-full bg-border" />
-              <span className="h-1 w-1 rounded-full bg-border" />
-              <span className="h-1 w-1 rounded-full bg-border" />
+              ‹
+            </button>
+          )}
+
+          <div role="tablist" aria-label="お知らせ" className="flex items-center gap-1.5">
+            {announces.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                aria-label={`${i + 1}件目`}
+                onClick={() => goTo(i)}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === index ? "w-4 bg-primary" : "w-1.5 bg-border hover:bg-muted-foreground",
+                )}
+              />
+            ))}
+            {hasMore && (
+              <button
+                type="button"
+                onClick={onMoreClick}
+                className="flex items-center gap-0.5 ml-0.5"
+                aria-label="他にもお知らせがあります。一覧を見る"
+              >
+                <span className="h-1 w-1 rounded-full bg-border" />
+                <span className="h-1 w-1 rounded-full bg-border" />
+                <span className="h-1 w-1 rounded-full bg-border" />
+              </button>
+            )}
+          </div>
+
+          {announces.length > 1 && (
+            <button
+              type="button"
+              onClick={goNext}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+              aria-label="次のお知らせ"
+            >
+              ›
             </button>
           )}
         </div>
