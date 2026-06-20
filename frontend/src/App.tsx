@@ -1,4 +1,5 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { useThemeStore } from "@/store/themeStore";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -46,12 +47,41 @@ const KoteihiPage = lazy(() => import("@/features/costs/pages/KoteihiPage"));
 const KoteihiEditPage = lazy(() => import("@/features/costs/pages/KoteihiEditPage"));
 const ProfileSettingsPage = lazy(() => import("@/features/settings/pages/ProfileSettingsPage"));
 const NotificationSettingsPage = lazy(() => import("@/features/settings/pages/NotificationSettingsPage"));
+const DisplaySettingsPage = lazy(() => import("@/features/settings/pages/DisplaySettingsPage"));
 const ActivityPage = lazy(() => import("@/features/activity/pages/ActivityPage"));
 const MenuPage = lazy(() => import("@/features/menu/pages/MenuPage"));
+
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const theme = useThemeStore((s) => s.theme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else if (theme === "light") {
+      root.classList.remove("dark");
+    } else {
+      root.classList.toggle("dark", window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    if (theme !== "system") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => {
+      document.documentElement.classList.toggle("dark", e.matches);
+    };
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, [theme]);
+
+  return <>{children}</>;
+}
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <BrowserRouter>
         <Suspense
           fallback={
@@ -77,6 +107,7 @@ export default function App() {
                   <Route path="/settings/home" element={<HomeSettingsPage />} />
                   <Route path="/settings/profile" element={<ProfileSettingsPage />} />
                   <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+                  <Route path="/settings/display" element={<DisplaySettingsPage />} />
                   <Route path="/activity" element={<ActivityPage />} />
                   <Route path="/announces" element={<AnnounceListPage />} />
                   <Route path="/announces/new" element={<AnnounceEditPage />} />
@@ -126,6 +157,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
+      </ThemeProvider>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );
