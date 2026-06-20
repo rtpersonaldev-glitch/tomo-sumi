@@ -1,5 +1,6 @@
 import secrets
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import asc, case, func, or_, select
@@ -120,8 +121,8 @@ class HomeService:
         )
         members = list(members_result.scalars().all())
 
-        now = datetime.now(tz=UTC)
-        today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+        now_jst = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+        today_start = datetime(now_jst.year, now_jst.month, now_jst.day, tzinfo=ZoneInfo("Asia/Tokyo"))
         today_end = today_start + timedelta(days=1)
         schedules_result = await self.db.execute(
             select(Schedule)
@@ -135,12 +136,13 @@ class HomeService:
         )
         schedules = list(schedules_result.scalars().all())
 
+        today_jst = now_jst.date()
         count_result = await self.db.execute(
             select(func.count())
             .select_from(Announce)
             .where(
                 Announce.home_id == home_id,
-                Announce.end_date >= now.date(),
+                Announce.end_date >= today_jst,
             )
         )
         announce_count = count_result.scalar_one()
@@ -172,7 +174,7 @@ class HomeService:
             )
             .where(
                 Announce.home_id == home_id,
-                Announce.end_date >= now.date(),
+                Announce.end_date >= today_jst,
                 or_(~has_recipient, user_is_recipient),
             )
             .order_by(priority_order, asc(Announce.end_date))

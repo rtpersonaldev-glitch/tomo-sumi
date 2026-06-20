@@ -1,4 +1,13 @@
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
+
+_JST = ZoneInfo("Asia/Tokyo")
+
+
+def _jst_today_start() -> datetime:
+    """今日の JST 深夜0時を返す（タイムゾーン付き）。"""
+    now_jst = datetime.now(tz=_JST)
+    return datetime(now_jst.year, now_jst.month, now_jst.day, tzinfo=_JST)
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -255,14 +264,15 @@ async def test_get_dashboard(client: AsyncClient, db: AsyncSession) -> None:
     await _register_and_login(client, nickname="ダッシュボードユーザー")
     home_id = await _create_and_select_home(client)
 
+    today_jst = _jst_today_start()
     now = datetime.now(tz=UTC)
     db.add(
         Schedule(
             home_id=home_id,
             title="今日の予定",
             memo="",
-            start_day=now + timedelta(hours=2),
-            end_day=now + timedelta(hours=3),
+            start_day=today_jst + timedelta(hours=10),
+            end_day=today_jst + timedelta(hours=11),
         )
     )
     db.add(
@@ -293,15 +303,14 @@ async def test_dashboard_today_schedules_excludes_yesterday(
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
 
-    now = datetime.now(tz=UTC)
-    yesterday = now - timedelta(days=1)
+    yesterday_jst = _jst_today_start() - timedelta(days=1)
     db.add(
         Schedule(
             home_id=home_id,
             title="昨日の予定",
             memo="",
-            start_day=yesterday,
-            end_day=yesterday + timedelta(hours=1),
+            start_day=yesterday_jst + timedelta(hours=10),
+            end_day=yesterday_jst + timedelta(hours=11),
         )
     )
     await db.flush()
@@ -319,15 +328,14 @@ async def test_dashboard_today_schedules_excludes_tomorrow(
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
 
-    now = datetime.now(tz=UTC)
-    tomorrow = now + timedelta(days=1)
+    tomorrow_jst = _jst_today_start() + timedelta(days=1)
     db.add(
         Schedule(
             home_id=home_id,
             title="明日の予定",
             memo="",
-            start_day=tomorrow,
-            end_day=tomorrow + timedelta(hours=1),
+            start_day=tomorrow_jst + timedelta(hours=10),
+            end_day=tomorrow_jst + timedelta(hours=11),
         )
     )
     await db.flush()
@@ -345,15 +353,14 @@ async def test_dashboard_today_schedules_includes_past_start_today(
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
 
-    now = datetime.now(tz=UTC)
-    today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    today_jst = _jst_today_start()
     db.add(
         Schedule(
             home_id=home_id,
             title="今日早朝の予定",
             memo="",
-            start_day=today_start,
-            end_day=today_start + timedelta(hours=1),
+            start_day=today_jst,
+            end_day=today_jst + timedelta(hours=1),
         )
     )
     await db.flush()
@@ -363,6 +370,31 @@ async def test_dashboard_today_schedules_includes_past_start_today(
     data = resp.json()
     assert len(data["today_schedules"]) == 1
     assert data["today_schedules"][0]["title"] == "今日早朝の予定"
+
+
+async def test_dashboard_midnight_jst_shows_no_previous_day_schedules(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """JST 日付変更直後（0:30 JST）でも前日のスケジュールが表示されない（Issue #182 回帰テスト）"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+
+    # JST 前日の昼（今日を UTC では参照してしまう可能性がある時間帯）
+    yesterday_jst_noon = _jst_today_start() - timedelta(hours=12)
+    db.add(
+        Schedule(
+            home_id=home_id,
+            title="前日のスケジュール",
+            memo="",
+            start_day=yesterday_jst_noon,
+            end_day=yesterday_jst_noon + timedelta(hours=1),
+        )
+    )
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    assert len(resp.json()["today_schedules"]) == 0
 
 
 async def test_get_dashboard_no_home(client: AsyncClient) -> None:
