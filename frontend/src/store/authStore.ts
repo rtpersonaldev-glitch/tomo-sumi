@@ -13,7 +13,7 @@ export interface User {
 export interface Home {
   id: number;
   name: string;
-  homeImagePath: string | null;
+  homeImageUrl: string | null;
 }
 
 export interface HomeUser extends User {

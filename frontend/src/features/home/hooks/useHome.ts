@@ -70,7 +70,7 @@ export const useUpdateHome = () => {
     onSuccess: (data) => {
       const currentHomeUsers = useAuthStore.getState().homeUsers;
       setHome(
-        { id: data.id, name: data.name, homeImagePath: data.home_image_url },
+        { id: data.id, name: data.name, homeImageUrl: data.home_image_url },
         currentHomeUsers,
       );
       qc.invalidateQueries({ queryKey: ["homes"] });

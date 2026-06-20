@@ -5,7 +5,7 @@ export type { User, Home, HomeUser };
 interface BackendHome {
   id: number;
   name: string;
-  home_image_path: string | null;
+  home_image_url: string | null;
 }
 
 export interface MeResponse {
