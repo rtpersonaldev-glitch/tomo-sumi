@@ -22,7 +22,12 @@ class Announce(Base, TimestampMixin):
     priority: Mapped[str] = mapped_column(String(10), nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
 
-    likes: Mapped[list[AnnounceLike]] = relationship("AnnounceLike", back_populates="announce")
+    likes: Mapped[list[AnnounceLike]] = relationship(
+        "AnnounceLike", back_populates="announce", cascade="all, delete-orphan"
+    )
+    recipients: Mapped[list[AnnounceRecipient]] = relationship(
+        "AnnounceRecipient", back_populates="announce", cascade="all, delete-orphan"
+    )
     creator: Mapped[User | None] = relationship(
         "User",
         primaryjoin="foreign(Announce.created_by) == User.id",
@@ -38,3 +43,15 @@ class AnnounceLike(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     announce: Mapped[Announce] = relationship("Announce", back_populates="likes")
+
+
+class AnnounceRecipient(Base):
+    __tablename__ = "announce_recipients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    announce_id: Mapped[int] = mapped_column(
+        ForeignKey("announces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+
+    announce: Mapped[Announce] = relationship("Announce", back_populates="recipients")

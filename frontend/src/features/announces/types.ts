@@ -13,6 +13,7 @@ export interface AnnounceResponse {
   end_date: string;
   like_count: number;
   is_liked: boolean;
+  recipient_ids: number[];
   created_at: string;
   created_by_user: AnnounceUserInfo | null;
 }
@@ -27,6 +28,7 @@ export interface AnnounceFormValues {
   content: string;
   priority: "high" | "medium" | "low";
   end_date: string;
+  recipient_ids: number[];
 }
 
 export const PRIORITY_CONFIG = {

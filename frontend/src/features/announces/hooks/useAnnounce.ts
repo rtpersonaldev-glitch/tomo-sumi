@@ -47,7 +47,10 @@ export const useCreateAnnounce = () => {
   const homeId = useAuthStore((s) => s.home?.id);
   return useMutation({
     mutationFn: async (body: AnnounceFormValues) => {
-      const { data } = await apiClient.post<AnnounceResponse>("/api/announces", body);
+      const { data } = await apiClient.post<AnnounceResponse>("/api/announces", {
+        ...body,
+        recipient_ids: body.recipient_ids ?? [],
+      });
       return data;
     },
     onSuccess: () => {
@@ -61,10 +64,10 @@ export const useUpdateAnnounce = () => {
   const homeId = useAuthStore((s) => s.home?.id);
   return useMutation({
     mutationFn: async ({ id, body }: { id: number; body: AnnounceFormValues }) => {
-      const { data } = await apiClient.put<AnnounceResponse>(
-        `/api/announces/${id}`,
-        body,
-      );
+      const { data } = await apiClient.put<AnnounceResponse>(`/api/announces/${id}`, {
+        ...body,
+        recipient_ids: body.recipient_ids ?? [],
+      });
       return data;
     },
     onSuccess: (data) => {

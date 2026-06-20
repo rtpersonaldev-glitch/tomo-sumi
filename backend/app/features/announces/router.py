@@ -30,6 +30,7 @@ async def create_announce(
         content=body.content,
         priority=body.priority,
         end_date=body.end_date,
+        recipient_ids=body.recipient_ids,
     )
 
 
@@ -83,6 +84,7 @@ async def update_announce(
         content=body.content,
         priority=body.priority,
         end_date=body.end_date,
+        recipient_ids=body.recipient_ids,
     )
 
 

@@ -1,13 +1,13 @@
 from datetime import date
 
 from fastapi import HTTPException
-from sqlalchemy import asc, desc, func, or_, select
+from sqlalchemy import asc, delete, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.features.announces.schemas import AnnounceLikeResponse, AnnounceResponse, AnnounceUserInfo
-from app.models.announce import Announce, AnnounceLike
+from app.models.announce import Announce, AnnounceLike, AnnounceRecipient
 from app.utils.activity_logger import log_activity
 from app.utils.fcm import send_push_to_home
 from app.utils.file_storage import get_media_url
@@ -20,7 +20,11 @@ class AnnounceService:
     async def _get_or_403(self, announce_id: int, home_id: int) -> Announce:
         result = await self.db.execute(
             select(Announce)
-            .options(joinedload(Announce.likes), joinedload(Announce.creator))
+            .options(
+                joinedload(Announce.likes),
+                joinedload(Announce.recipients),
+                joinedload(Announce.creator),
+            )
             .where(Announce.id == announce_id)
         )
         announce = result.scalars().unique().one_or_none()
@@ -29,6 +33,12 @@ class AnnounceService:
         if announce.home_id != home_id:
             raise HTTPException(status_code=403, detail="このお知らせへのアクセス権限がありません")
         return announce
+
+    def _can_view(self, announce: Announce, user_id: int) -> bool:
+        """宛先なし（全員）or 自分が宛先に含まれる場合のみ True"""
+        if not announce.recipients:
+            return True
+        return any(r.user_id == user_id for r in announce.recipients)
 
     def _to_response(self, announce: Announce, user_id: int) -> AnnounceResponse:
         creator = announce.creator
@@ -50,6 +60,7 @@ class AnnounceService:
             end_date=announce.end_date,
             like_count=len(announce.likes),
             is_liked=any(like.user_id == user_id for like in announce.likes),
+            recipient_ids=[r.user_id for r in announce.recipients],
             created_at=announce.created_at,
             created_by_user=created_by_user,
         )
@@ -67,7 +78,11 @@ class AnnounceService:
             raise HTTPException(status_code=403, detail="現在選択中のホームのみ参照できます")
         query = (
             select(Announce)
-            .options(joinedload(Announce.likes), joinedload(Announce.creator))
+            .options(
+                joinedload(Announce.likes),
+                joinedload(Announce.recipients),
+                joinedload(Announce.creator),
+            )
             .where(Announce.home_id == home_id)
         )
         if search:
@@ -91,7 +106,11 @@ class AnnounceService:
 
         result = await self.db.execute(query)
         announces = list(result.scalars().unique().all())
-        return [self._to_response(a, user_id) for a in announces]
+        return [
+            self._to_response(a, user_id)
+            for a in announces
+            if self._can_view(a, user_id)
+        ]
 
     async def create_announce(
         self,
@@ -101,6 +120,7 @@ class AnnounceService:
         content: str,
         priority: str,
         end_date: date,
+        recipient_ids: list[int],
     ) -> AnnounceResponse:
         announce = Announce(
             home_id=home_id,
@@ -112,9 +132,18 @@ class AnnounceService:
         )
         self.db.add(announce)
         await self.db.flush()
+
+        for uid in recipient_ids:
+            self.db.add(AnnounceRecipient(announce_id=announce.id, user_id=uid))
+        await self.db.flush()
+
         result = await self.db.execute(
             select(Announce)
-            .options(joinedload(Announce.likes), joinedload(Announce.creator))
+            .options(
+                joinedload(Announce.likes),
+                joinedload(Announce.recipients),
+                joinedload(Announce.creator),
+            )
             .where(Announce.id == announce.id)
         )
         announce = result.scalars().unique().one()
@@ -127,6 +156,8 @@ class AnnounceService:
         self, announce_id: int, home_id: int, user_id: int
     ) -> AnnounceResponse:
         announce = await self._get_or_403(announce_id, home_id)
+        if not self._can_view(announce, user_id):
+            raise HTTPException(status_code=403, detail="このお知らせへのアクセス権限がありません")
         return self._to_response(announce, user_id)
 
     async def update_announce(
@@ -138,6 +169,7 @@ class AnnounceService:
         content: str,
         priority: str,
         end_date: date,
+        recipient_ids: list[int],
     ) -> AnnounceResponse:
         announce = await self._get_or_403(announce_id, home_id)
         announce.title = title
@@ -145,19 +177,36 @@ class AnnounceService:
         announce.priority = priority
         announce.end_date = end_date
         announce.updated_by = user_id
+
+        await self.db.execute(
+            delete(AnnounceRecipient).where(AnnounceRecipient.announce_id == announce_id)
+        )
         await self.db.flush()
+        self.db.expire_all()
+        for uid in recipient_ids:
+            self.db.add(AnnounceRecipient(announce_id=announce.id, user_id=uid))
+        await self.db.flush()
+
         await log_activity(
             self.db, home_id, user_id, "お知らせを更新しました", "announce", announce_id
         )
-        return self._to_response(announce, user_id)
+
+        result = await self.db.execute(
+            select(Announce)
+            .options(
+                joinedload(Announce.likes),
+                joinedload(Announce.recipients),
+                joinedload(Announce.creator),
+            )
+            .where(Announce.id == announce_id)
+        )
+        updated = result.scalars().unique().one()
+        return self._to_response(updated, user_id)
 
     async def delete_announce(
         self, announce_id: int, home_id: int, user_id: int
     ) -> None:
         announce = await self._get_or_403(announce_id, home_id)
-        for like in announce.likes:
-            await self.db.delete(like)
-        await self.db.flush()
         await self.db.delete(announce)
         await log_activity(
             self.db, home_id, user_id, "お知らせを削除しました", "announce", announce_id
