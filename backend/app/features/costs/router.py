@@ -8,6 +8,7 @@ from app.core.dependencies import get_current_home, get_current_user
 from app.features.costs.schemas import (
     AutoSeisanResponse,
     AutoSeisanUpdateRequest,
+    CompleteMeisaiRequest,
     CostCategoryCreateRequest,
     CostCategoryResponse,
     CostResponse,
@@ -60,11 +61,23 @@ async def get_seisan(
 @router.post("/seisan-meisai/{meisai_id}/complete", response_model=SeisanMeisaiResponse)
 async def complete_meisai(
     meisai_id: int,
+    body: CompleteMeisaiRequest = None,
     current_home: Home = Depends(get_current_home),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SeisanMeisaiResponse:
-    return await CostService(db).complete_meisai(meisai_id, current_home.id, current_user.id)
+    memo = body.memo if body else ""
+    return await CostService(db).complete_meisai(meisai_id, current_home.id, current_user.id, memo)
+
+
+@router.post("/seisan-meisai/{meisai_id}/confirm", response_model=SeisanMeisaiResponse)
+async def confirm_meisai(
+    meisai_id: int,
+    current_home: Home = Depends(get_current_home),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SeisanMeisaiResponse:
+    return await CostService(db).confirm_meisai(meisai_id, current_home.id, current_user.id)
 
 
 @router.put("/koteihi/{koteihi_id}", response_model=KoteihiResponse)

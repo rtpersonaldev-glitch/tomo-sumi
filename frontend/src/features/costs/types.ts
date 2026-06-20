@@ -80,9 +80,13 @@ export interface SeisanMeisaiResponse {
   seisan_id: number;
   from_user_id: number | null;
   from_nickname: string | null;
+  from_icon_url: string | null;
   to_user_id: number | null;
   to_nickname: string | null;
+  to_icon_url: string | null;
   amount: number;
+  payer_confirmed: boolean;
+  payer_memo: string | null;
   complete_flag: boolean;
 }
 
@@ -102,6 +106,7 @@ export interface SeisanResponse {
   complete_flag: boolean;
   settled_date: string;
   meisai: SeisanMeisaiResponse[];
+  costs: CostResponse[];
   created_at: string;
 }
 

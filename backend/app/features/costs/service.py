@@ -140,28 +140,40 @@ class CostService:
             created_at=cost.created_at,
         )
 
+    def _meisai_icon_url(self, user: User | None) -> str | None:
+        if user and user.icon_path:
+            return get_media_url(user.icon_path, settings.MEDIA_BASE_URL)
+        return None
+
+    async def _build_meisai_response(self, m: SeisanMeisai) -> SeisanMeisaiResponse:
+        from_user = await self.db.get(User, m.from_user_id) if m.from_user_id else None
+        to_user = await self.db.get(User, m.to_user_id) if m.to_user_id else None
+        return SeisanMeisaiResponse(
+            id=m.id,
+            seisan_id=m.seisan_id,
+            from_user_id=m.from_user_id,
+            from_nickname=from_user.nickname if from_user else None,
+            from_icon_url=self._meisai_icon_url(from_user),
+            to_user_id=m.to_user_id,
+            to_nickname=to_user.nickname if to_user else None,
+            to_icon_url=self._meisai_icon_url(to_user),
+            amount=m.amount,
+            payer_confirmed=m.payer_confirmed,
+            payer_memo=m.payer_memo,
+            complete_flag=m.complete_flag,
+        )
+
     async def _build_seisan_response(self, seisan: Seisan) -> SeisanResponse:
         meisai_result = await self.db.execute(
             select(SeisanMeisai).where(SeisanMeisai.seisan_id == seisan.id)
         )
         meisai_list = list(meisai_result.scalars().all())
+        meisai_responses = [await self._build_meisai_response(m) for m in meisai_list]
 
-        meisai_responses = []
-        for m in meisai_list:
-            from_user = await self.db.get(User, m.from_user_id) if m.from_user_id else None
-            to_user = await self.db.get(User, m.to_user_id) if m.to_user_id else None
-            meisai_responses.append(
-                SeisanMeisaiResponse(
-                    id=m.id,
-                    seisan_id=m.seisan_id,
-                    from_user_id=m.from_user_id,
-                    from_nickname=from_user.nickname if from_user else None,
-                    to_user_id=m.to_user_id,
-                    to_nickname=to_user.nickname if to_user else None,
-                    amount=m.amount,
-                    complete_flag=m.complete_flag,
-                )
-            )
+        costs_result = await self.db.execute(
+            select(Cost).where(Cost.seisan_id == seisan.id).order_by(desc(Cost.purchase_date))
+        )
+        cost_responses = [await self._build_cost_response(c) for c in costs_result.scalars().all()]
 
         return SeisanResponse(
             id=seisan.id,
@@ -170,6 +182,7 @@ class CostService:
             complete_flag=seisan.complete_flag,
             settled_date=seisan.settled_date,
             meisai=meisai_responses,
+            costs=cost_responses,
             created_at=seisan.created_at,
         )
 
@@ -617,7 +630,44 @@ class CostService:
 
     # ─── SeisanMeisai ─────────────────────────────────────────────────────────
 
+    async def _check_seisan_complete(self, seisan: Seisan) -> None:
+        all_meisai = await self.db.execute(
+            select(SeisanMeisai).where(SeisanMeisai.seisan_id == seisan.id)
+        )
+        if all(m.complete_flag for m in all_meisai.scalars().all()):
+            seisan.complete_flag = True
+            await self.db.flush()
+
     async def complete_meisai(
+        self, meisai_id: int, home_id: int, user_id: int, memo: str = ""
+    ) -> SeisanMeisaiResponse:
+        m = await self.db.get(SeisanMeisai, meisai_id)
+        if not m:
+            raise HTTPException(status_code=404, detail="清算明細が見つかりません")
+
+        seisan = await self.db.get(Seisan, m.seisan_id)
+        if not seisan or seisan.home_id != home_id:
+            raise HTTPException(status_code=403, detail="この清算明細へのアクセス権限がありません")
+
+        if m.from_user_id is not None and m.from_user_id != user_id:
+            raise HTTPException(status_code=403, detail="支払い元のユーザーのみ完了できます")
+
+        m.payer_confirmed = True
+        m.payer_memo = memo.strip() or None
+        m.updated_by = user_id
+
+        # 受取人がいない場合はそのまま完了とする
+        if m.to_user_id is None:
+            m.complete_flag = True
+
+        await self.db.flush()
+
+        if m.complete_flag:
+            await self._check_seisan_complete(seisan)
+
+        return await self._build_meisai_response(m)
+
+    async def confirm_meisai(
         self, meisai_id: int, home_id: int, user_id: int
     ) -> SeisanMeisaiResponse:
         m = await self.db.get(SeisanMeisai, meisai_id)
@@ -628,28 +678,16 @@ class CostService:
         if not seisan or seisan.home_id != home_id:
             raise HTTPException(status_code=403, detail="この清算明細へのアクセス権限がありません")
 
+        if m.to_user_id is not None and m.to_user_id != user_id:
+            raise HTTPException(status_code=403, detail="受取人のみ確認できます")
+
+        if not m.payer_confirmed:
+            raise HTTPException(status_code=400, detail="支払い元がまだ完了していません")
+
         m.complete_flag = True
         m.updated_by = user_id
         await self.db.flush()
 
-        all_meisai = await self.db.execute(
-            select(SeisanMeisai).where(SeisanMeisai.seisan_id == seisan.id)
-        )
-        all_items = list(all_meisai.scalars().all())
-        if all(item.complete_flag for item in all_items):
-            seisan.complete_flag = True
-            await self.db.flush()
+        await self._check_seisan_complete(seisan)
 
-        from_user = await self.db.get(User, m.from_user_id) if m.from_user_id else None
-        to_user = await self.db.get(User, m.to_user_id) if m.to_user_id else None
-
-        return SeisanMeisaiResponse(
-            id=m.id,
-            seisan_id=m.seisan_id,
-            from_user_id=m.from_user_id,
-            from_nickname=from_user.nickname if from_user else None,
-            to_user_id=m.to_user_id,
-            to_nickname=to_user.nickname if to_user else None,
-            amount=m.amount,
-            complete_flag=m.complete_flag,
-        )
+        return await self._build_meisai_response(m)

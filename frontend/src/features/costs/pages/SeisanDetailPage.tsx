@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
-import { ArrowRight, CheckCircle2, Loader2, MessageSquare } from "lucide-react";
+import { ja } from "date-fns/locale";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  MessageSquare,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
-import { useSeisan, useCompleteMeisai } from "../hooks/useCost";
 import { useAuthStore } from "@/store/authStore";
+import { useSeisan, useCompleteMeisai, useConfirmMeisai } from "../hooks/useCost";
 import { UserAvatar } from "../components/UserAvatar";
-import type { SeisanMeisaiResponse } from "../types";
+import type { CostResponse, SeisanMeisaiResponse } from "../types";
 
 /* ── 完了モーダル ─────────────────────────────────────────────────── */
 
@@ -20,11 +27,7 @@ interface CompleteModalProps {
 }
 
 function CompleteModal({ meisai, onClose, onConfirm, isPending }: CompleteModalProps) {
-  const homeUsers = useAuthStore((s) => s.homeUsers);
   const [memo, setMemo] = useState("");
-
-  const fromUser = homeUsers.find((u) => u.id === meisai.from_user_id);
-  const toUser = homeUsers.find((u) => u.id === meisai.to_user_id);
 
   return (
     <div
@@ -35,37 +38,37 @@ function CompleteModal({ meisai, onClose, onConfirm, isPending }: CompleteModalP
     >
       <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl">
         <h2 id="complete-modal-title" className="mb-1 text-base font-bold">
-          清算明細を完了にする
+          支払いを完了にする
         </h2>
         <p className="mb-4 text-xs text-muted-foreground">
-          完了にすると取り消せません
+          完了にすると受取人に通知されます
         </p>
 
-        {/* 内容 */}
-        <div className="mb-4 flex items-center justify-center gap-3 rounded-xl bg-secondary/40 px-4 py-3">
-          {fromUser ? (
-            <div className="flex items-center gap-1.5">
-              <UserAvatar nickname={fromUser.nickname} iconUrl={fromUser.icon_url} userId={fromUser.id} size="sm" />
-              <span className="text-sm">{fromUser.nickname}</span>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">{meisai.from_nickname}</span>
-          )}
-          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          {toUser ? (
-            <div className="flex items-center gap-1.5">
-              <UserAvatar nickname={toUser.nickname} iconUrl={toUser.icon_url} userId={toUser.id} size="sm" />
-              <span className="text-sm">{toUser.nickname}</span>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">{meisai.to_nickname}</span>
-          )}
-          <span className="ml-auto font-bold text-base">
-            ¥{meisai.amount.toLocaleString()}
-          </span>
+        <div className="mb-4 flex items-center justify-center gap-4 rounded-xl bg-secondary/40 px-4 py-3">
+          <div className="flex flex-col items-center gap-1">
+            <UserAvatar
+              nickname={meisai.from_nickname ?? ""}
+              iconUrl={meisai.from_icon_url}
+              userId={meisai.from_user_id ?? 0}
+              size="sm"
+            />
+            <span className="text-xs">{meisai.from_nickname}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lg">💳</span>
+            <span className="text-base font-bold">¥{meisai.amount.toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <UserAvatar
+              nickname={meisai.to_nickname ?? ""}
+              iconUrl={meisai.to_icon_url}
+              userId={meisai.to_user_id ?? 0}
+              size="sm"
+            />
+            <span className="text-xs">{meisai.to_nickname}</span>
+          </div>
         </div>
 
-        {/* メモ */}
         <div className="mb-4">
           <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
             <MessageSquare className="h-3.5 w-3.5" />
@@ -109,24 +112,188 @@ function CompleteModal({ meisai, onClose, onConfirm, isPending }: CompleteModalP
   );
 }
 
+/* ── 明細カード ───────────────────────────────────────────────────── */
+
+interface MeisaiCardProps {
+  m: SeisanMeisaiResponse;
+  currentUserId: number | null;
+  onComplete: () => void;
+  onConfirm: () => void;
+  isConfirmPending: boolean;
+}
+
+function MeisaiCard({ m, currentUserId, onComplete, onConfirm, isConfirmPending }: MeisaiCardProps) {
+  const isMine = m.from_user_id === currentUserId || m.to_user_id === currentUserId;
+  const isFromMe = m.from_user_id === currentUserId;
+  const isToMe = m.to_user_id === currentUserId;
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border bg-card px-4 py-3 shadow-sm",
+        isMine ? "border-primary bg-primary/5" : "border-border",
+        m.complete_flag && "opacity-60",
+      )}
+    >
+      {/* 送金レイアウト: 支払元 ─ 💳 ─ 受取人 */}
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex flex-col items-center gap-1 w-16">
+          <UserAvatar
+            nickname={m.from_nickname ?? ""}
+            iconUrl={m.from_icon_url}
+            userId={m.from_user_id ?? 0}
+          />
+          <span className="text-[11px] font-semibold text-center leading-tight line-clamp-1">
+            {m.from_nickname ?? "—"}
+          </span>
+          <span className="text-[9px] text-muted-foreground">支払い元</span>
+        </div>
+
+        <div className="flex flex-1 flex-col items-center gap-0.5">
+          <span className="text-xl">💳</span>
+          <span className="text-[10px] text-muted-foreground">支払い</span>
+          <span className={cn(
+            "text-base font-bold",
+            m.complete_flag ? "text-green-600 dark:text-green-400" : "text-foreground",
+          )}>
+            ¥{m.amount.toLocaleString()}
+          </span>
+        </div>
+
+        <div className="flex flex-col items-center gap-1 w-16">
+          <UserAvatar
+            nickname={m.to_nickname ?? ""}
+            iconUrl={m.to_icon_url}
+            userId={m.to_user_id ?? 0}
+          />
+          <span className="text-[11px] font-semibold text-center leading-tight line-clamp-1">
+            {m.to_nickname ?? "—"}
+          </span>
+          <span className="text-[9px] text-muted-foreground">受取人</span>
+        </div>
+      </div>
+
+      {/* 支払者メモ（受取人向け・支払済み状態のみ表示） */}
+      {isToMe && m.payer_confirmed && !m.complete_flag && m.payer_memo && (
+        <div className="mb-2 rounded-r-lg border-l-2 border-primary bg-secondary/40 px-3 py-2">
+          <p className="mb-0.5 text-[10px] font-semibold text-primary">
+            {m.from_nickname}さんのメモ
+          </p>
+          <p className="text-xs text-foreground">{m.payer_memo}</p>
+        </div>
+      )}
+
+      {/* ステータス＋アクションボタン */}
+      <div className="flex items-center gap-2">
+        {m.complete_flag ? (
+          <>
+            <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-300">
+              完了
+            </span>
+            <CheckCircle2 className="ml-auto h-4 w-4 text-green-500" />
+          </>
+        ) : m.payer_confirmed ? (
+          <>
+            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:bg-sky-950/30 dark:text-sky-300">
+              支払済み
+            </span>
+            {isToMe && (
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={isConfirmPending}
+                className="ml-auto flex items-center gap-1 rounded-lg border border-primary bg-card px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {isConfirmPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                受取確認する
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+              未払い
+            </span>
+            {isFromMe && (
+              <button
+                type="button"
+                onClick={onComplete}
+                className="ml-auto rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                完了にする
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── 含まれる支出カード（支出一覧と同形式）──────────────────────── */
+
+function CostCard({ cost }: { cost: CostResponse }) {
+  return (
+    <Link
+      to={`/costs/${cost.id}`}
+      className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-shadow hover:shadow-md"
+    >
+      {cost.payer_user_id ? (
+        <UserAvatar
+          nickname={cost.payer_nickname ?? ""}
+          iconUrl={cost.payer_icon_url}
+          userId={cost.payer_user_id}
+        />
+      ) : (
+        <div className="h-8 w-8 rounded-full bg-muted" />
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">
+          {cost.memo || cost.category_name || "（メモなし）"}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {format(parseISO(cost.purchase_date), "M/d（E）", { locale: ja })}
+        </p>
+        {cost.category_name && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            {cost.category_name}
+          </span>
+        )}
+      </div>
+      <p className="text-base font-bold">¥{cost.amount.toLocaleString()}</p>
+    </Link>
+  );
+}
+
 /* ── Main page ────────────────────────────────────────────────────── */
 
 export default function SeisanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const seisanId = Number(id);
   const navigate = useNavigate();
-  const homeUsers = useAuthStore((s) => s.homeUsers);
+  const currentUserId = useAuthStore((s) => s.user?.id ?? null);
 
   const { data: seisan, isLoading } = useSeisan(seisanId);
   const completeMeisai = useCompleteMeisai();
+  const confirmMeisai = useConfirmMeisai();
   const [targetMeisai, setTargetMeisai] = useState<SeisanMeisaiResponse | null>(null);
+  const [costsOpen, setCostsOpen] = useState(false);
 
-  const handleConfirmComplete = async (memo: string) => {
+  const handleComplete = async (memo: string) => {
     if (!targetMeisai) return;
     try {
-      await completeMeisai.mutateAsync(targetMeisai.id);
-      toast.success("完了にしました" + (memo ? `（${memo}）` : ""));
+      await completeMeisai.mutateAsync({ meisaiId: targetMeisai.id, memo });
+      toast.success("支払い完了を登録しました");
       setTargetMeisai(null);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleConfirm = async (meisaiId: number) => {
+    try {
+      await confirmMeisai.mutateAsync(meisaiId);
+      toast.success("受取確認しました");
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -144,31 +311,18 @@ export default function SeisanDetailPage() {
     return <p className="p-6 text-center text-muted-foreground">清算が見つかりません</p>;
   }
 
-  const pendingMeisai = seisan.meisai.filter((m) => !m.complete_flag);
-  const completedMeisai = seisan.meisai.filter((m) => m.complete_flag);
+  const allDone = seisan.meisai.length === 0 || seisan.meisai.every((m) => m.complete_flag);
 
   return (
     <>
       <div className="mx-auto max-w-2xl px-4 py-6">
-        {/* Breadcrumb */}
-        <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <button
-            type="button"
-            onClick={() => navigate("/costs/seisan")}
-            className="hover:text-foreground"
-          >
-            清算管理
-          </button>
-          <span>›</span>
-          <span className="text-primary font-medium truncate">{seisan.title}</span>
-        </div>
-
         {/* Header */}
         <div className="mb-4 flex items-start gap-3">
           <button
             type="button"
             onClick={() => navigate(-1)}
             className="mt-0.5 text-sm text-muted-foreground hover:text-foreground"
+            aria-label="戻る"
           >
             ←
           </button>
@@ -181,14 +335,12 @@ export default function SeisanDetailPage() {
           <span
             className={cn(
               "rounded-full px-2.5 py-1 text-xs font-semibold",
-              seisan.complete_flag
-                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300"
-                : pendingMeisai.length === 0
+              allDone
                 ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300"
                 : "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
             )}
           >
-            {seisan.complete_flag || pendingMeisai.length === 0 ? "完了" : "清算待ち"}
+            {allDone ? "完了" : "清算待ち"}
           </span>
         </div>
 
@@ -197,96 +349,50 @@ export default function SeisanDetailPage() {
           清算明細
         </p>
 
-        {seisan.meisai.length === 0 && (
+        {seisan.meisai.length === 0 ? (
           <p className="mb-4 rounded-xl border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
             清算明細がありません（全員の収支が均衡しています）
           </p>
+        ) : (
+          <div className="mb-4 space-y-3">
+            {seisan.meisai.map((m) => (
+              <MeisaiCard
+                key={m.id}
+                m={m}
+                currentUserId={currentUserId}
+                onComplete={() => setTargetMeisai(m)}
+                onConfirm={() => handleConfirm(m.id)}
+                isConfirmPending={confirmMeisai.isPending}
+              />
+            ))}
+          </div>
         )}
 
-        {/* 未完了明細 */}
-        {pendingMeisai.map((m) => {
-          const fromUser = homeUsers.find((u) => u.id === m.from_user_id);
-          const toUser = homeUsers.find((u) => u.id === m.to_user_id);
-          return (
-            <div
-              key={m.id}
-              className="mb-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+        {/* 含まれる支出（アコーディオン） */}
+        {seisan.costs.length > 0 && (
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setCostsOpen((v) => !v)}
+              className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-expanded={costsOpen}
             >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                  {fromUser ? (
-                    <div className="flex items-center gap-1.5">
-                      <UserAvatar nickname={fromUser.nickname} iconUrl={fromUser.icon_url} userId={fromUser.id} size="sm" />
-                      <span className="text-sm font-medium">{fromUser.nickname}</span>
-                    </div>
-                  ) : (
-                    <span className="text-sm">{m.from_nickname}</span>
-                  )}
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  {toUser ? (
-                    <div className="flex items-center gap-1.5">
-                      <UserAvatar nickname={toUser.nickname} iconUrl={toUser.icon_url} userId={toUser.id} size="sm" />
-                      <span className="text-sm font-medium">{toUser.nickname}</span>
-                    </div>
-                  ) : (
-                    <span className="text-sm">{m.to_nickname}</span>
-                  )}
-                </div>
-                <span className="text-base font-bold">¥{m.amount.toLocaleString()}</span>
+              <span>含まれる支出（{seisan.costs.length}件）</span>
+              {costsOpen ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+            {costsOpen && (
+              <div className="border-t border-border px-3 py-3 space-y-2 bg-background/40">
+                {seisan.costs.map((cost) => (
+                  <CostCard key={cost.id} cost={cost} />
+                ))}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                  未完了
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setTargetMeisai(m)}
-                  className="ml-auto rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  完了にする →
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* 完了済み明細 */}
-        {completedMeisai.map((m) => {
-          const fromUser = homeUsers.find((u) => u.id === m.from_user_id);
-          const toUser = homeUsers.find((u) => u.id === m.to_user_id);
-          return (
-            <div
-              key={m.id}
-              className="mb-3 rounded-xl border border-border bg-card/60 px-4 py-3 opacity-70"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-                  {fromUser ? (
-                    <div className="flex items-center gap-1.5">
-                      <UserAvatar nickname={fromUser.nickname} iconUrl={fromUser.icon_url} userId={fromUser.id} size="sm" />
-                      <span className="text-sm">{fromUser.nickname}</span>
-                    </div>
-                  ) : (
-                    <span className="text-sm">{m.from_nickname}</span>
-                  )}
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  {toUser ? (
-                    <div className="flex items-center gap-1.5">
-                      <UserAvatar nickname={toUser.nickname} iconUrl={toUser.icon_url} userId={toUser.id} size="sm" />
-                      <span className="text-sm">{toUser.nickname}</span>
-                    </div>
-                  ) : (
-                    <span className="text-sm">{m.to_nickname}</span>
-                  )}
-                </div>
-                <span className="text-base font-bold text-muted-foreground">
-                  ¥{m.amount.toLocaleString()}
-                </span>
-                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-              </div>
-            </div>
-          );
-        })}
+            )}
+          </div>
+        )}
       </div>
 
       {/* 完了モーダル */}
@@ -294,7 +400,7 @@ export default function SeisanDetailPage() {
         <CompleteModal
           meisai={targetMeisai}
           onClose={() => setTargetMeisai(null)}
-          onConfirm={handleConfirmComplete}
+          onConfirm={handleComplete}
           isPending={completeMeisai.isPending}
         />
       )}

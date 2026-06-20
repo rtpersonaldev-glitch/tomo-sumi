@@ -503,7 +503,7 @@ async def test_get_seisan_detail(client: AsyncClient) -> None:
 
 
 async def test_complete_meisai(client: AsyncClient, db: AsyncSession) -> None:
-    """清算明細を完了にできる"""
+    """清算明細の2段階完了フロー: 支払元が完了→受取人が確認"""
     user1_id = await _register_and_login(
         client, email="meisai_u1@example.com", nickname="メイサイ1"
     )
@@ -531,9 +531,88 @@ async def test_complete_meisai(client: AsyncClient, db: AsyncSession) -> None:
     assert len(meisai) >= 1
     meisai_id = meisai[0]["id"]
 
-    complete_resp = await client.post(f"/api/costs/seisan-meisai/{meisai_id}/complete")
+    # Step1: user2 (from_user=支払元) がメモ付きで完了
+    await client.post("/api/auth/login", json={"email": "meisai_u2@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    complete_resp = await client.post(
+        f"/api/costs/seisan-meisai/{meisai_id}/complete",
+        json={"memo": "PayPayで送金しました"},
+    )
     assert complete_resp.status_code == 200
-    assert complete_resp.json()["complete_flag"] is True
+    data = complete_resp.json()
+    assert data["payer_confirmed"] is True
+    assert data["payer_memo"] == "PayPayで送金しました"
+    assert data["complete_flag"] is False  # 受取確認待ち
+
+    # Step2: user1 (to_user=受取人) が確認
+    await client.post("/api/auth/login", json={"email": "meisai_u1@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    confirm_resp = await client.post(f"/api/costs/seisan-meisai/{meisai_id}/confirm")
+    assert confirm_resp.status_code == 200
+    assert confirm_resp.json()["complete_flag"] is True
+
+
+async def test_confirm_meisai_before_payer_complete(client: AsyncClient, db: AsyncSession) -> None:
+    """支払元が完了する前に受取人が確認しようとすると400"""
+    user1_id = await _register_and_login(
+        client, email="confirm_u1@example.com", nickname="確認1"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "confirm_u2@example.com", "password": "TestPass123!", "nickname": "確認2"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "confirm_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "2000", "payer_user_id": str(user1_id)},
+    )
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "確認テスト", "settled_date": "2026-06-30"},
+    )
+    meisai_id = seisan_resp.json()["meisai"][0]["id"]
+
+    # user1 (to_user) が支払元完了前に確認しようとする → 400
+    resp = await client.post(f"/api/costs/seisan-meisai/{meisai_id}/confirm")
+    assert resp.status_code == 400
+
+
+async def test_seisan_response_includes_costs(client: AsyncClient, db: AsyncSession) -> None:
+    """清算レスポンスに含まれる支出一覧が返される"""
+    user1_id = await _register_and_login(
+        client, email="seisan_cost_u1@example.com", nickname="支出確認1"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "seisan_cost_u2@example.com", "password": "TestPass123!", "nickname": "支出確認2"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "seisan_cost_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "3000", "payer_user_id": str(user1_id)},
+    )
+
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "支出一覧テスト", "settled_date": "2026-06-30"},
+    )
+    assert seisan_resp.status_code == 201
+    body = seisan_resp.json()
+    assert "costs" in body
+    assert len(body["costs"]) == 1
+    assert body["costs"][0]["amount"] == 3000
 
 
 async def test_seisan_pending_and_completed_lists(client: AsyncClient) -> None:

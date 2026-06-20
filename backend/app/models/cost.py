@@ -52,6 +52,8 @@ class SeisanMeisai(Base, TimestampMixin):
     from_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     to_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    payer_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    payer_memo: Mapped[str | None] = mapped_column(String(200), nullable=True)
     complete_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
