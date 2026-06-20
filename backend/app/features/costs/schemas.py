@@ -37,6 +37,7 @@ class CostResponse(BaseModel):
     amount: int
     payer_user_id: int | None
     payer_nickname: str | None
+    payer_icon_url: str | None
     receipt_image_url: str | None
     payment_method: str
     memo: str

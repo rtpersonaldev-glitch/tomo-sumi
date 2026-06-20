@@ -73,9 +73,11 @@ class CostService:
             category_name = cat.name if cat else None
 
         payer_nickname: str | None = None
+        payer_icon_url: str | None = None
         if cost.payer_user_id:
             payer = await self.db.get(User, cost.payer_user_id)
             payer_nickname = payer.nickname if payer else None
+            payer_icon_url = get_media_url(payer.icon_path, settings.MEDIA_BASE_URL) if payer else None
 
         seikyusaki_list = await self._get_seikyusaki(cost.id)
 
@@ -88,6 +90,7 @@ class CostService:
             amount=cost.amount,
             payer_user_id=cost.payer_user_id,
             payer_nickname=payer_nickname,
+            payer_icon_url=payer_icon_url,
             receipt_image_url=get_media_url(cost.receipt_image_path, settings.MEDIA_BASE_URL),
             payment_method=cost.payment_method,
             memo=cost.memo,

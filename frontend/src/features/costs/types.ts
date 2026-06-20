@@ -20,6 +20,7 @@ export interface CostResponse {
   amount: number;
   payer_user_id: number | null;
   payer_nickname: string | null;
+  payer_icon_url: string | null;
   receipt_image_url: string | null;
   payment_method: string;
   memo: string;
