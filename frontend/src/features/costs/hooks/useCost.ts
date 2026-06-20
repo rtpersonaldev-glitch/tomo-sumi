@@ -311,9 +311,27 @@ export const useCreateSeisan = () => {
 export const useCompleteMeisai = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (meisaiId: number) => {
+    mutationFn: async ({ meisaiId, memo }: { meisaiId: number; memo: string }) => {
       const { data } = await apiClient.post<SeisanMeisaiResponse>(
         `/api/costs/seisan-meisai/${meisaiId}/complete`,
+        { memo },
+      );
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["seisan", data.seisan_id] });
+      qc.invalidateQueries({ queryKey: ["seisan-pending"] });
+      qc.invalidateQueries({ queryKey: ["seisan-completed"] });
+    },
+  });
+};
+
+export const useConfirmMeisai = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (meisaiId: number) => {
+      const { data } = await apiClient.post<SeisanMeisaiResponse>(
+        `/api/costs/seisan-meisai/${meisaiId}/confirm`,
       );
       return data;
     },

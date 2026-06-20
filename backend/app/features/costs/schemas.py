@@ -130,9 +130,13 @@ class SeisanMeisaiResponse(BaseModel):
     seisan_id: int
     from_user_id: int | None
     from_nickname: str | None
+    from_icon_url: str | None
     to_user_id: int | None
     to_nickname: str | None
+    to_icon_url: str | None
     amount: int
+    payer_confirmed: bool
+    payer_memo: str | None
     complete_flag: bool
 
 
@@ -148,6 +152,10 @@ class SeisanListResponse(BaseModel):
     created_at: datetime
 
 
+class CompleteMeisaiRequest(BaseModel):
+    memo: str = ""
+
+
 class SeisanResponse(BaseModel):
     id: int
     home_id: int
@@ -155,6 +163,7 @@ class SeisanResponse(BaseModel):
     complete_flag: bool
     settled_date: date
     meisai: list[SeisanMeisaiResponse]
+    costs: list[CostResponse]
     created_at: datetime
 
 
