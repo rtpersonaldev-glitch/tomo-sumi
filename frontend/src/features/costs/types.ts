@@ -7,6 +7,8 @@ export interface CostCategoryResponse {
 export interface SeikyusakiResponse {
   id: number;
   payer_user_id: number | null;
+  nickname: string | null;
+  icon_url: string | null;
   amount: number;
   dish_count: number | null;
 }

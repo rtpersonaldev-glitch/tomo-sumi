@@ -21,6 +21,8 @@ class CostCategoryCreateRequest(BaseModel):
 class SeikyusakiResponse(BaseModel):
     id: int
     payer_user_id: int | None
+    nickname: str | None
+    icon_url: str | None
     amount: int
     dish_count: int | None
 
