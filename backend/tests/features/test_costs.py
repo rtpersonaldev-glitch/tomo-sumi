@@ -692,6 +692,7 @@ async def test_create_seisan_generates_announce(client: AsyncClient, db: AsyncSe
     assert "清算" in ann["title"]
     assert ann["link_url"] == f"/costs/seisan/{seisan_id}"
     assert ann["priority"] == "high"
+    assert user1_id in ann["recipient_ids"]
     assert user2_id in ann["recipient_ids"]
 
 
@@ -744,3 +745,4 @@ async def test_complete_meisai_generates_announce(client: AsyncClient, db: Async
     assert confirm_ann["link_url"] == f"/costs/seisan/{seisan_id}"
     assert confirm_ann["priority"] == "high"
     assert user1_id in confirm_ann["recipient_ids"]
+    assert user2_id in confirm_ann["recipient_ids"]
