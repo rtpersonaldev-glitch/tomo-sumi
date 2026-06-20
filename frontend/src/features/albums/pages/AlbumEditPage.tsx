@@ -74,17 +74,11 @@ export default function AlbumEditPage() {
     setCroppedPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleRemoveExisting = async (pic: AlbumPictureResponse) => {
-    if (!albumId) return;
-    try {
-      await deletePicture.mutateAsync({ albumId, picId: pic.id });
-      setDeletedPicIds((prev) => new Set([...prev, pic.id]));
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
+  const handleRemoveExisting = (pic: AlbumPictureResponse) => {
+    setDeletedPicIds((prev) => new Set([...prev, pic.id]));
   };
 
-  const isPending = createAlbum.isPending || updateAlbum.isPending;
+  const isPending = createAlbum.isPending || updateAlbum.isPending || deletePicture.isPending;
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -93,6 +87,9 @@ export default function AlbumEditPage() {
     }
     try {
       if (isEdit && albumId) {
+        for (const picId of deletedPicIds) {
+          await deletePicture.mutateAsync({ albumId, picId });
+        }
         await updateAlbum.mutateAsync({ id: albumId, title: title.trim(), pictures: croppedFiles });
         toast.success("アルバムを更新しました");
         navigate(`/albums/${albumId}`);
@@ -170,9 +167,8 @@ export default function AlbumEditPage() {
               <button
                 type="button"
                 onClick={() => handleRemoveExisting(pic)}
-                disabled={deletePicture.isPending}
                 aria-label="この写真を削除"
-                className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors disabled:opacity-50"
+                className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
               >
                 <X className="h-3 w-3" />
               </button>
