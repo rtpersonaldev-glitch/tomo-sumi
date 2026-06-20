@@ -3,6 +3,7 @@ import { Loader2, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
 import { useKoteihi, useCostSettings, useUpdateAutoSeisan } from "../hooks/useCost";
+import { CostSubNav } from "../components/CostSubNav";
 import { UserAvatar } from "../components/UserAvatar";
 
 export default function KoteihiPage() {
@@ -38,19 +39,10 @@ export default function KoteihiPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
+    <div className="mx-auto max-w-2xl">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            ← 戻る
-          </button>
-          <h1 className="text-xl font-semibold">固定費</h1>
-        </div>
+      <div className="flex items-center justify-between px-4 py-4">
+        <h1 className="text-xl font-semibold">🔁 固定費</h1>
         <button
           type="button"
           onClick={() => navigate("/costs/koteihi/new")}
@@ -60,6 +52,10 @@ export default function KoteihiPage() {
           追加
         </button>
       </div>
+
+      <CostSubNav />
+
+      <div className="px-4 py-4">
 
       {/* 自動清算設定 */}
       <div className="mb-5 rounded-xl border border-border bg-card p-4 shadow-sm">
@@ -162,6 +158,7 @@ export default function KoteihiPage() {
             ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

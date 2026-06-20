@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { BarChart2, Loader2, Plus, Repeat2, Tag } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useCategories, useCosts } from "../hooks/useCost";
+import { CostSubNav } from "../components/CostSubNav";
 import { UserAvatar } from "../components/UserAvatar";
 import type { CostResponse } from "../types";
 
@@ -73,44 +74,22 @@ export default function CostListPage() {
   const total = costs.reduce((sum, c) => sum + c.amount, 0);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
+    <div className="mx-auto max-w-2xl">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 py-4">
         <h1 className="text-xl font-semibold">💰 支出一覧</h1>
-        <div className="flex gap-2">
-          <Link
-            to="/costs/categories"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="カテゴリ設定"
-          >
-            <Tag className="h-4 w-4" />
-            カテゴリ
-          </Link>
-          <Link
-            to="/costs/koteihi"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="固定費設定"
-          >
-            <Repeat2 className="h-4 w-4" />
-            固定費
-          </Link>
-          <Link
-            to="/costs/summary"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <BarChart2 className="h-4 w-4" />
-            集計
-          </Link>
-          <Link
-            to="/costs/new"
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="h-4 w-4" />
-            追加
-          </Link>
-        </div>
+        <Link
+          to="/costs/new"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plus className="h-4 w-4" />
+          追加
+        </Link>
       </div>
 
+      <CostSubNav />
+
+      <div className="px-4 py-4">
       {/* フィルター */}
       <div className="mb-4 flex flex-wrap gap-2">
         <select
@@ -174,6 +153,7 @@ export default function CostListPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
 import { useCategories, useCreateCategory } from "../hooks/useCost";
+import { CostSubNav } from "../components/CostSubNav";
 
 export default function CategoryManagePage() {
-  const navigate = useNavigate();
   const { data: categories = [], isLoading } = useCategories();
   const createCategory = useCreateCategory();
   const [newName, setNewName] = useState("");
@@ -24,17 +23,14 @@ export default function CategoryManagePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      <div className="mb-6 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← 戻る
-        </button>
-        <h1 className="text-xl font-semibold">カテゴリ管理</h1>
+    <div className="mx-auto max-w-2xl">
+      <div className="px-4 py-4">
+        <h1 className="text-xl font-semibold">🏷 カテゴリ管理</h1>
       </div>
+
+      <CostSubNav />
+
+      <div className="px-4 py-4">
 
       <p className="mb-4 rounded-xl bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
         💡 カテゴリは支出作成・編集時に選択できます
@@ -92,6 +88,7 @@ export default function CategoryManagePage() {
             追加
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
