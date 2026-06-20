@@ -746,3 +746,145 @@ async def test_complete_meisai_generates_announce(client: AsyncClient, db: Async
     assert confirm_ann["priority"] == "high"
     assert user1_id in confirm_ann["recipient_ids"]
     assert user2_id in confirm_ann["recipient_ids"]
+
+
+# ─── 差し戻し ────────────────────────────────────────────────────────
+
+
+async def test_reject_meisai(client: AsyncClient, db: AsyncSession) -> None:
+    """受取人が差し戻しすると payer_confirmed が False に戻る"""
+    user1_id = await _register_and_login(
+        client, email="reject_u1@example.com", nickname="受取人"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "reject_u2@example.com", "password": "TestPass123!", "nickname": "支払者"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "reject_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "1000", "payer_user_id": str(user1_id)},
+    )
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "差し戻しテスト", "settled_date": "2026-06-30"},
+    )
+    seisan_id = seisan_resp.json()["id"]
+    meisai_id = seisan_resp.json()["meisai"][0]["id"]
+
+    # user2（支払者）でログインして完了にする
+    await client.post("/api/auth/login", json={"email": "reject_u2@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    complete_resp = await client.post(
+        f"/api/costs/seisan-meisai/{meisai_id}/complete",
+        json={"memo": "振込しました"},
+    )
+    assert complete_resp.status_code == 200
+    assert complete_resp.json()["payer_confirmed"] is True
+
+    # user1（受取人）でログインして差し戻し
+    await client.post("/api/auth/login", json={"email": "reject_u1@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    reject_resp = await client.post(f"/api/costs/seisan-meisai/{meisai_id}/reject")
+    assert reject_resp.status_code == 200
+    data = reject_resp.json()
+    assert data["payer_confirmed"] is False
+    assert data["payer_memo"] is None
+    assert data["complete_flag"] is False
+
+    # 差し戻し時にお知らせが作成される
+    from app.models.announce import Announce, AnnounceRecipient
+
+    from sqlalchemy import desc as _desc
+
+    ann_result = await db.execute(
+        select(Announce)
+        .where(
+            Announce.home_id == home_id,
+            Announce.link_url == f"/costs/seisan/{seisan_id}",
+            Announce.title.contains("差し戻し"),
+        )
+        .order_by(_desc(Announce.id))
+        .limit(1)
+    )
+    ann = ann_result.scalar_one()
+    assert ann is not None
+    recipient_result = await db.execute(
+        select(AnnounceRecipient).where(AnnounceRecipient.announce_id == ann.id)
+    )
+    recipient_ids = [r.user_id for r in recipient_result.scalars().all()]
+    assert user1_id in recipient_ids
+    assert user2_id in recipient_ids
+
+
+async def test_reject_meisai_by_wrong_user(client: AsyncClient, db: AsyncSession) -> None:
+    """支払者は差し戻しできない"""
+    user1_id = await _register_and_login(
+        client, email="reject_w1@example.com", nickname="受取人B"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "reject_w2@example.com", "password": "TestPass123!", "nickname": "支払者B"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "reject_w2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "1000", "payer_user_id": str(user1_id)},
+    )
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "差し戻し権限テスト", "settled_date": "2026-06-30"},
+    )
+    meisai_id = seisan_resp.json()["meisai"][0]["id"]
+
+    # user2（支払者）で完了
+    await client.post("/api/auth/login", json={"email": "reject_w2@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    await client.post(f"/api/costs/seisan-meisai/{meisai_id}/complete", json={"memo": ""})
+
+    # user2（支払者）のまま差し戻し → 403
+    reject_resp = await client.post(f"/api/costs/seisan-meisai/{meisai_id}/reject")
+    assert reject_resp.status_code == 403
+
+
+async def test_reject_meisai_not_confirmed(client: AsyncClient, db: AsyncSession) -> None:
+    """payer_confirmed が False の場合は差し戻し不可"""
+    user1_id = await _register_and_login(
+        client, email="reject_nc1@example.com", nickname="受取人C"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "reject_nc2@example.com", "password": "TestPass123!", "nickname": "支払者C"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "reject_nc2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "1000", "payer_user_id": str(user1_id)},
+    )
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "未払い差し戻しテスト", "settled_date": "2026-06-30"},
+    )
+    meisai_id = seisan_resp.json()["meisai"][0]["id"]
+
+    # 完了前に差し戻し → 400
+    reject_resp = await client.post(f"/api/costs/seisan-meisai/{meisai_id}/reject")
+    assert reject_resp.status_code == 400
