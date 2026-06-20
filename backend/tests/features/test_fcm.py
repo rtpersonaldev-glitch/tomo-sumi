@@ -162,3 +162,82 @@ async def test_send_push_no_tokens(db: AsyncSession) -> None:
     ):
         await fcm_module.send_push_to_home(db, home.id, "タイトル", "本文")
         mock_send.assert_not_called()
+
+
+# ─── send_push_to_users ───────────────────────────────────────────────────────
+
+
+async def test_send_push_to_users_sends_to_specified_users(db: AsyncSession) -> None:
+    """指定したユーザーのFCMトークンにのみ送信する"""
+    user1 = User(email="pu1@example.com", hashed_password="x", nickname="ユーザー1")
+    user2 = User(email="pu2@example.com", hashed_password="x", nickname="ユーザー2")
+    user3 = User(email="pu3@example.com", hashed_password="x", nickname="ユーザー3")
+    db.add_all([user1, user2, user3])
+    await db.flush()
+
+    db.add_all([
+        FCMToken(user_id=user1.id, token="token-pu1"),
+        FCMToken(user_id=user2.id, token="token-pu2"),
+        FCMToken(user_id=user3.id, token="token-pu3"),
+    ])
+    await db.flush()
+
+    mock_resp = MagicMock(success=True)
+    mock_batch = MagicMock(responses=[mock_resp, mock_resp])
+
+    with (
+        patch.object(fcm_module, "_firebase_app", MagicMock()),
+        patch("firebase_admin.messaging.send_each", return_value=mock_batch) as mock_send,
+    ):
+        await fcm_module.send_push_to_users(
+            db, [user1.id, user2.id], "タイトル", "本文"
+        )
+        messages = mock_send.call_args.args[0]
+        tokens_sent = {m.token for m in messages}
+        assert "token-pu1" in tokens_sent
+        assert "token-pu2" in tokens_sent
+        assert "token-pu3" not in tokens_sent
+
+
+async def test_send_push_to_users_excludes_user(db: AsyncSession) -> None:
+    """exclude_user_id は送信対象から除外される"""
+    user1 = User(email="pex1@example.com", hashed_password="x", nickname="ユーザー1")
+    user2 = User(email="pex2@example.com", hashed_password="x", nickname="ユーザー2")
+    db.add_all([user1, user2])
+    await db.flush()
+
+    db.add_all([
+        FCMToken(user_id=user1.id, token="token-pex1"),
+        FCMToken(user_id=user2.id, token="token-pex2"),
+    ])
+    await db.flush()
+
+    mock_resp = MagicMock(success=True)
+    mock_batch = MagicMock(responses=[mock_resp])
+
+    with (
+        patch.object(fcm_module, "_firebase_app", MagicMock()),
+        patch("firebase_admin.messaging.send_each", return_value=mock_batch) as mock_send,
+    ):
+        await fcm_module.send_push_to_users(
+            db, [user1.id, user2.id], "タイトル", "本文", exclude_user_id=user1.id
+        )
+        messages = mock_send.call_args.args[0]
+        assert len(messages) == 1
+        assert messages[0].token == "token-pex2"
+
+
+async def test_send_push_to_users_no_firebase(db: AsyncSession) -> None:
+    """_firebase_appがNoneのときは何もしない"""
+    with patch.object(fcm_module, "_firebase_app", None):
+        await fcm_module.send_push_to_users(db, [1, 2], "タイトル", "本文")
+
+
+async def test_send_push_to_users_empty_ids(db: AsyncSession) -> None:
+    """空リストの場合は Firebase を呼び出さない"""
+    with (
+        patch.object(fcm_module, "_firebase_app", MagicMock()),
+        patch("firebase_admin.messaging.send_each") as mock_send,
+    ):
+        await fcm_module.send_push_to_users(db, [], "タイトル", "本文")
+        mock_send.assert_not_called()

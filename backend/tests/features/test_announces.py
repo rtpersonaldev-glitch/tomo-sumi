@@ -1,8 +1,10 @@
 from datetime import date
+from unittest.mock import MagicMock, patch
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.utils.fcm as fcm_module
 from app.models.announce import Announce, AnnounceRecipient
 from app.models.home import Home
 
@@ -554,3 +556,47 @@ async def test_delete_announce_with_recipients(
         .where(AnnounceRecipient.announce_id == announce_id)
     )
     assert remaining.scalars().all() == []
+
+
+# ─── プッシュ通知 ──────────────────────────────────────────────────────────────
+
+
+async def test_create_announce_sends_push_to_recipients(client: AsyncClient) -> None:
+    """宛先ありお知らせ作成時に send_push_to_users が呼ばれる"""
+    user_id = await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    mock_batch = MagicMock(responses=[])
+    with (
+        patch.object(fcm_module, "_firebase_app", MagicMock()),
+        patch("firebase_admin.messaging.send_each", return_value=mock_batch),
+        patch("app.features.announces.service.send_push_to_users") as mock_push,
+    ):
+        resp = await client.post(
+            "/api/announces",
+            json={**_DEFAULT_ANNOUNCE, "recipient_ids": [user_id]},
+        )
+        assert resp.status_code == 201
+        mock_push.assert_called_once()
+        _, call_user_ids, title, _ = mock_push.call_args.args
+        assert user_id in call_user_ids
+        assert title == _DEFAULT_ANNOUNCE["title"]
+
+
+async def test_create_announce_sends_push_to_home_when_no_recipients(
+    client: AsyncClient,
+) -> None:
+    """宛先なしお知らせ作成時に send_push_to_home が呼ばれる"""
+    await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    with (
+        patch.object(fcm_module, "_firebase_app", MagicMock()),
+        patch("app.features.announces.service.send_push_to_home") as mock_push,
+    ):
+        resp = await client.post(
+            "/api/announces",
+            json={**_DEFAULT_ANNOUNCE, "recipient_ids": []},
+        )
+        assert resp.status_code == 201
+        mock_push.assert_called_once()

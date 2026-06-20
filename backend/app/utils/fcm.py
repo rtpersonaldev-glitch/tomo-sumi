@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 from pathlib import Path
 
 import firebase_admin
@@ -53,6 +54,47 @@ async def send_push_to_home(
         query = query.where(FCMToken.user_id != exclude_user_id)
 
     result = await db.execute(query)
+    tokens = list(result.scalars().all())
+    if not tokens:
+        return
+
+    messages = [
+        messaging.Message(
+            notification=messaging.Notification(title=title, body=body),
+            token=token,
+        )
+        for token in tokens
+    ]
+
+    batch_response = messaging.send_each(messages, app=_firebase_app)
+    for i, resp in enumerate(batch_response.responses):
+        if not resp.success:
+            logger.warning(
+                "FCM送信に失敗しました (token=%s): %s",
+                tokens[i],
+                resp.exception,
+            )
+
+
+async def send_push_to_users(
+    db: AsyncSession,
+    user_ids: Collection[int],
+    title: str,
+    body: str,
+    exclude_user_id: int | None = None,
+) -> None:
+    if _firebase_app is None:
+        return
+
+    target_ids = set(user_ids)
+    if exclude_user_id is not None:
+        target_ids.discard(exclude_user_id)
+    if not target_ids:
+        return
+
+    result = await db.execute(
+        select(FCMToken.token).where(FCMToken.user_id.in_(target_ids))
+    )
     tokens = list(result.scalars().all())
     if not tokens:
         return
