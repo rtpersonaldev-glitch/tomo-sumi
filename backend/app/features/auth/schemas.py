@@ -63,7 +63,18 @@ class HomeResponse(BaseModel):
 
     id: int
     name: str
-    home_image_path: str | None = None
+    home_image_url: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _convert_image_path(cls, data: Any) -> Any:
+        if not isinstance(data, dict) and hasattr(data, "home_image_path"):
+            return {
+                "id": data.id,
+                "name": data.name,
+                "home_image_url": get_media_url(data.home_image_path, settings.MEDIA_BASE_URL),
+            }
+        return data
 
 
 class MeResponse(BaseModel):

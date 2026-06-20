@@ -122,6 +122,35 @@ async def test_home_login_success(client: AsyncClient, db: AsyncSession) -> None
     assert me.json()["home"]["id"] == home.id
 
 
+async def test_me_home_image_url(client: AsyncClient, db: AsyncSession, tmp_path: Path) -> None:
+    """ホーム画像パスがURLに変換されて /me から返る"""
+    import io as _io
+
+    from PIL import Image as _Image
+
+    from app.models.home import Home as _Home, HomeLink as _HomeLink
+
+    await _register_and_login(client)
+    user_id = (await client.get("/api/auth/me")).json()["user"]["id"]
+
+    home = _Home(name="画像付きホーム", home_image_path="home_images/test.jpg")
+    db.add(home)
+    await db.flush()
+    db.add(_HomeLink(user_id=user_id, home_id=home.id))
+    await db.flush()
+    await client.post(f"/api/auth/home-login/{home.id}")
+
+    me = await client.get("/api/auth/me")
+    assert me.status_code == 200
+    home_data = me.json()["home"]
+    assert home_data is not None
+    assert "home_image_url" in home_data
+    assert "home_image_path" not in home_data
+    assert home_data["home_image_url"] is not None
+    assert home_data["home_image_url"].startswith("http")
+    assert "home_images/test.jpg" in home_data["home_image_url"]
+
+
 async def test_home_login_not_member(client: AsyncClient, db: AsyncSession) -> None:
     await _register_and_login(client)
     # ホームを作成するがhome_linkを作成しない

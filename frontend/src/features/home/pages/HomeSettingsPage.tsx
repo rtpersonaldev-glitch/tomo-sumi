@@ -27,7 +27,7 @@ export default function HomeSettingsPage() {
   const navigate = useNavigate();
   const home = useAuthStore((s) => s.home);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(home?.homeImagePath ?? null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(home?.homeImageUrl ?? null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const updateHome = useUpdateHome();

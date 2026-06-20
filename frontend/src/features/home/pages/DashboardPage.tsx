@@ -100,9 +100,9 @@ export default function DashboardPage() {
         aria-label="ホーム設定を開く"
       >
         <div className="aspect-[16/6] w-full bg-muted">
-          {home?.homeImagePath ? (
+          {home?.homeImageUrl ? (
             <img
-              src={home.homeImagePath}
+              src={home.homeImageUrl}
               alt={home.name}
               className="h-full w-full object-cover"
             />

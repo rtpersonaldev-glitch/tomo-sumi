@@ -83,7 +83,7 @@ export const useSelectHome = () => {
       setUser(me.user);
       if (me.home) {
         setHome(
-          { id: me.home.id, name: me.home.name, homeImagePath: me.home.home_image_path },
+          { id: me.home.id, name: me.home.name, homeImageUrl: me.home.home_image_url },
           members.map(toHomeUser),
         );
       }
