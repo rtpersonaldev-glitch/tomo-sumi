@@ -88,6 +88,7 @@ interface UserMenuSheetProps {
 function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const clearHome = useAuthStore((s) => s.clearHome);
   const toggleStatus = useToggleStatus();
 
   if (!user) return null;
@@ -110,6 +111,12 @@ function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
   const handleNav = (path: string) => {
     onClose();
     navigate(path);
+  };
+
+  const handleBackToHomeSelect = () => {
+    onClose();
+    clearHome();
+    navigate("/home-select");
   };
 
   return (
@@ -209,6 +216,21 @@ function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
             <span className="text-muted-foreground/50 text-lg leading-none">›</span>
           </button>
         ))}
+
+        <div className="mx-5 my-1.5 h-px bg-border" />
+
+        {/* Home switch */}
+        <button
+          type="button"
+          onClick={handleBackToHomeSelect}
+          className="flex w-full items-center gap-3 px-5 py-3.5 transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-secondary/60 text-base">
+            🏠
+          </div>
+          <span className="flex-1 text-left text-sm font-medium">ホームを変更</span>
+          <span className="text-muted-foreground/50 text-lg leading-none">›</span>
+        </button>
 
         <div className="mx-5 my-1.5 h-px bg-border" />
 
