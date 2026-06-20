@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -95,12 +95,32 @@ function ScheduleCard({
 
 export default function SchedulePage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("calendar");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = searchParams.get("tab");
+    return t === "list" ? "list" : "calendar";
+  });
+
+  const [selectedDate, setSelectedDate] = useState<string | null>(() => {
+    return searchParams.get("date") ?? null;
+  });
 
   const calendarRef = useRef<FullCalendar>(null);
-  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
-  const [calMonth, setCalMonth] = useState(() => new Date().getMonth() + 1);
+
+  const [calYear, setCalYear] = useState(() => {
+    const d = selectedDate ? parseISO(selectedDate) : new Date();
+    return d.getFullYear();
+  });
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = selectedDate ? parseISO(selectedDate) : new Date();
+    return d.getMonth() + 1;
+  });
+
+  // FullCalendar の initialDate はマウント時のみ参照されるため固定値として保持する
+  const [calendarInitialDate] = useState(
+    () => selectedDate ?? format(new Date(), "yyyy-MM-dd"),
+  );
 
   const yearOptions = useMemo(() => {
     const thisYear = new Date().getFullYear();
@@ -112,6 +132,50 @@ export default function SchedulePage() {
     setCalYear(d.getFullYear());
     setCalMonth(d.getMonth() + 1);
   }, []);
+
+  const handleTabChange = useCallback(
+    (newTab: Tab) => {
+      setTab(newTab);
+      setSearchParams(
+        (p) => {
+          const next = new URLSearchParams(p);
+          next.set("tab", newTab);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const handleDateSelect = useCallback(
+    (dateStr: string) => {
+      setSelectedDate(dateStr);
+      setSearchParams(
+        (p) => {
+          const next = new URLSearchParams(p);
+          next.set("date", dateStr);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const handleToday = useCallback(() => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    calendarRef.current?.getApi().today();
+    setSelectedDate(today);
+    setSearchParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        next.set("date", today);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
 
   const { data: schedules, isLoading, isError } = useSchedules();
   const { data: members = [] } = useHomeMembers();
@@ -143,9 +207,9 @@ export default function SchedulePage() {
         <div className="flex flex-col items-center gap-0.5 py-0.5">
           <span
             className={cn(
-              "flex h-6 w-6 items-center justify-center rounded-full text-xs leading-none",
+              "flex h-6 items-center justify-center text-xs leading-none",
               isSelected
-                ? "bg-primary font-bold text-primary-foreground"
+                ? "font-bold text-primary"
                 : day === 0
                   ? "text-red-500"
                   : day === 6
@@ -156,18 +220,20 @@ export default function SchedulePage() {
             {arg.date.getDate()}
           </span>
           {hasEvent && (
-            <span
-              className={cn(
-                "h-1 w-1 rounded-full",
-                isSelected ? "bg-primary-foreground" : "bg-primary",
-              )}
-              aria-hidden
-            />
+            <span className="h-1 w-1 rounded-full bg-primary" aria-hidden />
           )}
         </div>
       );
     },
     [selectedDate, scheduleDates],
+  );
+
+  const dayCellClassNames = useCallback(
+    (arg: { date: Date }) => {
+      const dateStr = format(arg.date, "yyyy-MM-dd");
+      return dateStr === selectedDate ? ["fc-day-is-selected"] : [];
+    },
+    [selectedDate],
   );
 
   return (
@@ -194,7 +260,7 @@ export default function SchedulePage() {
           <button
             key={t}
             type="button"
-            onClick={() => setTab(t)}
+            onClick={() => handleTabChange(t)}
             aria-pressed={tab === t}
             className={cn(
               "rounded-md px-4 py-1.5 text-xs font-semibold transition-all",
@@ -237,7 +303,7 @@ export default function SchedulePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => calendarRef.current?.getApi().today()}
+                  onClick={handleToday}
                   className="flex h-8 items-center px-3 rounded-lg border border-border bg-background text-xs font-medium hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   今日
@@ -289,12 +355,14 @@ export default function SchedulePage() {
               ref={calendarRef}
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
+              initialDate={calendarInitialDate}
               locale="ja"
               headerToolbar={false}
               events={[]}
-              dateClick={(info) => setSelectedDate(info.dateStr)}
+              dateClick={(info) => handleDateSelect(info.dateStr)}
               height="auto"
               dayCellContent={dayCellContent}
+              dayCellClassNames={dayCellClassNames}
               datesSet={handleDatesSet}
             />
           </div>
