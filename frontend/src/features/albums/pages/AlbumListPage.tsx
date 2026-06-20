@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -7,6 +8,15 @@ import { useAlbums } from "../hooks/useAlbum";
 export default function AlbumListPage() {
   const navigate = useNavigate();
   const { data: albums, isLoading, isError } = useAlbums();
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredAlbums = useMemo(() => {
+    if (!albums) return [];
+    const q = searchQuery.trim().toLowerCase();
+    if (q === "") return albums;
+    return albums.filter((a) => a.title.toLowerCase().includes(q));
+  }, [albums, searchQuery]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-4">
@@ -20,6 +30,23 @@ export default function AlbumListPage() {
           ＋ 作成
         </button>
       </div>
+
+      {/* フィルターバー */}
+      {!isLoading && !isError && (albums?.length ?? 0) > 0 && (
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+            🔍
+          </span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="タイトルで検索..."
+            aria-label="アルバムを検索"
+            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+          />
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex justify-center py-12">
@@ -51,9 +78,18 @@ export default function AlbumListPage() {
             </div>
           )}
 
-          {albums && albums.length > 0 && (
+          {(albums?.length ?? 0) > 0 && filteredAlbums.length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+              <span className="text-4xl" aria-hidden>
+                🔍
+              </span>
+              <p className="text-sm">条件に一致するアルバムがありません</p>
+            </div>
+          )}
+
+          {filteredAlbums.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {albums.map((album) => (
+              {filteredAlbums.map((album) => (
                 <button
                   key={album.id}
                   type="button"
