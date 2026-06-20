@@ -87,3 +87,31 @@ class ActivityService:
             )
         if unread_ids:
             await self.db.flush()
+
+    async def mark_single_as_read(self, activity_id: int, home_id: int, user_id: int) -> None:
+        log_result = await self.db.execute(
+            select(ActivityLog.id).where(
+                ActivityLog.id == activity_id,
+                ActivityLog.home_id == home_id,
+            )
+        )
+        if log_result.scalar_one_or_none() is None:
+            return
+
+        already_read = await self.db.execute(
+            select(ActivityReadStatus.id).where(
+                ActivityReadStatus.activity_id == activity_id,
+                ActivityReadStatus.user_id == user_id,
+            )
+        )
+        if already_read.scalar_one_or_none() is not None:
+            return
+
+        self.db.add(
+            ActivityReadStatus(
+                user_id=user_id,
+                activity_id=activity_id,
+                read_at=datetime.now(tz=UTC),
+            )
+        )
+        await self.db.flush()

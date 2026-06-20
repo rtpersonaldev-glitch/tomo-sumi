@@ -184,3 +184,60 @@ async def test_activity_full_flow(client: AsyncClient, db: AsyncSession) -> None
 
     logs_after = (await client.get(f"/api/activity/{home_id}")).json()
     assert logs_after[0]["is_read"] is True
+
+
+# ─── POST /api/activity/{activity_id}/mark-as-read ────────────────────────────
+
+
+async def test_mark_single_as_read(client: AsyncClient, db: AsyncSession) -> None:
+    """1件だけ既読にすると、そのアイテムのみ is_read が True になる"""
+    user_id = await _register_and_login(client)
+    home_id = await _create_home_and_select(client, db, user_id)
+
+    await log_activity(db, home_id, user_id, "アクション1", "test_model")
+    await log_activity(db, home_id, user_id, "アクション2", "test_model")
+
+    logs = (await client.get(f"/api/activity/{home_id}")).json()
+    assert len(logs) == 2
+    target_id = logs[0]["id"]
+    other_id = logs[1]["id"]
+
+    resp = await client.post(f"/api/activity/{target_id}/mark-as-read")
+    assert resp.status_code == 204
+
+    logs_after = (await client.get(f"/api/activity/{home_id}")).json()
+    by_id = {log["id"]: log for log in logs_after}
+    assert by_id[target_id]["is_read"] is True
+    assert by_id[other_id]["is_read"] is False
+
+    count = (await client.get("/api/activity/unread-count")).json()["count"]
+    assert count == 1
+
+
+async def test_mark_single_as_read_idempotent(client: AsyncClient, db: AsyncSession) -> None:
+    """同じアイテムを2回既読化しても 204 を返す（UNIQUE制約違反しない）"""
+    user_id = await _register_and_login(client)
+    home_id = await _create_home_and_select(client, db, user_id)
+
+    await log_activity(db, home_id, user_id, "アクション", "test_model")
+    logs = (await client.get(f"/api/activity/{home_id}")).json()
+    activity_id = logs[0]["id"]
+
+    await client.post(f"/api/activity/{activity_id}/mark-as-read")
+    resp = await client.post(f"/api/activity/{activity_id}/mark-as-read")
+    assert resp.status_code == 204
+
+
+async def test_mark_single_as_read_wrong_home(client: AsyncClient, db: AsyncSession) -> None:
+    """他のホームのアクティビティIDを指定しても 204 を返し、既読化されない"""
+    user_id = await _register_and_login(client)
+    home_id = await _create_home_and_select(client, db, user_id)
+
+    other_home = Home(name="他のホーム")
+    db.add(other_home)
+    await db.flush()
+    await log_activity(db, other_home.id, user_id, "アクション", "test_model")
+
+    all_logs_resp = await client.get(f"/api/activity/{home_id}")
+    assert all_logs_resp.status_code == 200
+    assert all_logs_resp.json() == []

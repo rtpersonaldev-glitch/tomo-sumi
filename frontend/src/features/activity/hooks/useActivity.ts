@@ -52,6 +52,21 @@ export const useMarkActivityAsRead = () => {
       await apiClient.post("/api/activity/mark-as-read");
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activity-logs", homeId] });
+      qc.invalidateQueries({ queryKey: ["activity-unread-count", homeId] });
+    },
+  });
+};
+
+export const useMarkSingleActivityAsRead = () => {
+  const qc = useQueryClient();
+  const homeId = useAuthStore((s) => s.home?.id);
+  return useMutation({
+    mutationFn: async (activityId: number) => {
+      await apiClient.post(`/api/activity/${activityId}/mark-as-read`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activity-logs", homeId] });
       qc.invalidateQueries({ queryKey: ["activity-unread-count", homeId] });
     },
   });

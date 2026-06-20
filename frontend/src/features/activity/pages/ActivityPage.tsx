@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
@@ -8,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   useActivityLogs,
   useMarkActivityAsRead,
+  useMarkSingleActivityAsRead,
   type ActivityLog,
 } from "../hooks/useActivity";
 
@@ -48,7 +48,7 @@ function resolveActivityPath(targetType: string, targetId: number | null): strin
   }
 }
 
-function ActivityCard({ log }: { log: ActivityLog }) {
+function ActivityCard({ log, onRead }: { log: ActivityLog; onRead: (id: number) => void }) {
   const navigate = useNavigate();
   const initial = log.nickname?.charAt(0) ?? "?";
   const categoryLabel = CATEGORY_LABEL[log.target_type] ?? log.target_type;
@@ -59,6 +59,9 @@ function ActivityCard({ log }: { log: ActivityLog }) {
   const path = resolveActivityPath(log.target_type, log.target_id);
 
   const handleClick = () => {
+    if (!log.is_read) {
+      onRead(log.id);
+    }
     if (!path) {
       toast.error("この項目は削除されています");
       return;
@@ -122,22 +125,27 @@ function ActivityCard({ log }: { log: ActivityLog }) {
 
 export default function ActivityPage() {
   const { data, isLoading, isError } = useActivityLogs();
-  const markAsRead = useMarkActivityAsRead();
-  const markedRef = useRef(false);
-
-  useEffect(() => {
-    if (data && !markedRef.current) {
-      markedRef.current = true;
-      markAsRead.mutate();
-    }
-  }, [data]);
+  const markAllAsRead = useMarkActivityAsRead();
+  const markSingleAsRead = useMarkSingleActivityAsRead();
 
   const unread = data?.filter((l) => !l.is_read) ?? [];
   const read = data?.filter((l) => l.is_read) ?? [];
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-4">
-      <h1 className="text-xl font-semibold">アクティビティ</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">アクティビティ</h1>
+        {unread.length > 0 && (
+          <button
+            type="button"
+            onClick={() => markAllAsRead.mutate()}
+            disabled={markAllAsRead.isPending}
+            className="text-xs font-medium text-primary hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+          >
+            {markAllAsRead.isPending ? "処理中..." : "すべて既読にする"}
+          </button>
+        )}
+      </div>
 
       {isLoading && (
         <div className="flex justify-center py-16">
@@ -167,7 +175,7 @@ export default function ActivityPage() {
               </p>
               <div className="space-y-2">
                 {unread.map((log) => (
-                  <ActivityCard key={log.id} log={log} />
+                  <ActivityCard key={log.id} log={log} onRead={(id) => markSingleAsRead.mutate(id)} />
                 ))}
               </div>
             </section>
@@ -183,7 +191,7 @@ export default function ActivityPage() {
               </p>
               <div className="space-y-2">
                 {read.map((log) => (
-                  <ActivityCard key={log.id} log={log} />
+                  <ActivityCard key={log.id} log={log} onRead={(id) => markSingleAsRead.mutate(id)} />
                 ))}
               </div>
             </section>

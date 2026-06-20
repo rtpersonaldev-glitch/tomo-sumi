@@ -30,6 +30,16 @@ async def mark_as_read(
     await ActivityService(db).mark_as_read(current_home.id, current_user.id)
 
 
+@router.post("/{activity_id}/mark-as-read", status_code=204)
+async def mark_single_as_read(
+    activity_id: int,
+    current_user: User = Depends(get_current_user),
+    current_home: Home = Depends(get_current_home),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await ActivityService(db).mark_single_as_read(activity_id, current_home.id, current_user.id)
+
+
 @router.get("/{home_id}", response_model=list[ActivityLogResponse])
 async def get_activity_logs(
     home_id: int,
