@@ -93,3 +93,8 @@
   font-weight: 700;
   letter-spacing: 0.05em;
 }
+
+/* 選択日：セルの枠線をプライマリカラーで強調 */
+.fc .fc-daygrid-day.fc-day-is-selected {
+  box-shadow: inset 0 0 0 2px hsl(var(--primary));
+}
