@@ -67,7 +67,11 @@ export interface KoteihiResponse {
   category_id: number | null;
   amount: number;
   from_user_id: number | null;
+  from_nickname: string | null;
+  from_icon_url: string | null;
   to_user_id: number | null;
+  to_nickname: string | null;
+  to_icon_url: string | null;
   memo: string;
 }
 

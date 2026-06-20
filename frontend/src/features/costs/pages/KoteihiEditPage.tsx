@@ -4,7 +4,7 @@ import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
-import { useAuthStore } from "@/store/authStore";
+import { useHomeMembers } from "@/features/home/hooks/useHome";
 import {
   useKoteihi,
   useCreateKoteihi,
@@ -23,7 +23,7 @@ interface MemberPickerProps {
 }
 
 function MemberPicker({ label, selectedId, onChange }: MemberPickerProps) {
-  const homeUsers = useAuthStore((s) => s.homeUsers);
+  const { data: homeUsers = [] } = useHomeMembers();
   return (
     <div>
       <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">

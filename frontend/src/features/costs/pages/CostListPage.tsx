@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { BarChart2, Loader2, Plus, Tag } from "lucide-react";
+import { BarChart2, Loader2, Plus, Repeat2, Tag } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useCategories, useCosts } from "../hooks/useCost";
 import { UserAvatar } from "../components/UserAvatar";
@@ -85,6 +85,14 @@ export default function CostListPage() {
           >
             <Tag className="h-4 w-4" />
             カテゴリ
+          </Link>
+          <Link
+            to="/costs/koteihi"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="固定費設定"
+          >
+            <Repeat2 className="h-4 w-4" />
+            固定費
           </Link>
           <Link
             to="/costs/summary"
