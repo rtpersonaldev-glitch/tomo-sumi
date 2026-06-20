@@ -40,13 +40,18 @@ async def create_home(
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard(
     current_home: Home = Depends(get_current_home),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DashboardResponse:
-    members, schedules, announce_count = await HomeService(db).get_dashboard(current_home.id)
+    members, schedules, announce_count, announces, has_more = await HomeService(db).get_dashboard(
+        current_home.id, current_user.id
+    )
     return DashboardResponse(
         members=[HomeMemberResponse.model_validate(m) for m in members],
         today_schedules=[DashboardScheduleResponse.model_validate(s) for s in schedules],
         unread_announce_count=announce_count,
+        announces=announces,
+        has_more_announces=has_more,
     )
 
 

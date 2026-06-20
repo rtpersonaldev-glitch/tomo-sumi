@@ -2,10 +2,13 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import asc, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
-from app.models.announce import Announce
+from app.features.announces.schemas import AnnounceResponse as AnnounceSchemaResponse
+from app.features.announces.service import AnnounceService
+from app.models.announce import Announce, AnnounceRecipient
 from app.models.home import Home, HomeLink, InvitationCode
 from app.models.schedule import Schedule
 from app.models.user import User
@@ -107,8 +110,8 @@ class HomeService:
         return home
 
     async def get_dashboard(
-        self, home_id: int
-    ) -> tuple[list[User], list[Schedule], int]:
+        self, home_id: int, user_id: int
+    ) -> tuple[list[User], list[Schedule], int, list[AnnounceSchemaResponse], bool]:
         members_result = await self.db.execute(
             select(User)
             .join(HomeLink, HomeLink.user_id == User.id)
@@ -141,4 +144,44 @@ class HomeService:
         )
         announce_count = count_result.scalar_one()
 
-        return members, schedules, announce_count
+        priority_order = case(
+            (Announce.priority == "high", 1),
+            (Announce.priority == "medium", 2),
+            else_=3,
+        )
+        has_recipient = (
+            select(AnnounceRecipient.announce_id)
+            .where(AnnounceRecipient.announce_id == Announce.id)
+            .exists()
+        )
+        user_is_recipient = (
+            select(AnnounceRecipient.announce_id)
+            .where(
+                AnnounceRecipient.announce_id == Announce.id,
+                AnnounceRecipient.user_id == user_id,
+            )
+            .exists()
+        )
+        announces_result = await self.db.execute(
+            select(Announce)
+            .options(
+                joinedload(Announce.likes),
+                joinedload(Announce.recipients),
+                joinedload(Announce.creator),
+            )
+            .where(
+                Announce.home_id == home_id,
+                Announce.end_date >= now.date(),
+                or_(~has_recipient, user_is_recipient),
+            )
+            .order_by(priority_order, asc(Announce.end_date))
+            .limit(6)
+        )
+        raw_announces = list(announces_result.scalars().unique().all())
+        has_more_announces = len(raw_announces) > 5
+        announce_service = AnnounceService(self.db)
+        announces = [
+            announce_service._to_response(a, user_id) for a in raw_announces[:5]
+        ]
+
+        return members, schedules, announce_count, announces, has_more_announces

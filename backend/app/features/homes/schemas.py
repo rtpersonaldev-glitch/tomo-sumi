@@ -4,6 +4,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.config import settings
+from app.features.announces.schemas import AnnounceResponse
 from app.utils.file_storage import get_media_url
 
 
@@ -71,3 +72,5 @@ class DashboardResponse(BaseModel):
     members: list[HomeMemberResponse]
     today_schedules: list[DashboardScheduleResponse]
     unread_announce_count: int
+    announces: list[AnnounceResponse]
+    has_more_announces: bool

@@ -372,6 +372,126 @@ async def test_get_dashboard_no_home(client: AsyncClient) -> None:
     assert resp.status_code == 403
 
 
+async def test_dashboard_announces_priority_and_date_order(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """お知らせは優先度（高→中→低）→期限近い順で返る"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    now = datetime.now(tz=UTC)
+    db.add_all([
+        Announce(home_id=home_id, title="低", content="x", priority="low", end_date=(now + timedelta(days=1)).date()),
+        Announce(home_id=home_id, title="高", content="x", priority="high", end_date=(now + timedelta(days=3)).date()),
+        Announce(home_id=home_id, title="中", content="x", priority="medium", end_date=(now + timedelta(days=2)).date()),
+    ])
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    titles = [a["title"] for a in resp.json()["announces"]]
+    assert titles == ["高", "中", "低"]
+
+
+async def test_dashboard_announces_excludes_expired(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """期限切れのお知らせはダッシュボードに表示されない"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    now = datetime.now(tz=UTC)
+    db.add_all([
+        Announce(home_id=home_id, title="有効", content="x", priority="high", end_date=(now + timedelta(days=1)).date()),
+        Announce(home_id=home_id, title="期限切れ", content="x", priority="high", end_date=(now - timedelta(days=1)).date()),
+    ])
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["announces"]) == 1
+    assert data["announces"][0]["title"] == "有効"
+
+
+async def test_dashboard_announces_limit_five_and_has_more(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """6件以上ある場合、5件のみ返しhas_more_announcesがtrueになる"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    now = datetime.now(tz=UTC)
+    for i in range(6):
+        db.add(Announce(
+            home_id=home_id,
+            title=f"お知らせ{i+1}",
+            content="x",
+            priority="medium",
+            end_date=(now + timedelta(days=i + 1)).date(),
+        ))
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["announces"]) == 5
+    assert data["has_more_announces"] is True
+
+
+async def test_dashboard_announces_has_more_false_when_five_or_less(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """5件以下の場合、has_more_announcesはfalseになる"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    now = datetime.now(tz=UTC)
+    for i in range(3):
+        db.add(Announce(
+            home_id=home_id,
+            title=f"お知らせ{i+1}",
+            content="x",
+            priority="medium",
+            end_date=(now + timedelta(days=i + 1)).date(),
+        ))
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["announces"]) == 3
+    assert data["has_more_announces"] is False
+
+
+async def test_dashboard_announces_recipient_visibility(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """宛先指定のお知らせは自分が宛先の場合のみ表示される"""
+    from app.models.announce import AnnounceRecipient
+    from app.models.user import User
+
+    user_id = await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    now = datetime.now(tz=UTC)
+
+    other_user = User(email=_unique_email(), hashed_password="x", nickname="他人")
+    db.add(other_user)
+    await db.flush()
+
+    ann_all = Announce(home_id=home_id, title="全員向け", content="x", priority="low", end_date=(now + timedelta(days=1)).date())
+    ann_me = Announce(home_id=home_id, title="自分宛て", content="x", priority="low", end_date=(now + timedelta(days=2)).date())
+    ann_other = Announce(home_id=home_id, title="他人宛て", content="x", priority="low", end_date=(now + timedelta(days=3)).date())
+    db.add_all([ann_all, ann_me, ann_other])
+    await db.flush()
+    db.add(AnnounceRecipient(announce_id=ann_me.id, user_id=user_id))
+    db.add(AnnounceRecipient(announce_id=ann_other.id, user_id=other_user.id))
+    await db.flush()
+
+    resp = await client.get("/api/homes/dashboard")
+    assert resp.status_code == 200
+    titles = {a["title"] for a in resp.json()["announces"]}
+    assert "全員向け" in titles
+    assert "自分宛て" in titles
+    assert "他人宛て" not in titles
+
+
 # ─── 招待フロー全体 ────────────────────────────────────────────────────────────
 
 

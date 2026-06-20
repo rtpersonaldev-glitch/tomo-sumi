@@ -1,10 +1,15 @@
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { ja } from "date-fns/locale";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import { PRIORITY_CONFIG } from "@/features/announces/types";
 import { useDashboard } from "../hooks/useHome";
-import type { HomeMemberResponse, DashboardScheduleResponse } from "../types";
+import type { AnnounceResponse, HomeMemberResponse, DashboardScheduleResponse } from "../types";
+
+const SLIDE_INTERVAL = 4000;
 
 function MemberAvatar({ member }: { member: HomeMemberResponse }) {
   const isAtHome = member.status === "at_home";
@@ -45,6 +50,189 @@ function MemberAvatar({ member }: { member: HomeMemberResponse }) {
             ? `${format(new Date(member.return_time), "H:mm")}帰宅`
             : "外出"}
       </span>
+    </div>
+  );
+}
+
+function AnnounceCard({
+  announce,
+  onClick,
+}: {
+  announce: AnnounceResponse;
+  onClick: () => void;
+}) {
+  const prio = PRIORITY_CONFIG[announce.priority];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-xl border border-border bg-card p-4 space-y-2 hover:border-primary/40 transition-colors shadow-sm dark:shadow-none"
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className={cn(
+            "inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-bold",
+            prio.badgeClass,
+          )}
+        >
+          {prio.label}
+        </span>
+        <span className="flex-1 text-sm font-semibold leading-snug line-clamp-2">
+          {announce.title}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+        {announce.content}
+      </p>
+      <div className="flex items-center gap-2 flex-wrap border-t border-border/50 pt-2">
+        <span className="text-xs text-muted-foreground">
+          期限: {format(parseISO(announce.end_date), "yyyy年M月d日", { locale: ja })}
+        </span>
+        {announce.created_by_user && (
+          <div className="flex items-center gap-1" aria-label={`投稿者: ${announce.created_by_user.nickname}`}>
+            {announce.created_by_user.icon_url ? (
+              <img
+                src={announce.created_by_user.icon_url}
+                alt={announce.created_by_user.nickname}
+                className="h-[18px] w-[18px] rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                {announce.created_by_user.nickname.charAt(0)}
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {announce.created_by_user.nickname}
+            </span>
+          </div>
+        )}
+        <span
+          className={cn(
+            "ml-auto text-xs flex items-center gap-1",
+            announce.is_liked ? "text-red-500" : "text-muted-foreground",
+          )}
+          aria-label={`いいね ${announce.like_count}件`}
+        >
+          {announce.is_liked ? "❤️" : "🤍"} {announce.like_count}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function AnnounceSlider({
+  announces,
+  hasMore,
+  onCardClick,
+  onMoreClick,
+}: {
+  announces: AnnounceResponse[];
+  hasMore: boolean;
+  onCardClick: (id: number) => void;
+  onMoreClick: () => void;
+}) {
+  const [index, setIndex] = useState(0);
+  const [timerKey, setTimerKey] = useState(0);
+
+  const goTo = (i: number) => {
+    setIndex(i);
+    setTimerKey((k) => k + 1);
+  };
+
+  const goPrev = () => goTo((index - 1 + announces.length) % announces.length);
+  const goNext = () => goTo((index + 1) % announces.length);
+
+  useEffect(() => {
+    if (announces.length <= 1) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % announces.length);
+      setTimerKey((k) => k + 1);
+    }, SLIDE_INTERVAL);
+    return () => clearInterval(id);
+  }, [timerKey, announces.length]);
+
+  if (announces.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card py-8 text-muted-foreground">
+        <span className="text-3xl" aria-hidden>📭</span>
+        <p className="text-sm">期限内のお知らせはありません</p>
+      </div>
+    );
+  }
+
+  const showControls = announces.length > 1 || hasMore;
+
+  return (
+    <div>
+      {/* スライドトラック：overflow-hidden でカードをクリップ */}
+      <div className="overflow-hidden">
+        <div
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${index * 100}%)` }}
+        >
+          {announces.map((announce) => (
+            <div key={announce.id} className="w-full flex-shrink-0">
+              <AnnounceCard announce={announce} onClick={() => onCardClick(announce.id)} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* コントロール行：‹ ドット › */}
+      {showControls && (
+        <div className="flex items-center justify-center gap-4 mt-3">
+          {announces.length > 1 && (
+            <button
+              type="button"
+              onClick={goPrev}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+              aria-label="前のお知らせ"
+            >
+              ‹
+            </button>
+          )}
+
+          <div role="tablist" aria-label="お知らせ" className="flex items-center gap-1.5">
+            {announces.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                aria-label={`${i + 1}件目`}
+                onClick={() => goTo(i)}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === index ? "w-4 bg-primary" : "w-1.5 bg-border hover:bg-muted-foreground",
+                )}
+              />
+            ))}
+            {hasMore && (
+              <button
+                type="button"
+                onClick={onMoreClick}
+                className="flex items-center gap-0.5 ml-0.5"
+                aria-label="他にもお知らせがあります。一覧を見る"
+              >
+                <span className="h-1 w-1 rounded-full bg-border" />
+                <span className="h-1 w-1 rounded-full bg-border" />
+                <span className="h-1 w-1 rounded-full bg-border" />
+              </button>
+            )}
+          </div>
+
+          {announces.length > 1 && (
+            <button
+              type="button"
+              onClick={goNext}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+              aria-label="次のお知らせ"
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -115,22 +303,6 @@ export default function DashboardPage() {
         </div>
       </button>
 
-      {/* Unread announce banner */}
-      {data.unread_announce_count > 0 && (
-        <button
-          type="button"
-          onClick={() => navigate("/announces")}
-          className="flex w-full items-center gap-3 rounded-xl border border-accent/60 bg-accent/10 px-4 py-3 text-left transition-colors hover:bg-accent/20"
-          aria-label={`未読のお知らせが${data.unread_announce_count}件あります`}
-        >
-          <span className="text-lg" aria-hidden>📢</span>
-          <span className="flex-1 text-sm font-medium">未読のお知らせがあります</span>
-          <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-white">
-            {data.unread_announce_count}
-          </span>
-        </button>
-      )}
-
       {/* Member status */}
       <section aria-labelledby="members-heading">
         <h2
@@ -155,6 +327,31 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Announces slider */}
+      <section aria-labelledby="announces-heading">
+        <div className="flex items-center justify-between mb-3">
+          <h2
+            id="announces-heading"
+            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+          >
+            お知らせ
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate("/announces")}
+            className="text-xs text-primary hover:underline"
+          >
+            一覧を見る
+          </button>
+        </div>
+        <AnnounceSlider
+          announces={data.announces}
+          hasMore={data.has_more_announces}
+          onCardClick={(id) => navigate(`/announces/${id}`)}
+          onMoreClick={() => navigate("/announces")}
+        />
       </section>
 
       {/* Today's schedules */}
