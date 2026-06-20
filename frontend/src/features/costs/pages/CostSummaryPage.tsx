@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { format, addMonths, subMonths } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -17,12 +16,12 @@ import {
 } from "recharts";
 import { useAuthStore } from "@/store/authStore";
 import { useCostSummary } from "../hooks/useCost";
+import { CostSubNav } from "../components/CostSubNav";
 import { UserAvatar } from "../components/UserAvatar";
 
 const PIE_COLORS = ["#37ab9d", "#d97706", "#2563eb", "#e11d48", "#7c3aed", "#059669"];
 
 export default function CostSummaryPage() {
-  const navigate = useNavigate();
   const homeUsers = useAuthStore((s) => s.homeUsers);
   const [currentDate, setCurrentDate] = useState(new Date());
   const period = format(currentDate, "yyyy-MM");
@@ -45,19 +44,15 @@ export default function CostSummaryPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
+    <div className="mx-auto max-w-2xl">
       {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← 戻る
-        </button>
-        <h1 className="flex-1 text-xl font-semibold">家計集計</h1>
+      <div className="px-4 py-4">
+        <h1 className="text-xl font-semibold">📊 家計集計</h1>
       </div>
 
+      <CostSubNav />
+
+      <div className="px-4 py-4">
       {/* 期間ナビ */}
       <div className="mb-4 flex items-center justify-center gap-4">
         <button
@@ -186,6 +181,7 @@ export default function CostSummaryPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

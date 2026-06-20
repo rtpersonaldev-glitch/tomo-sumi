@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ChevronRight, Loader2, Plus } from "lucide-react";
 import { useSeisanPending, useSeisanCompleted } from "../hooks/useCost";
+import { CostSubNav } from "../components/CostSubNav";
 import type { SeisanListResponse } from "../types";
 
 function SeisanCard({ s }: { s: SeisanListResponse }) {
@@ -33,10 +34,10 @@ export default function SeisanPage() {
   const list: SeisanListResponse[] = tab === "pending" ? pending : completed;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
+    <div className="mx-auto max-w-2xl">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">清算管理</h1>
+      <div className="flex items-center justify-between px-4 py-4">
+        <h1 className="text-xl font-semibold">🤝 清算管理</h1>
         <button
           type="button"
           onClick={() => navigate("/costs/seisan/new")}
@@ -47,6 +48,9 @@ export default function SeisanPage() {
         </button>
       </div>
 
+      <CostSubNav />
+
+      <div className="px-4 py-4">
       {/* Tabs */}
       <div className="mb-4 flex rounded-xl border border-border bg-card p-1">
         {(["pending", "completed"] as const).map((t) => (
@@ -98,6 +102,7 @@ export default function SeisanPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
