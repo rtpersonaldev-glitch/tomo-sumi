@@ -5,7 +5,7 @@ import { ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
-import { useAuthStore } from "@/store/authStore";
+import { useHomeMembers } from "@/features/home/hooks/useHome";
 import { useCategories, useCost, useCreateCost, useUpdateCost } from "../hooks/useCost";
 import { UserAvatar } from "../components/UserAvatar";
 import type { SeisanMethod, MemberBillInput } from "../types";
@@ -78,7 +78,7 @@ export default function CostEditPage() {
   const isEdit = costId != null;
 
   const navigate = useNavigate();
-  const homeUsers = useAuthStore((s) => s.homeUsers);
+  const { data: homeUsers = [] } = useHomeMembers();
   const { data: existingCost, isLoading: loadingCost } = useCost(costId);
   const { data: categories = [] } = useCategories();
   const createCost = useCreateCost();
