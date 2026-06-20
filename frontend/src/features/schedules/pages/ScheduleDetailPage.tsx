@@ -55,7 +55,7 @@ export default function ScheduleDetailPage() {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate("/schedules")}
+          onClick={() => navigate(-1)}
           className="text-sm text-primary hover:underline"
           aria-label="一覧に戻る"
         >

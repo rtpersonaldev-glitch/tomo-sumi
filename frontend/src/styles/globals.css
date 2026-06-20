@@ -94,7 +94,7 @@
   letter-spacing: 0.05em;
 }
 
-/* 選択日：セル全体をハイライト（丸ではなくセル単位） */
+/* 選択日：セルの枠線をプライマリカラーで強調 */
 .fc .fc-daygrid-day.fc-day-is-selected {
-  background-color: hsl(var(--primary) / 0.1);
+  box-shadow: inset 0 0 0 2px hsl(var(--primary));
 }
