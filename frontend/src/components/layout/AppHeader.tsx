@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -90,6 +90,8 @@ function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
   const user = useAuthStore((s) => s.user);
   const clearHome = useAuthStore((s) => s.clearHome);
   const toggleStatus = useToggleStatus();
+  const [iconError, setIconError] = useState(false);
+  const handleIconError = useCallback(() => setIconError(true), []);
 
   if (!user) return null;
 
@@ -139,11 +141,12 @@ function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
 
         {/* User info */}
         <div className="flex items-center gap-3 border-b border-border px-5 pb-4">
-          {user.icon_url ? (
+          {user.icon_url && !iconError ? (
             <img
               src={user.icon_url}
               alt={user.nickname}
               className="h-11 w-11 rounded-full object-cover"
+              onError={handleIconError}
             />
           ) : (
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
@@ -259,6 +262,7 @@ function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
 export function AppHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [iconError, setIconError] = useState(false);
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const home = useAuthStore((s) => s.home);
@@ -314,11 +318,12 @@ export function AppHeader() {
           aria-expanded={menuOpen}
           aria-haspopup="dialog"
         >
-          {user.icon_url ? (
+          {user.icon_url && !iconError ? (
             <img
               src={user.icon_url}
               alt={user.nickname}
               className="h-9 w-9 rounded-full object-cover"
+              onError={() => setIconError(true)}
             />
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">

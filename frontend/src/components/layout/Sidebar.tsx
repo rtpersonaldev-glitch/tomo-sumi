@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -41,6 +42,7 @@ export function Sidebar() {
   const { data: unreadData } = useUnreadActivityCount();
   const unreadCount = unreadData?.count ?? 0;
   const toggleStatus = useToggleStatus();
+  const [iconError, setIconError] = useState(false);
 
   const handleBackToHomeSelect = () => {
     clearHome();
@@ -119,11 +121,12 @@ export function Sidebar() {
           aria-label={`在宅ステータスを${isAtHome ? "外出" : "在宅"}に切り替え`}
         >
           <div className="relative shrink-0">
-            {user.icon_url ? (
+            {user.icon_url && !iconError ? (
               <img
                 src={user.icon_url}
                 alt={user.nickname}
                 className="h-8 w-8 rounded-full object-cover"
+                onError={() => setIconError(true)}
               />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">

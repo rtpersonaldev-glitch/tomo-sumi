@@ -65,8 +65,9 @@ class AuthService:
     ) -> User:
         user.nickname = nickname
         if icon:
-            delete_image(user.icon_path)
+            old_path = user.icon_path
             user.icon_path = await save_image(icon, directory="icons", max_mb=5)
+            delete_image(old_path)
         await self.db.flush()
         return user
 

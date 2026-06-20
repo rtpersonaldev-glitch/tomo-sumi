@@ -55,10 +55,11 @@ class HomeService:
     ) -> Home:
         home.name = name
         if home_image:
-            delete_image(home.home_image_path)
+            old_path = home.home_image_path
             home.home_image_path = await save_image(
                 home_image, directory="home_images", max_mb=5
             )
+            delete_image(old_path)
         await self.db.flush()
         return home
 
