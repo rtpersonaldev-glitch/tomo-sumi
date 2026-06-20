@@ -191,6 +191,57 @@ async def test_update_cost(client: AsyncClient) -> None:
     assert resp.json()["memo"] == "更新後"
 
 
+async def test_create_cost_with_seikyusaki(client: AsyncClient) -> None:
+    """seikyusaki_json を送ると請求先が保存されてレスポンスに含まれる"""
+    import json
+
+    uid = await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    sei = json.dumps([{"user_id": uid, "amount": 1000, "dish_count": None}])
+    resp = await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "1000", "seikyusaki_json": sei},
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert len(data["seikyusaki"]) == 1
+    assert data["seikyusaki"][0]["payer_user_id"] == uid
+    assert data["seikyusaki"][0]["amount"] == 1000
+    assert data["seikyusaki"][0]["dish_count"] is None
+
+
+async def test_update_cost_replaces_seikyusaki(client: AsyncClient) -> None:
+    """支出更新時に seikyusaki_json を送ると既存の請求先が置き換わる"""
+    import json
+
+    uid = await _register_and_login(client)
+    await _create_and_select_home(client)
+
+    # 初回作成: 請求先あり
+    sei1 = json.dumps([{"user_id": uid, "amount": 1000, "dish_count": None}])
+    cost = (
+        await client.post(
+            "/api/costs",
+            data={"purchase_date": "2026-06-01", "amount": "1000", "seikyusaki_json": sei1},
+        )
+    ).json()
+    assert len(cost["seikyusaki"]) == 1
+
+    # 更新: 請求先を空に
+    resp = await client.put(
+        f"/api/costs/{cost['id']}",
+        data={
+            "purchase_date": "2026-06-01",
+            "amount": "2000",
+            "seikyusaki_json": json.dumps([]),
+        },
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()["seikyusaki"]) == 0
+    assert resp.json()["amount"] == 2000
+
+
 # ─── DELETE /api/costs/{id} ──────────────────────────────────────────────────
 
 
