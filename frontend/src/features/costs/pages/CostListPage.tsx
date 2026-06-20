@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
+import { ja } from "date-fns/locale";
 import { BarChart2, Loader2, Plus, Tag } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useCategories, useCosts } from "../hooks/useCost";
@@ -30,7 +31,7 @@ function CostCard({ cost }: { cost: CostResponse }) {
             {cost.memo || cost.category_name || "（メモなし）"}
           </p>
           <p className="text-xs text-muted-foreground">
-            {format(parseISO(cost.purchase_date), "M/d（E）")}
+            {format(parseISO(cost.purchase_date), "M/d（E）", { locale: ja })}
           </p>
         </div>
         <p className={`text-base font-bold ${isLocked ? "text-muted-foreground" : ""}`}>
