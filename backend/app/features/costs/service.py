@@ -37,6 +37,7 @@ from app.models.cost import (
 from app.models.home import HomeLink
 from app.models.user import User
 from app.utils.activity_logger import log_activity
+from app.utils.fcm import send_push_to_users
 from app.utils.file_storage import delete_image, get_media_url, save_image
 
 
@@ -612,6 +613,10 @@ class CostService:
             await self.db.flush()
             for uid in announce_user_ids:
                 self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
+            await self.db.flush()
+            await send_push_to_users(
+                self.db, announce_user_ids, ann.title, ann.content, exclude_user_id=user_id
+            )
         await self.db.flush()
 
         await self.db.refresh(seisan)
@@ -711,6 +716,9 @@ class CostService:
             for uid in seisan_user_ids:
                 self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
             await self.db.flush()
+            await send_push_to_users(
+                self.db, seisan_user_ids, ann.title, ann.content, exclude_user_id=user_id
+            )
 
         return await self._build_meisai_response(m)
 
@@ -785,5 +793,8 @@ class CostService:
             for uid in announce_user_ids:
                 self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
             await self.db.flush()
+            await send_push_to_users(
+                self.db, announce_user_ids, ann.title, ann.content, exclude_user_id=user_id
+            )
 
         return await self._build_meisai_response(m)

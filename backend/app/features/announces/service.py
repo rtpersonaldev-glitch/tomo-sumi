@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.features.announces.schemas import AnnounceLikeResponse, AnnounceResponse, AnnounceUserInfo
 from app.models.announce import Announce, AnnounceLike, AnnounceRecipient
 from app.utils.activity_logger import log_activity
-from app.utils.fcm import send_push_to_home
+from app.utils.fcm import send_push_to_home, send_push_to_users
 from app.utils.file_storage import get_media_url
 
 
@@ -151,6 +151,12 @@ class AnnounceService:
         await log_activity(
             self.db, home_id, user_id, "お知らせを作成しました", "announce", announce.id
         )
+
+        if recipient_ids:
+            await send_push_to_users(self.db, recipient_ids, title, content, exclude_user_id=user_id)
+        else:
+            await send_push_to_home(self.db, home_id, title, content, exclude_user_id=user_id)
+
         return self._to_response(announce, user_id)
 
     async def get_announce(

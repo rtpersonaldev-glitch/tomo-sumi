@@ -2,8 +2,10 @@ import { Outlet } from "react-router-dom";
 import { AppHeader } from "./AppHeader";
 import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
+import { useFCMToken } from "@/features/auth/hooks/useFCMToken";
 
 export function AppLayout() {
+  useFCMToken();
   return (
     <div className="flex h-dvh flex-col md:flex-row">
       <Sidebar />
