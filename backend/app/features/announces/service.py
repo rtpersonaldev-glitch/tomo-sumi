@@ -61,6 +61,7 @@ class AnnounceService:
             like_count=len(announce.likes),
             is_liked=any(like.user_id == user_id for like in announce.likes),
             recipient_ids=[r.user_id for r in announce.recipients],
+            link_url=announce.link_url,
             created_at=announce.created_at,
             created_by_user=created_by_user,
         )

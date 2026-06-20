@@ -38,6 +38,7 @@ class AnnounceResponse(BaseModel):
     like_count: int
     is_liked: bool
     recipient_ids: list[int]
+    link_url: str | None = None
     created_at: datetime
     created_by_user: AnnounceUserInfo | None = None
 

@@ -14,6 +14,7 @@ export interface AnnounceResponse {
   like_count: number;
   is_liked: boolean;
   recipient_ids: number[];
+  link_url: string | null;
   created_at: string;
   created_by_user: AnnounceUserInfo | null;
 }

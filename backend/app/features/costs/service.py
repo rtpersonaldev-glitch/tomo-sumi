@@ -24,6 +24,7 @@ from app.features.costs.schemas import (
     SummaryUserAmount,
 )
 from app.features.costs.seisan_calculator import CostEntry, build_balances, calculate_settlements
+from app.models.announce import Announce, AnnounceRecipient
 from app.models.cost import (
     AutoSeisan,
     Cost,
@@ -577,6 +578,7 @@ class CostService:
         self.db.add(seisan)
         await self.db.flush()
 
+        from_user_ids_for_announce: set[int] = set()
         for from_uid, to_uid, amount in transfers:
             self.db.add(
                 SeisanMeisai(
@@ -588,11 +590,28 @@ class CostService:
                     created_by=user_id,
                 )
             )
+            from_user_ids_for_announce.add(from_uid)
 
         for cost in unsettled_costs:
             cost.seisan_id = seisan.id
 
         await self.db.flush()
+
+        for uid in from_user_ids_for_announce:
+            ann = Announce(
+                home_id=home_id,
+                title=f"「{seisan.title}」の清算が届いています"[:50],
+                content="清算の明細を確認してください。",
+                priority="high",
+                end_date=settled_date,
+                link_url=f"/seisan/{seisan.id}",
+                created_by=user_id,
+            )
+            self.db.add(ann)
+            await self.db.flush()
+            self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
+        await self.db.flush()
+
         await self.db.refresh(seisan)
         await log_activity(self.db, home_id, user_id, "清算を作成しました", "seisan", seisan.id)
         return await self._build_seisan_response(seisan)
@@ -664,6 +683,21 @@ class CostService:
 
         if m.complete_flag:
             await self._check_seisan_complete(seisan)
+
+        if m.to_user_id is not None:
+            ann = Announce(
+                home_id=home_id,
+                title=f"「{seisan.title}」の受取確認をしてください"[:50],
+                content="支払い完了の通知が届いています。受取確認をしてください。",
+                priority="high",
+                end_date=seisan.settled_date,
+                link_url=f"/seisan/{seisan.id}",
+                created_by=user_id,
+            )
+            self.db.add(ann)
+            await self.db.flush()
+            self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=m.to_user_id))
+            await self.db.flush()
 
         return await self._build_meisai_response(m)
 

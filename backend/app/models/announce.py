@@ -21,6 +21,7 @@ class Announce(Base, TimestampMixin):
     content: Mapped[str] = mapped_column(String(300), nullable=False)
     priority: Mapped[str] = mapped_column(String(10), nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    link_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     likes: Mapped[list[AnnounceLike]] = relationship(
         "AnnounceLike", back_populates="announce", cascade="all, delete-orphan"
