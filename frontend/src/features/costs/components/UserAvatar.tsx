@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const COLORS = [
@@ -18,15 +19,17 @@ interface UserAvatarProps {
 }
 
 export function UserAvatar({ nickname, iconUrl, userId = 0, size = "md", className }: UserAvatarProps) {
+  const [imgError, setImgError] = useState(false);
   const color = COLORS[userId % COLORS.length];
   const sizeClass = size === "sm" ? "h-6 w-6 text-[9px]" : size === "lg" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
 
-  if (iconUrl) {
+  if (iconUrl && !imgError) {
     return (
       <img
         src={iconUrl}
         alt={nickname}
         className={cn("rounded-full object-cover shrink-0", sizeClass, className)}
+        onError={() => setImgError(true)}
       />
     );
   }

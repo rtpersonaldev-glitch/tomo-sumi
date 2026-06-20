@@ -12,15 +12,17 @@ import type { AnnounceResponse, HomeMemberResponse, DashboardScheduleResponse } 
 const SLIDE_INTERVAL = 4000;
 
 function MemberAvatar({ member }: { member: HomeMemberResponse }) {
+  const [imgError, setImgError] = useState(false);
   const isAtHome = member.status === "at_home";
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative">
-        {member.icon_url ? (
+        {member.icon_url && !imgError ? (
           <img
             src={member.icon_url}
             alt={member.nickname}
             className="h-14 w-14 rounded-full object-cover"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
