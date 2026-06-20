@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
-import { BarChart2, Loader2, Plus } from "lucide-react";
+import { BarChart2, Loader2, Plus, Tag } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useCategories, useCosts } from "../hooks/useCost";
 import { UserAvatar } from "../components/UserAvatar";
@@ -75,6 +75,14 @@ export default function CostListPage() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold">💰 支出一覧</h1>
         <div className="flex gap-2">
+          <Link
+            to="/costs/categories"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="カテゴリ設定"
+          >
+            <Tag className="h-4 w-4" />
+            カテゴリ
+          </Link>
           <Link
             to="/costs/summary"
             className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
