@@ -98,7 +98,11 @@ class KoteihiResponse(BaseModel):
     category_id: int | None
     amount: int
     from_user_id: int | None
+    from_nickname: str | None
+    from_icon_url: str | None
     to_user_id: int | None
+    to_nickname: str | None
+    to_icon_url: str | None
     memo: str
 
 

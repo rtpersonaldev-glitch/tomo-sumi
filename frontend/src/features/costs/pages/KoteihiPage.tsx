@@ -2,13 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
-import { useAuthStore } from "@/store/authStore";
 import { useKoteihi, useCostSettings, useUpdateAutoSeisan } from "../hooks/useCost";
 import { UserAvatar } from "../components/UserAvatar";
 
 export default function KoteihiPage() {
   const navigate = useNavigate();
-  const homeUsers = useAuthStore((s) => s.homeUsers);
 
   const { data: koteihiList = [], isLoading } = useKoteihi();
   const { data: settings } = useCostSettings();
@@ -124,29 +122,26 @@ export default function KoteihiPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {koteihiList.map((k) => {
-            const fromUser = homeUsers.find((u) => u.id === k.from_user_id);
-            const toUser = homeUsers.find((u) => u.id === k.to_user_id);
-            return (
+          {koteihiList.map((k) => (
               <div
                 key={k.id}
                 className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
               >
                 {/* From → To */}
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                  {fromUser ? (
-                    <UserAvatar nickname={fromUser.nickname} iconUrl={fromUser.icon_url} userId={fromUser.id} size="sm" />
+                  {k.from_user_id ? (
+                    <UserAvatar nickname={k.from_nickname ?? ""} iconUrl={k.from_icon_url} userId={k.from_user_id} size="sm" />
                   ) : null}
                   <span className="text-xs text-muted-foreground">→</span>
-                  {toUser ? (
-                    <UserAvatar nickname={toUser.nickname} iconUrl={toUser.icon_url} userId={toUser.id} size="sm" />
+                  {k.to_user_id ? (
+                    <UserAvatar nickname={k.to_nickname ?? ""} iconUrl={k.to_icon_url} userId={k.to_user_id} size="sm" />
                   ) : null}
                   <div className="ml-1 min-w-0">
                     {k.memo && (
                       <p className="text-sm font-medium truncate">{k.memo}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {fromUser?.nickname ?? "??"} → {toUser?.nickname ?? "??"}
+                      {k.from_nickname ?? "—"} → {k.to_nickname ?? "—"}
                     </p>
                   </div>
                 </div>
@@ -164,8 +159,7 @@ export default function KoteihiPage() {
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
               </div>
-            );
-          })}
+            ))}
         </div>
       )}
     </div>

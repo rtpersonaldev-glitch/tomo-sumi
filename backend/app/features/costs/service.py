@@ -410,6 +410,23 @@ class CostService:
 
     # ─── Koteihi ─────────────────────────────────────────────────────────────
 
+    async def _build_koteihi_response(self, k: "Koteihi") -> KoteihiResponse:
+        from_user = await self.db.get(User, k.from_user_id) if k.from_user_id else None
+        to_user = await self.db.get(User, k.to_user_id) if k.to_user_id else None
+        return KoteihiResponse(
+            id=k.id,
+            home_id=k.home_id,
+            category_id=k.category_id,
+            amount=k.amount,
+            from_user_id=k.from_user_id,
+            from_nickname=from_user.nickname if from_user else None,
+            from_icon_url=get_media_url(from_user.icon_path, settings.MEDIA_BASE_URL) if from_user else None,
+            to_user_id=k.to_user_id,
+            to_nickname=to_user.nickname if to_user else None,
+            to_icon_url=get_media_url(to_user.icon_path, settings.MEDIA_BASE_URL) if to_user else None,
+            memo=k.memo,
+        )
+
     async def list_koteihi(self, home_id: int, current_home_id: int) -> list[KoteihiResponse]:
         if home_id != current_home_id:
             raise HTTPException(status_code=403, detail="現在選択中のホームのみ参照できます")
@@ -417,18 +434,7 @@ class CostService:
             select(Koteihi).where(Koteihi.home_id == home_id).order_by(Koteihi.id)
         )
         items = result.scalars().all()
-        return [
-            KoteihiResponse(
-                id=k.id,
-                home_id=k.home_id,
-                category_id=k.category_id,
-                amount=k.amount,
-                from_user_id=k.from_user_id,
-                to_user_id=k.to_user_id,
-                memo=k.memo,
-            )
-            for k in items
-        ]
+        return [await self._build_koteihi_response(k) for k in items]
 
     async def create_koteihi(
         self, home_id: int, current_home_id: int, user_id: int, data: KoteihiCreateRequest
@@ -446,15 +452,7 @@ class CostService:
         )
         self.db.add(k)
         await self.db.flush()
-        return KoteihiResponse(
-            id=k.id,
-            home_id=k.home_id,
-            category_id=k.category_id,
-            amount=k.amount,
-            from_user_id=k.from_user_id,
-            to_user_id=k.to_user_id,
-            memo=k.memo,
-        )
+        return await self._build_koteihi_response(k)
 
     async def update_koteihi(
         self, koteihi_id: int, home_id: int, user_id: int, data: KoteihiUpdateRequest
@@ -471,15 +469,7 @@ class CostService:
         k.memo = data.memo
         k.updated_by = user_id
         await self.db.flush()
-        return KoteihiResponse(
-            id=k.id,
-            home_id=k.home_id,
-            category_id=k.category_id,
-            amount=k.amount,
-            from_user_id=k.from_user_id,
-            to_user_id=k.to_user_id,
-            memo=k.memo,
-        )
+        return await self._build_koteihi_response(k)
 
     async def delete_koteihi(self, koteihi_id: int, home_id: int, user_id: int) -> None:
         k = await self.db.get(Koteihi, koteihi_id)
