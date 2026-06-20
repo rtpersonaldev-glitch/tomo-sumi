@@ -193,6 +193,7 @@ function UserMenuSheet({ onClose, onLogoutRequest }: UserMenuSheetProps) {
         {[
           { icon: "👤", label: "プロフィール設定", path: "/settings/profile" },
           { icon: "🔔", label: "通知設定", path: "/settings/notifications" },
+          { icon: "🎨", label: "表示設定", path: "/settings/display" },
           { icon: "⚙️", label: "ホーム設定", path: "/settings/home" },
         ].map((item) => (
           <button
