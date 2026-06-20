@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -135,6 +135,15 @@ export default function AnnounceDetailPage() {
             </div>
           )}
         </div>
+
+        {data.link_url && (
+          <Link
+            to={data.link_url}
+            className="flex items-center justify-center gap-2 rounded-lg border-2 border-primary/60 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+          >
+            🔗 詳細を確認する
+          </Link>
+        )}
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>作成: {format(parseISO(data.created_at), "yyyy年M月d日", { locale: ja })}</span>

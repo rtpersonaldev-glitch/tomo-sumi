@@ -648,3 +648,101 @@ async def test_activity_log_on_create_seisan(client: AsyncClient) -> None:
     )
     logs = await client.get(f"/api/activity/{home_id}")
     assert any("清算" in log["action"] for log in logs.json())
+
+
+# ─── お知らせ自動生成 ────────────────────────────────────────────────────────
+
+
+async def test_create_seisan_generates_announce(client: AsyncClient, db: AsyncSession) -> None:
+    """清算作成時: 受取人(to_user)にリンク付きお知らせが自動生成される"""
+    user1_id = await _register_and_login(
+        client, email="ann_seisan_u1@example.com", nickname="清算送信者"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "ann_seisan_u2@example.com", "password": "TestPass123!", "nickname": "清算受取者"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "ann_seisan_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "3000", "payer_user_id": str(user1_id)},
+    )
+
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "6月清算", "settled_date": "2026-06-30"},
+    )
+    assert seisan_resp.status_code == 201
+    seisan_id = seisan_resp.json()["id"]
+
+    # 受取人(user2)でログインしてお知らせを確認
+    await client.post("/api/auth/login", json={"email": "ann_seisan_u2@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    ann_resp = await client.get(f"/api/announces/{home_id}")
+    assert ann_resp.status_code == 200
+    announces = ann_resp.json()
+    assert len(announces) == 1
+    ann = announces[0]
+    assert "清算" in ann["title"]
+    assert ann["link_url"] == f"/costs/seisan/{seisan_id}"
+    assert ann["priority"] == "high"
+    assert user1_id in ann["recipient_ids"]
+    assert user2_id in ann["recipient_ids"]
+
+
+async def test_complete_meisai_generates_announce(client: AsyncClient, db: AsyncSession) -> None:
+    """清算明細「完了にする」時: 受取人(to_user)にリンク付きお知らせが自動生成される"""
+    user1_id = await _register_and_login(
+        client, email="ann_meisai_u1@example.com", nickname="明細受取者"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "ann_meisai_u2@example.com", "password": "TestPass123!", "nickname": "明細支払者"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "ann_meisai_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "2000", "payer_user_id": str(user1_id)},
+    )
+
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "明細完了テスト", "settled_date": "2026-06-30"},
+    )
+    seisan_id = seisan_resp.json()["id"]
+    meisai = seisan_resp.json()["meisai"]
+    meisai_id = meisai[0]["id"]
+
+    # 清算作成時のお知らせをリセットするため、user2として明細完了を実行
+    await client.post("/api/auth/login", json={"email": "ann_meisai_u2@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    complete_resp = await client.post(
+        f"/api/costs/seisan-meisai/{meisai_id}/complete",
+        json={"memo": "振込しました"},
+    )
+    assert complete_resp.status_code == 200
+
+    # 受取人(user1)でログインしてお知らせを確認
+    await client.post("/api/auth/login", json={"email": "ann_meisai_u1@example.com", "password": "TestPass123!"})
+    await client.post(f"/api/auth/home-login/{home_id}")
+    ann_resp = await client.get(f"/api/announces/{home_id}")
+    assert ann_resp.status_code == 200
+    announces = ann_resp.json()
+    confirm_ann = next((a for a in announces if "受取確認" in a["title"]), None)
+    assert confirm_ann is not None
+    assert confirm_ann["link_url"] == f"/costs/seisan/{seisan_id}"
+    assert confirm_ann["priority"] == "high"
+    assert user1_id in confirm_ann["recipient_ids"]
+    assert user2_id in confirm_ann["recipient_ids"]

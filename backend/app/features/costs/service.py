@@ -1,5 +1,5 @@
 import json as json_module
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import desc, select
@@ -24,6 +24,7 @@ from app.features.costs.schemas import (
     SummaryUserAmount,
 )
 from app.features.costs.seisan_calculator import CostEntry, build_balances, calculate_settlements
+from app.models.announce import Announce, AnnounceRecipient
 from app.models.cost import (
     AutoSeisan,
     Cost,
@@ -577,6 +578,7 @@ class CostService:
         self.db.add(seisan)
         await self.db.flush()
 
+        announce_user_ids: set[int] = set()
         for from_uid, to_uid, amount in transfers:
             self.db.add(
                 SeisanMeisai(
@@ -588,11 +590,30 @@ class CostService:
                     created_by=user_id,
                 )
             )
+            announce_user_ids.add(from_uid)
+            announce_user_ids.add(to_uid)
 
         for cost in unsettled_costs:
             cost.seisan_id = seisan.id
 
         await self.db.flush()
+
+        if announce_user_ids:
+            ann = Announce(
+                home_id=home_id,
+                title=f"「{seisan.title}」の清算が届いています"[:50],
+                content="清算の明細を確認してください。",
+                priority="high",
+                end_date=date.today() + timedelta(days=7),
+                link_url=f"/costs/seisan/{seisan.id}",
+                created_by=user_id,
+            )
+            self.db.add(ann)
+            await self.db.flush()
+            for uid in announce_user_ids:
+                self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
+        await self.db.flush()
+
         await self.db.refresh(seisan)
         await log_activity(self.db, home_id, user_id, "清算を作成しました", "seisan", seisan.id)
         return await self._build_seisan_response(seisan)
@@ -664,6 +685,32 @@ class CostService:
 
         if m.complete_flag:
             await self._check_seisan_complete(seisan)
+
+        all_meisai_result = await self.db.execute(
+            select(SeisanMeisai).where(SeisanMeisai.seisan_id == seisan.id)
+        )
+        seisan_user_ids: set[int] = set()
+        for meisai in all_meisai_result.scalars().all():
+            if meisai.from_user_id:
+                seisan_user_ids.add(meisai.from_user_id)
+            if meisai.to_user_id:
+                seisan_user_ids.add(meisai.to_user_id)
+
+        if seisan_user_ids:
+            ann = Announce(
+                home_id=home_id,
+                title=f"「{seisan.title}」の受取確認をしてください"[:50],
+                content="支払い完了の通知が届いています。受取確認をしてください。",
+                priority="high",
+                end_date=date.today() + timedelta(days=7),
+                link_url=f"/costs/seisan/{seisan.id}",
+                created_by=user_id,
+            )
+            self.db.add(ann)
+            await self.db.flush()
+            for uid in seisan_user_ids:
+                self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
+            await self.db.flush()
 
         return await self._build_meisai_response(m)
 
