@@ -9,8 +9,6 @@ import { UserAvatar } from "../components/UserAvatar";
 import type { CostResponse } from "../types";
 
 function CostCard({ cost }: { cost: CostResponse }) {
-  const homeUsers = useAuthStore((s) => s.homeUsers);
-  const payer = homeUsers.find((u) => u.id === cost.payer_user_id);
   const isLocked = cost.seisan_id != null;
 
   return (
@@ -21,8 +19,12 @@ function CostCard({ cost }: { cost: CostResponse }) {
       }`}
     >
       <div className="flex items-center gap-3 mb-2">
-        {payer ? (
-          <UserAvatar nickname={payer.nickname} iconUrl={payer.icon_url} userId={payer.id} />
+        {cost.payer_user_id ? (
+          <UserAvatar
+            nickname={cost.payer_nickname ?? ""}
+            iconUrl={cost.payer_icon_url}
+            userId={cost.payer_user_id}
+          />
         ) : (
           <div className="h-8 w-8 rounded-full bg-muted" />
         )}
