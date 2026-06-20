@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Loader2, Plus } from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
+import { useHomeMembers } from "@/features/home/hooks/useHome";
 import { useCategories, useCosts } from "../hooks/useCost";
 import { CostSubNav } from "../components/CostSubNav";
 import { UserAvatar } from "../components/UserAvatar";
@@ -60,7 +60,7 @@ function CostCard({ cost }: { cost: CostResponse }) {
 
 export default function CostListPage() {
   const navigate = useNavigate();
-  const homeUsers = useAuthStore((s) => s.homeUsers);
+  const { data: homeUsers = [] } = useHomeMembers();
   const { data: categories = [] } = useCategories();
 
   const [filterCategoryId, setFilterCategoryId] = useState<number | undefined>();
