@@ -9,6 +9,7 @@ export interface ActivityLog {
   icon_url: string | null;
   action: string;
   target_type: string;
+  target_id: number | null;
   target_label: string | null;
   is_read: boolean;
   created_at: string;
