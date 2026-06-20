@@ -1,10 +1,12 @@
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { ja } from "date-fns/locale";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import { PRIORITY_CONFIG } from "@/features/announces/types";
 import { useDashboard } from "../hooks/useHome";
-import type { HomeMemberResponse, DashboardScheduleResponse } from "../types";
+import type { AnnounceResponse, HomeMemberResponse, DashboardScheduleResponse } from "../types";
 
 function MemberAvatar({ member }: { member: HomeMemberResponse }) {
   const isAtHome = member.status === "at_home";
@@ -46,6 +48,72 @@ function MemberAvatar({ member }: { member: HomeMemberResponse }) {
             : "外出"}
       </span>
     </div>
+  );
+}
+
+function AnnounceCard({
+  announce,
+  onClick,
+}: {
+  announce: AnnounceResponse;
+  onClick: () => void;
+}) {
+  const prio = PRIORITY_CONFIG[announce.priority];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-xl border border-border bg-card p-4 space-y-2 hover:border-primary/40 transition-colors shadow-sm dark:shadow-none"
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className={cn(
+            "inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-bold",
+            prio.badgeClass,
+          )}
+        >
+          {prio.label}
+        </span>
+        <span className="flex-1 text-sm font-semibold leading-snug line-clamp-2">
+          {announce.title}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+        {announce.content}
+      </p>
+      <div className="flex items-center gap-2 flex-wrap border-t border-border/50 pt-2">
+        <span className="text-xs text-muted-foreground">
+          期限: {format(parseISO(announce.end_date), "yyyy年M月d日", { locale: ja })}
+        </span>
+        {announce.created_by_user && (
+          <div className="flex items-center gap-1" aria-label={`投稿者: ${announce.created_by_user.nickname}`}>
+            {announce.created_by_user.icon_url ? (
+              <img
+                src={announce.created_by_user.icon_url}
+                alt={announce.created_by_user.nickname}
+                className="h-[18px] w-[18px] rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                {announce.created_by_user.nickname.charAt(0)}
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {announce.created_by_user.nickname}
+            </span>
+          </div>
+        )}
+        <span
+          className={cn(
+            "ml-auto text-xs flex items-center gap-1",
+            announce.is_liked ? "text-red-500" : "text-muted-foreground",
+          )}
+          aria-label={`いいね ${announce.like_count}件`}
+        >
+          {announce.is_liked ? "❤️" : "🤍"} {announce.like_count}
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -183,6 +251,50 @@ export default function DashboardPage() {
             ))
           )}
         </div>
+      </section>
+
+      {/* Announces */}
+      <section aria-labelledby="announces-heading">
+        <div className="flex items-center justify-between mb-3">
+          <h2
+            id="announces-heading"
+            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+          >
+            お知らせ
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate("/announces")}
+            className="text-xs text-primary hover:underline"
+          >
+            一覧を見る
+          </button>
+        </div>
+        {data.announces.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card py-8 text-muted-foreground">
+            <span className="text-3xl" aria-hidden>📭</span>
+            <p className="text-sm">期限内のお知らせはありません</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {data.announces.map((announce) => (
+              <AnnounceCard
+                key={announce.id}
+                announce={announce}
+                onClick={() => navigate(`/announces/${announce.id}`)}
+              />
+            ))}
+            {data.has_more_announces && (
+              <button
+                type="button"
+                onClick={() => navigate("/announces")}
+                className="w-full rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+              >
+                他にもお知らせがあります → 一覧を見る
+              </button>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

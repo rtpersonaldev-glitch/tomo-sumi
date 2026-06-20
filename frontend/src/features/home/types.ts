@@ -1,3 +1,7 @@
+import type { AnnounceResponse } from "@/features/announces/types";
+
+export type { AnnounceResponse };
+
 export interface HomeResponse {
   id: number;
   name: string;
@@ -28,4 +32,6 @@ export interface DashboardResponse {
   members: HomeMemberResponse[];
   today_schedules: DashboardScheduleResponse[];
   unread_announce_count: number;
+  announces: AnnounceResponse[];
+  has_more_announces: boolean;
 }
