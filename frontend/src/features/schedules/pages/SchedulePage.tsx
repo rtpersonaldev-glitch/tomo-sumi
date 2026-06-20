@@ -223,7 +223,7 @@ export default function SchedulePage() {
       {/* Calendar tab */}
       {tab === "calendar" && !isLoading && !isError && (
         <>
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:shadow-none [&_.fc-daygrid-day-top]:justify-center [&_.fc-daygrid-day-number]:p-0 [&_.fc-daygrid-day-frame]:min-h-0">
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:shadow-none [&_.fc-daygrid-day-top]:justify-center [&_.fc-daygrid-day-number]:p-0 [&_.fc-daygrid-day-events]:!min-h-0">
             {/* Custom calendar toolbar */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1">
