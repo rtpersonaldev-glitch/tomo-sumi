@@ -194,6 +194,10 @@ class ReminderService:
         is_active: bool,
     ) -> ReminderContentResponse:
         content = await self._get_content_or_403(content_id, home_id)
+        if content.created_by is not None and content.created_by != user_id:
+            raise HTTPException(
+                status_code=403, detail="他のユーザーが作成した内容は編集できません"
+            )
         content.title = title
         content.memo = memo
         content.date = content_date
@@ -225,6 +229,10 @@ class ReminderService:
         self, content_id: int, home_id: int, user_id: int
     ) -> None:
         content = await self._get_content_or_403(content_id, home_id)
+        if content.created_by is not None and content.created_by != user_id:
+            raise HTTPException(
+                status_code=403, detail="他のユーザーが作成した内容は削除できません"
+            )
         reminder_id = content.reminder_id
         await self.db.delete(content)
         await log_activity(

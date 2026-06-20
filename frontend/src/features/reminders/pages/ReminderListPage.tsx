@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
 import { useHomeMembers } from "@/features/home/hooks/useHome";
 import type { HomeMemberResponse } from "@/features/home/types";
+import { useAuthStore } from "@/store/authStore";
 import {
   useReminders,
   useDeleteReminder,
@@ -74,6 +75,7 @@ function CreatorChip({
 function GroupCard({
   reminder,
   members,
+  currentUserId,
   onToggle,
   onDelete,
   onDeleteContent,
@@ -81,6 +83,7 @@ function GroupCard({
 }: {
   reminder: ReminderResponse;
   members: HomeMemberResponse[];
+  currentUserId: number | undefined;
   onToggle: (contentId: number) => void;
   onDelete: (id: number) => void;
   onDeleteContent: (contentId: number, reminderId: number) => void;
@@ -210,23 +213,27 @@ function GroupCard({
                       {REPEAT_LABEL[item.repeat]}
                     </span>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/reminders/contents/${item.id}/edit`)}
-                    className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    aria-label={`${item.title} を編集`}
-                  >
-                    <span className="text-[11px]">✏️</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteContentConfirmId(item.id)}
-                    disabled={deleteContent.isPending}
-                    className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
-                    aria-label={`${item.title} を削除`}
-                  >
-                    <span className="text-[11px]">🗑️</span>
-                  </button>
+                  {(item.created_by === null || item.created_by === currentUserId) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/reminders/contents/${item.id}/edit`)}
+                        className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        aria-label={`${item.title} を編集`}
+                      >
+                        <span className="text-[11px]">✏️</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteContentConfirmId(item.id)}
+                        disabled={deleteContent.isPending}
+                        className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                        aria-label={`${item.title} を削除`}
+                      >
+                        <span className="text-[11px]">🗑️</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -306,6 +313,7 @@ export default function ReminderListPage() {
   const { data: reminders, isLoading, isError } = useReminders();
   const { data: members = [] } = useHomeMembers();
   const toggleContent = useToggleReminderContent();
+  const currentUserId = useAuthStore((s) => s.user?.id);
 
   const handleToggle = (contentId: number, reminderId: number) => {
     toggleContent.mutate(
@@ -357,6 +365,7 @@ export default function ReminderListPage() {
                 key={reminder.id}
                 reminder={reminder}
                 members={members}
+                currentUserId={currentUserId}
                 onToggle={(contentId) => handleToggle(contentId, reminder.id)}
                 onDelete={() => {}}
                 onDeleteContent={handleDeleteContent}
