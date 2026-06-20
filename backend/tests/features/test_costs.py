@@ -690,7 +690,7 @@ async def test_create_seisan_generates_announce(client: AsyncClient, db: AsyncSe
     assert len(announces) == 1
     ann = announces[0]
     assert "清算" in ann["title"]
-    assert ann["link_url"] == f"/seisan/{seisan_id}"
+    assert ann["link_url"] == f"/costs/seisan/{seisan_id}"
     assert ann["priority"] == "high"
     assert user2_id in ann["recipient_ids"]
 
@@ -741,6 +741,6 @@ async def test_complete_meisai_generates_announce(client: AsyncClient, db: Async
     announces = ann_resp.json()
     confirm_ann = next((a for a in announces if "受取確認" in a["title"]), None)
     assert confirm_ann is not None
-    assert confirm_ann["link_url"] == f"/seisan/{seisan_id}"
+    assert confirm_ann["link_url"] == f"/costs/seisan/{seisan_id}"
     assert confirm_ann["priority"] == "high"
     assert user1_id in confirm_ann["recipient_ids"]

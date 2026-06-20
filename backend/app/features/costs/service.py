@@ -604,7 +604,7 @@ class CostService:
                 content="清算の明細を確認してください。",
                 priority="high",
                 end_date=settled_date,
-                link_url=f"/seisan/{seisan.id}",
+                link_url=f"/costs/seisan/{seisan.id}",
                 created_by=user_id,
             )
             self.db.add(ann)
@@ -691,7 +691,7 @@ class CostService:
                 content="支払い完了の通知が届いています。受取確認をしてください。",
                 priority="high",
                 end_date=seisan.settled_date,
-                link_url=f"/seisan/{seisan.id}",
+                link_url=f"/costs/seisan/{seisan.id}",
                 created_by=user_id,
             )
             self.db.add(ann)

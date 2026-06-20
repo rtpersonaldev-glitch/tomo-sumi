@@ -141,7 +141,7 @@ export default function AnnounceDetailPage() {
             to={data.link_url}
             className="flex items-center justify-center gap-2 rounded-lg border-2 border-primary/60 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
           >
-            🔗 詳細を確認する →
+            🔗 詳細を確認する
           </Link>
         )}
 
