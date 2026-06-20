@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
@@ -7,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { PRIORITY_CONFIG } from "@/features/announces/types";
 import { useDashboard } from "../hooks/useHome";
 import type { AnnounceResponse, HomeMemberResponse, DashboardScheduleResponse } from "../types";
+
+const SLIDE_INTERVAL = 4000;
 
 function MemberAvatar({ member }: { member: HomeMemberResponse }) {
   const isAtHome = member.status === "at_home";
@@ -117,6 +120,120 @@ function AnnounceCard({
   );
 }
 
+function AnnounceSlider({
+  announces,
+  hasMore,
+  onCardClick,
+  onMoreClick,
+}: {
+  announces: AnnounceResponse[];
+  hasMore: boolean;
+  onCardClick: (id: number) => void;
+  onMoreClick: () => void;
+}) {
+  const [index, setIndex] = useState(0);
+  const [timerKey, setTimerKey] = useState(0);
+
+  const goTo = (i: number) => {
+    setIndex(i);
+    setTimerKey((k) => k + 1);
+  };
+
+  const goPrev = () => goTo((index - 1 + announces.length) % announces.length);
+  const goNext = () => goTo((index + 1) % announces.length);
+
+  useEffect(() => {
+    if (announces.length <= 1) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % announces.length);
+      setTimerKey((k) => k + 1);
+    }, SLIDE_INTERVAL);
+    return () => clearInterval(id);
+  }, [timerKey, announces.length]);
+
+  if (announces.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card py-8 text-muted-foreground">
+        <span className="text-3xl" aria-hidden>📭</span>
+        <p className="text-sm">期限内のお知らせはありません</p>
+      </div>
+    );
+  }
+
+  const current = announces[index];
+  const showControls = announces.length > 1 || hasMore;
+
+  return (
+    <div>
+      <div className="relative px-7">
+        {announces.length > 1 && (
+          <button
+            type="button"
+            onClick={goPrev}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+            aria-label="前のお知らせ"
+          >
+            ‹
+          </button>
+        )}
+
+        <AnnounceCard announce={current} onClick={() => onCardClick(current.id)} />
+
+        {announces.length > 1 && (
+          <button
+            type="button"
+            onClick={goNext}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm text-base text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+            aria-label="次のお知らせ"
+          >
+            ›
+          </button>
+        )}
+      </div>
+
+      {announces.length > 1 && (
+        <div className="mt-3 h-0.5 rounded-full bg-border overflow-hidden">
+          <div
+            key={timerKey}
+            className="h-full bg-primary origin-left animate-slider-progress"
+          />
+        </div>
+      )}
+
+      {showControls && (
+        <div className="flex justify-center items-center gap-1.5 mt-2" role="tablist" aria-label="お知らせ">
+          {announces.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              aria-label={`${i + 1}件目`}
+              onClick={() => goTo(i)}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                i === index ? "w-4 bg-primary" : "w-1.5 bg-border hover:bg-muted-foreground",
+              )}
+            />
+          ))}
+          {hasMore && (
+            <button
+              type="button"
+              onClick={onMoreClick}
+              className="flex items-center gap-0.5 ml-0.5"
+              aria-label="他にもお知らせがあります。一覧を見る"
+            >
+              <span className="h-1 w-1 rounded-full bg-border" />
+              <span className="h-1 w-1 rounded-full bg-border" />
+              <span className="h-1 w-1 rounded-full bg-border" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScheduleItem({ schedule }: { schedule: DashboardScheduleResponse }) {
   const startDate = new Date(schedule.start_day);
   const endDate = new Date(schedule.end_day);
@@ -183,22 +300,6 @@ export default function DashboardPage() {
         </div>
       </button>
 
-      {/* Unread announce banner */}
-      {data.unread_announce_count > 0 && (
-        <button
-          type="button"
-          onClick={() => navigate("/announces")}
-          className="flex w-full items-center gap-3 rounded-xl border border-accent/60 bg-accent/10 px-4 py-3 text-left transition-colors hover:bg-accent/20"
-          aria-label={`未読のお知らせが${data.unread_announce_count}件あります`}
-        >
-          <span className="text-lg" aria-hidden>📢</span>
-          <span className="flex-1 text-sm font-medium">未読のお知らせがあります</span>
-          <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-white">
-            {data.unread_announce_count}
-          </span>
-        </button>
-      )}
-
       {/* Member status */}
       <section aria-labelledby="members-heading">
         <h2
@@ -223,6 +324,31 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Announces slider */}
+      <section aria-labelledby="announces-heading">
+        <div className="flex items-center justify-between mb-3">
+          <h2
+            id="announces-heading"
+            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+          >
+            お知らせ
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate("/announces")}
+            className="text-xs text-primary hover:underline"
+          >
+            一覧を見る
+          </button>
+        </div>
+        <AnnounceSlider
+          announces={data.announces}
+          hasMore={data.has_more_announces}
+          onCardClick={(id) => navigate(`/announces/${id}`)}
+          onMoreClick={() => navigate("/announces")}
+        />
       </section>
 
       {/* Today's schedules */}
@@ -251,50 +377,6 @@ export default function DashboardPage() {
             ))
           )}
         </div>
-      </section>
-
-      {/* Announces */}
-      <section aria-labelledby="announces-heading">
-        <div className="flex items-center justify-between mb-3">
-          <h2
-            id="announces-heading"
-            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-          >
-            お知らせ
-          </h2>
-          <button
-            type="button"
-            onClick={() => navigate("/announces")}
-            className="text-xs text-primary hover:underline"
-          >
-            一覧を見る
-          </button>
-        </div>
-        {data.announces.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card py-8 text-muted-foreground">
-            <span className="text-3xl" aria-hidden>📭</span>
-            <p className="text-sm">期限内のお知らせはありません</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {data.announces.map((announce) => (
-              <AnnounceCard
-                key={announce.id}
-                announce={announce}
-                onClick={() => navigate(`/announces/${announce.id}`)}
-              />
-            ))}
-            {data.has_more_announces && (
-              <button
-                type="button"
-                onClick={() => navigate("/announces")}
-                className="w-full rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
-              >
-                他にもお知らせがあります → 一覧を見る
-              </button>
-            )}
-          </div>
-        )}
       </section>
     </div>
   );
