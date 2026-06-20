@@ -37,9 +37,15 @@ export function Sidebar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const home = useAuthStore((s) => s.home);
+  const clearHome = useAuthStore((s) => s.clearHome);
   const { data: unreadData } = useUnreadActivityCount();
   const unreadCount = unreadData?.count ?? 0;
   const toggleStatus = useToggleStatus();
+
+  const handleBackToHomeSelect = () => {
+    clearHome();
+    navigate("/home-select");
+  };
 
   if (!user) return null;
 
@@ -141,6 +147,15 @@ export function Sidebar() {
           {toggleStatus.isPending && (
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleBackToHomeSelect}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span aria-hidden>🏠</span>
+          <span>ホームを変更</span>
         </button>
 
         <button
