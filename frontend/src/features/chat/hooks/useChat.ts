@@ -18,6 +18,7 @@ export const useChatHistory = () => {
     getNextPageParam: (lastPage: ChatMessage[]) =>
       lastPage.length === 50 ? lastPage[0]?.id : undefined,
     initialPageParam: undefined as number | undefined,
+    staleTime: 0,
     enabled: !!homeId,
   });
 };
