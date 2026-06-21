@@ -151,6 +151,7 @@ class ReminderService:
         content_date: dt.date | None,
         content_time: dt.time | None,
         repeat: str | None,
+        is_active: bool = True,
     ) -> ReminderContentResponse:
         await self._get_reminder_or_403(reminder_id, home_id)
         content = ReminderContent(
@@ -160,6 +161,7 @@ class ReminderService:
             date=content_date,
             time=content_time,
             repeat=repeat,
+            is_active=is_active,
             created_by=user_id,
         )
         self.db.add(content)

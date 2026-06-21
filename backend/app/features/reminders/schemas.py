@@ -26,7 +26,7 @@ class ReminderContentBase(BaseModel):
 
 
 class ReminderContentCreateRequest(ReminderContentBase):
-    pass
+    is_active: bool = True
 
 
 class ReminderContentUpdateRequest(ReminderContentBase):
