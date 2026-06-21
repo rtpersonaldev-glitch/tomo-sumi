@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
+  ArrowLeft,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -515,10 +516,10 @@ export default function SeisanDetailPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="mt-0.5 text-sm text-muted-foreground hover:text-foreground"
-            aria-label="戻る"
+            className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+            aria-label="一覧に戻る"
           >
-            ←
+            <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-semibold">{seisan.title}</h1>

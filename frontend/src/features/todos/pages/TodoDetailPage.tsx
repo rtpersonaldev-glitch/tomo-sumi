@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
 import { useAuthStore } from "@/store/authStore";
@@ -113,10 +113,10 @@ export default function TodoDetailPage() {
         <button
           type="button"
           onClick={() => navigate("/todos")}
-          className="text-sm text-primary hover:underline"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="一覧に戻る"
         >
-          ‹ 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-xl font-semibold">TODOリスト詳細</h1>
       </div>

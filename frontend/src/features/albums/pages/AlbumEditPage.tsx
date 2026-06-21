@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
-import { Loader2, X } from "lucide-react";
+import { ArrowLeft, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
 import { useAlbum, useCreateAlbum, useDeletePicture, useUpdateAlbum } from "../hooks/useAlbum";
@@ -118,10 +118,10 @@ export default function AlbumEditPage() {
         <button
           type="button"
           onClick={() => navigate(isEdit ? `/albums/${albumId}` : "/albums")}
-          className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="キャンセルして戻る"
         >
-          ‹ キャンセル
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-xl font-semibold">{isEdit ? "アルバム編集" : "アルバム作成"}</h1>
       </div>

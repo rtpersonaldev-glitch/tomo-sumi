@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -85,10 +85,10 @@ export default function HomeSettingsPage() {
         <button
           type="button"
           onClick={() => navigate("/home")}
-          className="text-sm text-primary hover:underline"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="ホームに戻る"
         >
-          ‹ 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-xl font-semibold">ホーム設定</h1>
       </div>

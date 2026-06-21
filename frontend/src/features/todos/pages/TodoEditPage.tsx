@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -112,10 +112,10 @@ export default function TodoEditPage() {
           onClick={() =>
             navigate(isEdit && todoId ? `/todos/${todoId}` : "/todos")
           }
-          className="text-sm text-primary hover:underline"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="キャンセルして戻る"
         >
-          ‹ キャンセル
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-xl font-semibold">
           {isEdit ? "TODOリスト編集" : "TODOリスト作成"}

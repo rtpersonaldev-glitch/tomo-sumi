@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -141,9 +141,10 @@ export default function KoteihiEditPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          aria-label="キャンセルして戻る"
         >
-          ← 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="flex-1 text-xl font-semibold">
           {isEdit ? "固定費を編集" : "固定費を登録"}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { toast } from "sonner";
@@ -72,10 +72,10 @@ export default function AnnounceDetailPage() {
         <button
           type="button"
           onClick={() => navigate("/announces")}
-          className="text-sm text-primary hover:underline"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="一覧に戻る"
         >
-          ‹ 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-xl font-semibold">お知らせ詳細</h1>
       </div>

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -261,10 +261,10 @@ export default function PostDetailPage() {
         <button
           type="button"
           onClick={() => navigate("/posts")}
-          className="text-sm text-primary hover:underline"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="投稿一覧に戻る"
         >
-          ‹ 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-xl font-semibold">投稿詳細</h1>
       </div>
