@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import exists, func, not_, select
+from sqlalchemy import exists, func, not_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -28,7 +28,10 @@ class ActivityService:
                 (ActivityReadStatus.activity_id == ActivityLog.id)
                 & (ActivityReadStatus.user_id == user_id),
             )
-            .where(ActivityLog.home_id == home_id)
+            .where(
+                ActivityLog.home_id == home_id,
+                or_(ActivityLog.user_id != user_id, ActivityLog.user_id.is_(None)),
+            )
             .order_by(ActivityLog.created_at.desc())
             .limit(50)
         )
@@ -53,6 +56,7 @@ class ActivityService:
             .select_from(ActivityLog)
             .where(
                 ActivityLog.home_id == home_id,
+                or_(ActivityLog.user_id != user_id, ActivityLog.user_id.is_(None)),
                 not_(
                     exists().where(
                         ActivityReadStatus.activity_id == ActivityLog.id,
@@ -67,6 +71,7 @@ class ActivityService:
         unread_result = await self.db.execute(
             select(ActivityLog.id).where(
                 ActivityLog.home_id == home_id,
+                or_(ActivityLog.user_id != user_id, ActivityLog.user_id.is_(None)),
                 not_(
                     exists().where(
                         ActivityReadStatus.activity_id == ActivityLog.id,
