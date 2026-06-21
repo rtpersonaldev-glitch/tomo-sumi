@@ -239,15 +239,37 @@ function AnnounceSlider({
   );
 }
 
+function ScheduleCreatorIcon({ creator }: { creator: DashboardScheduleResponse["created_by_user"] }) {
+  const [imgError, setImgError] = useState(false);
+  if (!creator) {
+    return <span className="h-6 w-6 flex-shrink-0 rounded-full bg-muted" aria-hidden />;
+  }
+  if (creator.icon_url && !imgError) {
+    return (
+      <img
+        src={creator.icon_url}
+        alt={creator.nickname}
+        className="h-6 w-6 flex-shrink-0 rounded-full object-cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <span className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+      {creator.nickname.charAt(0)}
+    </span>
+  );
+}
+
 function ScheduleItem({ schedule }: { schedule: DashboardScheduleResponse }) {
   const startDate = new Date(schedule.start_day);
   const endDate = new Date(schedule.end_day);
   return (
-    <div className="flex items-start gap-3 border-b border-border/50 px-4 py-3 last:border-b-0">
-      <span className="w-12 flex-shrink-0 text-xs font-bold text-primary pt-0.5">
+    <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3 last:border-b-0">
+      <span className="w-12 flex-shrink-0 text-xs font-bold text-primary">
         {format(startDate, "HH:mm")}
       </span>
-      <span className="h-2 w-2 flex-shrink-0 rounded-full bg-primary mt-1.5" aria-hidden />
+      <ScheduleCreatorIcon creator={schedule.created_by_user} />
       <div>
         <p className="text-sm font-medium">{schedule.title}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">

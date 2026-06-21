@@ -7,13 +7,15 @@ from sqlalchemy import asc, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.core.config import settings
 from app.features.announces.schemas import AnnounceResponse as AnnounceSchemaResponse
 from app.features.announces.service import AnnounceService
+from app.features.homes.schemas import DashboardScheduleResponse, ScheduleCreatorResponse
 from app.models.announce import Announce, AnnounceRecipient
 from app.models.home import Home, HomeLink, InvitationCode
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.utils.file_storage import delete_image, save_image
+from app.utils.file_storage import delete_image, get_media_url, save_image
 
 
 class HomeService:
@@ -113,7 +115,7 @@ class HomeService:
 
     async def get_dashboard(
         self, home_id: int, user_id: int
-    ) -> tuple[list[User], list[Schedule], int, list[AnnounceSchemaResponse], bool]:
+    ) -> tuple[list[User], list[DashboardScheduleResponse], int, list[AnnounceSchemaResponse], bool]:
         members_result = await self.db.execute(
             select(User)
             .join(HomeLink, HomeLink.user_id == User.id)
@@ -126,6 +128,7 @@ class HomeService:
         today_end = today_start + timedelta(days=1)
         schedules_result = await self.db.execute(
             select(Schedule)
+            .options(joinedload(Schedule.creator))
             .where(
                 Schedule.home_id == home_id,
                 Schedule.start_day >= today_start,
@@ -134,7 +137,23 @@ class HomeService:
             .order_by(Schedule.start_day)
             .limit(10)
         )
-        schedules = list(schedules_result.scalars().all())
+        raw_schedules = list(schedules_result.scalars().all())
+        schedules = []
+        for s in raw_schedules:
+            creator_info = None
+            if s.creator:
+                creator_info = ScheduleCreatorResponse(
+                    id=s.creator.id,
+                    nickname=s.creator.nickname,
+                    icon_url=get_media_url(s.creator.icon_path, settings.MEDIA_BASE_URL),
+                )
+            schedules.append(DashboardScheduleResponse(
+                id=s.id,
+                title=s.title,
+                start_day=s.start_day,
+                end_day=s.end_day,
+                created_by_user=creator_info,
+            ))
 
         today_jst = now_jst.date()
         count_result = await self.db.execute(
