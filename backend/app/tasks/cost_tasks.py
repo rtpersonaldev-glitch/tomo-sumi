@@ -4,9 +4,10 @@ from calendar import monthrange
 from datetime import date
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
-from app.core.database import AsyncSessionLocal
+from app.core.config import settings
 from app.features.costs.seisan_calculator import CostEntry, build_balances, calculate_settlements
 from app.models.cost import AutoSeisan, Cost, Seikyusaki, Seisan, SeisanMeisai
 from app.models.home import HomeLink
@@ -133,13 +134,18 @@ async def run_monthly_settlement_async(
 @celery_app.task
 def run_monthly_settlement() -> None:
     async def _task() -> None:
-        async with AsyncSessionLocal() as db:
-            try:
-                count = await run_monthly_settlement_async(db)
-                await db.commit()
-                logger.info("月末自動清算完了: %d ホームを処理", count)
-            except Exception:
-                logger.exception("月末自動清算に失敗しました")
-                await db.rollback()
+        engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+        session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        try:
+            async with session_factory() as db:
+                try:
+                    count = await run_monthly_settlement_async(db)
+                    await db.commit()
+                    logger.info("月末自動清算完了: %d ホームを処理", count)
+                except Exception:
+                    logger.exception("月末自動清算に失敗しました")
+                    await db.rollback()
+        finally:
+            await engine.dispose()
 
     asyncio.run(_task())

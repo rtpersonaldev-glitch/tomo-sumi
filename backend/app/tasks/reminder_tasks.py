@@ -5,9 +5,10 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
-from app.core.database import AsyncSessionLocal
+from app.core.config import settings
 from app.models.reminder import Reminder, ReminderContent
 from app.tasks.celery_app import celery_app
 from app.utils.fcm import send_push_to_home
@@ -100,13 +101,18 @@ async def process_reminder_notifications(
 @celery_app.task
 def send_reminder_notifications() -> None:
     async def _task() -> None:
-        async with AsyncSessionLocal() as db:
-            try:
-                count = await process_reminder_notifications(db)
-                await db.commit()
-                logger.info("リマインダー通知完了: %d 件を処理", count)
-            except Exception:
-                logger.exception("リマインダー通知タスクに失敗しました")
-                await db.rollback()
+        engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+        session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        try:
+            async with session_factory() as db:
+                try:
+                    count = await process_reminder_notifications(db)
+                    await db.commit()
+                    logger.info("リマインダー通知完了: %d 件を処理", count)
+                except Exception:
+                    logger.exception("リマインダー通知タスクに失敗しました")
+                    await db.rollback()
+        finally:
+            await engine.dispose()
 
     asyncio.run(_task())
