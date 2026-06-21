@@ -21,11 +21,18 @@ export interface InvitationCodeResponse {
   expires_at: string;
 }
 
+export interface ScheduleCreatorResponse {
+  id: number;
+  nickname: string;
+  icon_url: string | null;
+}
+
 export interface DashboardScheduleResponse {
   id: number;
   title: string;
   start_day: string;
   end_day: string;
+  created_by_user: ScheduleCreatorResponse | null;
 }
 
 export interface DashboardResponse {

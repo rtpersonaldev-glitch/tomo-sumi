@@ -59,13 +59,18 @@ class InvitationCodeResponse(BaseModel):
     expires_at: datetime
 
 
-class DashboardScheduleResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class ScheduleCreatorResponse(BaseModel):
+    id: int
+    nickname: str
+    icon_url: str | None = None
 
+
+class DashboardScheduleResponse(BaseModel):
     id: int
     title: str
     start_day: datetime
     end_day: datetime
+    created_by_user: ScheduleCreatorResponse | None = None
 
 
 class DashboardResponse(BaseModel):

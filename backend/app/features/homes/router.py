@@ -48,7 +48,7 @@ async def get_dashboard(
     )
     return DashboardResponse(
         members=[HomeMemberResponse.model_validate(m) for m in members],
-        today_schedules=[DashboardScheduleResponse.model_validate(s) for s in schedules],
+        today_schedules=schedules,
         unread_announce_count=announce_count,
         announces=announces,
         has_more_announces=has_more,
