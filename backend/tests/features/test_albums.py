@@ -4,9 +4,11 @@ from unittest.mock import patch
 
 from httpx import AsyncClient
 from PIL import Image
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.utils.file_storage as fs
+from app.models.activity import ActivityLog
 from app.models.album import Album, AlbumPicture
 from app.models.home import Home
 
@@ -304,23 +306,23 @@ async def test_update_album_adds_pictures(client: AsyncClient, tmp_path: Path) -
 # ─── アクティビティログ検証 ────────────────────────────────────────────────────
 
 
-async def test_activity_log_on_create_album(client: AsyncClient) -> None:
+async def test_activity_log_on_create_album(client: AsyncClient, db: AsyncSession) -> None:
     """アルバム作成でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
     await client.post("/api/albums", data={"title": "ログテスト"})
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("作成" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("作成" in log.action for log in logs)
 
 
-async def test_activity_log_on_delete_album(client: AsyncClient) -> None:
+async def test_activity_log_on_delete_album(client: AsyncClient, db: AsyncSession) -> None:
     """アルバム削除でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
     create_resp = await client.post("/api/albums", data={"title": "削除ログテスト"})
     album_id = create_resp.json()["id"]
     await client.delete(f"/api/albums/{album_id}")
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("削除" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("削除" in log.action for log in logs)

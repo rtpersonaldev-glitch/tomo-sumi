@@ -1,6 +1,8 @@
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.activity import ActivityLog
 from app.models.home import Home
 from app.models.reminder import Reminder
 
@@ -334,17 +336,17 @@ async def test_toggle_reminder_content(client: AsyncClient) -> None:
 # ─── アクティビティログ検証 ────────────────────────────────────────────────────
 
 
-async def test_activity_log_on_create_reminder(client: AsyncClient) -> None:
+async def test_activity_log_on_create_reminder(client: AsyncClient, db: AsyncSession) -> None:
     """リマインダー作成でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
     await client.post("/api/reminders", json=_DEFAULT_REMINDER)
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("作成" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("作成" in log.action for log in logs)
 
 
-async def test_activity_log_on_update_reminder(client: AsyncClient) -> None:
+async def test_activity_log_on_update_reminder(client: AsyncClient, db: AsyncSession) -> None:
     """リマインダー更新でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
@@ -354,18 +356,18 @@ async def test_activity_log_on_update_reminder(client: AsyncClient) -> None:
         f"/api/reminders/{reminder_id}",
         json={"list_name": "更新", "complete_flag": False},
     )
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("更新" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("更新" in log.action for log in logs)
 
 
-async def test_activity_log_on_delete_reminder(client: AsyncClient) -> None:
+async def test_activity_log_on_delete_reminder(client: AsyncClient, db: AsyncSession) -> None:
     """リマインダー削除でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
     create_resp = await client.post("/api/reminders", json=_DEFAULT_REMINDER)
     reminder_id = create_resp.json()["id"]
     await client.delete(f"/api/reminders/{reminder_id}")
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("削除" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("削除" in log.action for log in logs)

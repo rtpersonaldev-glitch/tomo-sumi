@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.utils.file_storage as fs
+from app.models.activity import ActivityLog
 from app.models.home import Home, HomeLink
 from app.models.user import User
 
@@ -629,16 +630,17 @@ async def test_seisan_pending_and_completed_lists(client: AsyncClient) -> None:
     assert len(completed.json()) == 0
 
 
-async def test_activity_log_on_create_cost(client: AsyncClient) -> None:
+async def test_activity_log_on_create_cost(client: AsyncClient, db: AsyncSession) -> None:
     """支出作成でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
     await _create_cost(client, amount=1000)
-    logs = await client.get(f"/api/activity/{home_id}")
-    assert any("支出" in log["action"] for log in logs.json())
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("支出" in log.action for log in logs)
 
 
-async def test_activity_log_on_create_seisan(client: AsyncClient) -> None:
+async def test_activity_log_on_create_seisan(client: AsyncClient, db: AsyncSession) -> None:
     """清算作成でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
@@ -646,8 +648,9 @@ async def test_activity_log_on_create_seisan(client: AsyncClient) -> None:
         "/api/costs/seisan",
         json={"title": "ログテスト", "settled_date": "2026-06-30"},
     )
-    logs = await client.get(f"/api/activity/{home_id}")
-    assert any("清算" in log["action"] for log in logs.json())
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("清算" in log.action for log in logs)
 
 
 # ─── お知らせ自動生成 ────────────────────────────────────────────────────────
