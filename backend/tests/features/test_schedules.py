@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.activity import ActivityLog
 from app.models.home import Home
 from app.models.schedule import Schedule
 
@@ -279,17 +281,17 @@ async def test_delete_schedule_wrong_home(
 # ─── アクティビティログ検証 ────────────────────────────────────────────────────
 
 
-async def test_activity_log_on_create(client: AsyncClient) -> None:
+async def test_activity_log_on_create(client: AsyncClient, db: AsyncSession) -> None:
     """スケジュール作成でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
     await client.post("/api/schedules", json=_DEFAULT_SCHEDULE)
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("作成" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("作成" in log.action for log in logs)
 
 
-async def test_activity_log_on_update(client: AsyncClient) -> None:
+async def test_activity_log_on_update(client: AsyncClient, db: AsyncSession) -> None:
     """スケジュール更新でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
@@ -299,18 +301,18 @@ async def test_activity_log_on_update(client: AsyncClient) -> None:
         f"/api/schedules/{schedule_id}",
         json={**_DEFAULT_SCHEDULE, "title": "更新"},
     )
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("更新" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("更新" in log.action for log in logs)
 
 
-async def test_activity_log_on_delete(client: AsyncClient) -> None:
+async def test_activity_log_on_delete(client: AsyncClient, db: AsyncSession) -> None:
     """スケジュール削除でアクティビティログが記録される"""
     await _register_and_login(client)
     home_id = await _create_and_select_home(client)
     create_resp = await client.post("/api/schedules", json=_DEFAULT_SCHEDULE)
     schedule_id = create_resp.json()["id"]
     await client.delete(f"/api/schedules/{schedule_id}")
-    logs_resp = await client.get(f"/api/activity/{home_id}")
-    logs = logs_resp.json()
-    assert any("削除" in log["action"] for log in logs)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.home_id == home_id))
+    logs = result.scalars().all()
+    assert any("削除" in log.action for log in logs)
