@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Loader2, Lock, Pencil, Receipt, Trash2, X } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Pencil, Receipt, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
 import { useCost, useDeleteCost } from "../hooks/useCost";
@@ -90,9 +90,10 @@ export default function CostDetailPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+            aria-label="一覧に戻る"
           >
-            ← 戻る
+            <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="flex-1 text-xl font-semibold">支出詳細</h1>
         </div>

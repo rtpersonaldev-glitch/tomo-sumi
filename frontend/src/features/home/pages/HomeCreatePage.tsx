@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSelectHome } from "@/features/auth/hooks/useAuth";
 import { getErrorMessage } from "@/utils/error";
@@ -47,10 +47,10 @@ export default function HomeCreatePage() {
         <button
           type="button"
           onClick={() => navigate("/home-select")}
-          className="mb-6 flex items-center gap-1 text-sm text-primary hover:underline"
+          className="mb-6 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="ホーム選択に戻る"
         >
-          ‹ 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
 
         <div className="mb-8 text-center">

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -36,10 +36,10 @@ export default function NotificationSettingsPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="戻る"
         >
-          ← 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="flex-1 text-xl font-semibold">通知設定</h1>
       </div>

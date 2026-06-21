@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useThemeStore, type Theme } from "@/store/themeStore";
 
@@ -34,10 +35,10 @@ export default function DisplaySettingsPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           aria-label="戻る"
         >
-          ← 戻る
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="flex-1 text-xl font-semibold">表示設定</h1>
       </div>
