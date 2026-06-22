@@ -16,6 +16,7 @@ export function SwipeToDeleteRow({ children, onDelete, className }: SwipeToDelet
   const startXRef = useRef<number | null>(null);
   const baseOffsetRef = useRef(0);
   const movedRef = useRef(false);
+  const isDraggingRef = useRef(false);
 
   const setOffset = (v: number) => {
     offsetRef.current = v;
@@ -27,6 +28,7 @@ export function SwipeToDeleteRow({ children, onDelete, className }: SwipeToDelet
     startXRef.current = e.clientX;
     baseOffsetRef.current = offsetRef.current;
     movedRef.current = false;
+    isDraggingRef.current = true;
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -39,7 +41,15 @@ export function SwipeToDeleteRow({ children, onDelete, className }: SwipeToDelet
   const onPointerUp = () => {
     if (startXRef.current === null) return;
     startXRef.current = null;
+    isDraggingRef.current = false;
     setOffset(offsetRef.current >= ACTION_WIDTH / 2 ? ACTION_WIDTH : 0);
+  };
+
+  const onPointerCancel = () => {
+    if (startXRef.current === null) return;
+    startXRef.current = null;
+    isDraggingRef.current = false;
+    setOffset(0);
   };
 
   const onClickCapture = (e: React.MouseEvent) => {
@@ -52,36 +62,39 @@ export function SwipeToDeleteRow({ children, onDelete, className }: SwipeToDelet
   };
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
-      {/* Delete action revealed underneath */}
+    <div className={cn("overflow-hidden", className)}>
+      {/* Flex row: content + action side-by-side; translateX reveals action on left swipe */}
       <div
-        className="absolute right-0 top-0 bottom-0 flex items-center justify-center bg-destructive"
-        style={{ width: ACTION_WIDTH }}
-      >
-        <button
-          type="button"
-          onClick={onDelete}
-          className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-white"
-          aria-label="削除"
-        >
-          <Trash2 className="h-4 w-4" />
-          <span className="text-[10px] font-semibold">削除</span>
-        </button>
-      </div>
-
-      {/* Content slides left on swipe */}
-      <div
-        className="relative bg-card"
+        className="flex"
         style={{
           transform: `translateX(-${offset}px)`,
-          transition: startXRef.current === null ? "transform 0.2s ease" : "none",
+          transition: isDraggingRef.current ? "none" : "transform 0.2s ease",
+          touchAction: "pan-y",
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onClickCapture={onClickCapture}
+        onPointerCancel={onPointerCancel}
       >
-        {children}
+        {/* Content — full width; onClickCapture closes panel on tap */}
+        <div className="w-full shrink-0" onClickCapture={onClickCapture}>
+          {children}
+        </div>
+        {/* Delete action — hidden until swiped */}
+        <div
+          className="shrink-0 flex items-center justify-center bg-destructive"
+          style={{ width: ACTION_WIDTH }}
+        >
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-white"
+            aria-label="削除"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="text-[10px] font-semibold">削除</span>
+          </button>
+        </div>
       </div>
     </div>
   );
