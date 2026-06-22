@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
-import { useTodos } from "../hooks/useTodo";
+import { toast } from "sonner";
+import { getErrorMessage } from "@/utils/error";
+import { useTodos, useDeleteTodo } from "../hooks/useTodo";
+import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { useHomeMembers } from "@/features/home/hooks/useHome";
 import type { HomeMemberResponse } from "@/features/home/types";
 
@@ -39,6 +42,14 @@ export default function TodoListPage() {
 
   const { data: todos, isLoading, isError } = useTodos(params);
   const { data: members = [] } = useHomeMembers();
+  const deleteTodo = useDeleteTodo();
+
+  const handleDelete = (id: number) => {
+    deleteTodo.mutate(id, {
+      onSuccess: () => toast.success("TODOリストを削除しました"),
+      onError: (err) => toast.error(getErrorMessage(err)),
+    });
+  };
 
   const findMember = (id: number | null) =>
     id ? (members.find((m) => m.id === id) ?? null) : null;
@@ -111,8 +122,8 @@ export default function TodoListPage() {
               const creator = findMember(todo.created_by);
 
               return (
+                <SwipeToDeleteRow key={todo.id} onDelete={() => handleDelete(todo.id)}>
                 <button
-                  key={todo.id}
                   type="button"
                   onClick={() => navigate(`/todos/${todo.id}`)}
                   className="w-full text-left rounded-xl border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors shadow-sm dark:shadow-none"
@@ -162,6 +173,7 @@ export default function TodoListPage() {
                     {format(parseISO(todo.created_at), "yyyy年M月d日", { locale: ja })}
                   </p>
                 </button>
+                </SwipeToDeleteRow>
               );
             })}
           </div>

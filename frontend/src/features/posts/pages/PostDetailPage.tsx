@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
+import { DotsMenu } from "@/components/DotsMenu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -266,7 +267,13 @@ export default function PostDetailPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-xl font-semibold">投稿詳細</h1>
+        <h1 className="flex-1 text-xl font-semibold">投稿詳細</h1>
+        {isOwn && (
+          <DotsMenu
+            onEdit={() => navigate(`/posts/${postId}/edit`)}
+            onDelete={() => setDeleteConfirm(true)}
+          />
+        )}
       </div>
 
       {/* Post body */}
@@ -287,24 +294,6 @@ export default function PostDetailPage() {
                 </p>
               </div>
             </div>
-            {isOwn && (
-              <div className="flex gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/posts/${postId}/edit`)}
-                  className="text-xs text-primary hover:underline"
-                >
-                  編集
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirm(true)}
-                  className="text-xs text-destructive hover:underline"
-                >
-                  削除
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Tags */}

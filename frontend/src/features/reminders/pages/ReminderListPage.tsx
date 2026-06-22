@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
+import { DotsMenu } from "@/components/DotsMenu";
+import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -93,7 +95,6 @@ function GroupCard({
 }) {
   const navigate = useNavigate();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [deleteContentConfirmId, setDeleteContentConfirmId] = useState<number | null>(null);
   const deleteReminder = useDeleteReminder();
   const deleteContent = useDeleteReminderContent();
 
@@ -116,10 +117,8 @@ function GroupCard({
       await deleteContent.mutateAsync({ contentId, reminderId: reminder.id });
       toast.success("項目を削除しました");
       onDeleteContent(contentId, reminder.id);
-      setDeleteContentConfirmId(null);
     } catch (err) {
       toast.error(getErrorMessage(err));
-      setDeleteContentConfirmId(null);
     }
   };
 
@@ -143,38 +142,58 @@ function GroupCard({
             </span>
           </div>
         </div>
-        <div className="flex gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => navigate(`/reminders/${reminder.id}/edit`)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-sm transition-colors hover:border-primary/40"
-            aria-label={`${reminder.list_name} を編集`}
-          >
-            ✏️
-          </button>
-          <button
-            type="button"
-            onClick={() => setDeleteConfirm(true)}
-            disabled={deleteConfirm}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-background text-sm text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40 dark:border-red-900"
-            aria-label={`${reminder.list_name} を削除`}
-          >
-            🗑️
-          </button>
-        </div>
+        <DotsMenu
+          onEdit={() => navigate(`/reminders/${reminder.id}/edit`)}
+          onDelete={() => setDeleteConfirm(true)}
+        />
       </div>
+
+      {/* Delete confirm */}
+      {deleteConfirm && (
+        <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 space-y-2">
+          <p className="text-xs text-center text-destructive font-medium">
+            このリマインダーを削除しますか？この操作は元に戻せません。
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(false)}
+              className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleteReminder.isPending}
+              className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center"
+            >
+              {deleteReminder.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+              ) : (
+                "削除する"
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content items */}
       {reminder.contents.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">項目がありません</p>
       ) : (
         <ul className="divide-y divide-border" role="list">
-          {reminder.contents.map((item) => (
-            <li key={item.id}>
-              <div className="flex items-start gap-3 px-4 py-2.5">
+          {reminder.contents.map((item) => {
+            const isItemOwner = item.created_by === null || item.created_by === currentUserId;
+
+            const itemContent = (
+              <div
+                className={cn("flex items-start gap-3 px-4 py-2.5", isItemOwner && "cursor-pointer")}
+                onClick={isItemOwner ? () => navigate(`/reminders/contents/${item.id}/edit`) : undefined}
+              >
                 <button
                   type="button"
-                  onClick={() => onToggle(item.id)}
+                  onClick={(e) => { e.stopPropagation(); onToggle(item.id); }}
                   disabled={isToggling}
                   aria-label={!item.is_active ? `${item.title} のチェックを外す` : `${item.title} をチェックする`}
                   aria-pressed={!item.is_active}
@@ -215,56 +234,22 @@ function GroupCard({
                       {REPEAT_LABEL[item.repeat]}
                     </span>
                   )}
-                  {(item.created_by === null || item.created_by === currentUserId) && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/reminders/contents/${item.id}/edit`)}
-                        className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        aria-label={`${item.title} を編集`}
-                      >
-                        <span className="text-[11px]">✏️</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteContentConfirmId(item.id)}
-                        disabled={deleteContent.isPending}
-                        className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
-                        aria-label={`${item.title} を削除`}
-                      >
-                        <span className="text-[11px]">🗑️</span>
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
+            );
 
-              {deleteContentConfirmId === item.id && (
-                <div className="mx-4 mb-2 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
-                  <span className="flex-1 text-xs text-destructive">この項目を削除しますか？</span>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteContentConfirmId(null)}
-                    className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted transition-colors"
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteContent(item.id)}
-                    disabled={deleteContent.isPending}
-                    className="flex items-center gap-1 rounded bg-destructive px-2 py-0.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-opacity"
-                  >
-                    {deleteContent.isPending ? (
-                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                    ) : (
-                      "削除"
-                    )}
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
+            return (
+              <li key={item.id}>
+                {isItemOwner ? (
+                  <SwipeToDeleteRow onDelete={() => handleDeleteContent(item.id)}>
+                    {itemContent}
+                  </SwipeToDeleteRow>
+                ) : (
+                  itemContent
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -276,36 +261,6 @@ function GroupCard({
       >
         ＋ 項目を追加
       </button>
-
-      {/* Delete confirm */}
-      {deleteConfirm && (
-        <div className="border-t border-destructive/30 bg-destructive/5 px-4 py-3 space-y-2">
-          <p className="text-xs text-center text-destructive font-medium">
-            このリマインダーを削除しますか？この操作は元に戻せません。
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setDeleteConfirm(false)}
-              className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-            >
-              キャンセル
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleteReminder.isPending}
-              className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center"
-            >
-              {deleteReminder.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-              ) : (
-                "削除する"
-              )}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

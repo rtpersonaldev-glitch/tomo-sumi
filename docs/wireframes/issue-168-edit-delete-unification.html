@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue #168 ワイヤーフレーム — 編集・削除ボタン統一</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c; padding: 24px; }
+
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 32px 0 12px; color: #2d3748; border-left: 4px solid #37ab9d; padding-left: 10px; }
+  h3 { font-size: 13px; font-weight: 600; color: #718096; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .subtitle { color: #718096; font-size: 13px; margin-bottom: 24px; }
+
+  .section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* Phone frame */
+  .phone { width: 240px; border: 2px solid #cbd5e0; border-radius: 20px; background: #fafaf8; overflow: hidden; font-size: 12px; }
+  .phone-header { background: #37ab9d; color: #fff; padding: 10px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .phone-body { padding: 12px; }
+
+  /* Card */
+  .wf-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+  .wf-card-header { padding: 10px 12px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid #f0f4f8; }
+  .wf-card-body { padding: 10px 12px; font-size: 12px; color: #4a5568; }
+  .wf-card-title { font-size: 13px; font-weight: 600; color: #1a202c; }
+  .wf-card-meta { font-size: 11px; color: #a0aec0; margin-top: 2px; }
+
+  /* Dots button */
+  .dots-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0; background: #f7fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; letter-spacing: -2px; color: #718096; flex-shrink: 0; }
+
+  /* Dropdown */
+  .dropdown { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.12); width: 120px; margin-left: auto; margin-top: -2px; }
+  .dropdown-item { padding: 8px 12px; display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+  .dropdown-item:hover { background: #f7fafc; }
+  .dropdown-item.danger { color: #e53e3e; }
+  .dropdown-item.danger:hover { background: #fff5f5; }
+  .dropdown-divider { height: 1px; background: #e2e8f0; }
+
+  /* Swipe row */
+  .swipe-row-wrap { position: relative; margin-bottom: 6px; border-radius: 8px; overflow: hidden; }
+  .swipe-row { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; position: relative; z-index: 1; }
+  .swipe-row-action { position: absolute; right: 0; top: 0; bottom: 0; width: 64px; background: #e53e3e; display: flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 0 8px 8px 0; z-index: 0; }
+  .swipe-row-action span { font-size: 11px; color: #fff; font-weight: 600; margin-top: 2px; }
+  .swipe-row-action .inner { display: flex; flex-direction: column; align-items: center; }
+  .swipe-row.revealed { transform: translateX(-64px); border-radius: 8px 0 0 8px; }
+
+  /* Checkbox */
+  .checkbox { width: 14px; height: 14px; border: 1.5px solid #cbd5e0; border-radius: 3px; flex-shrink: 0; }
+  .checkbox.checked { background: #37ab9d; border-color: #37ab9d; }
+
+  /* List row (koteihi) */
+  .list-row { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 12px; cursor: pointer; }
+  .list-row:hover { background: #f0faf9; border-color: #37ab9d; }
+  .list-row-name { font-weight: 600; }
+  .list-row-amount { color: #37ab9d; font-weight: 600; }
+  .tap-hint { font-size: 10px; color: #a0aec0; text-align: center; margin-top: 4px; }
+
+  /* Post list (no buttons) */
+  .post-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .post-card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .post-card-excerpt { font-size: 11px; color: #718096; line-height: 1.4; }
+  .post-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .post-card-meta { font-size: 10px; color: #a0aec0; }
+  .post-card-like { font-size: 10px; color: #a0aec0; }
+
+  /* Badge */
+  .badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 999px; }
+  .badge-primary { background: #e6f8f6; color: #37ab9d; }
+  .badge-warn { background: #fff3e0; color: #dd6b20; }
+
+  /* Icon placeholders */
+  .icon { display: inline-block; font-style: normal; }
+
+  /* Reminder group */
+  .reminder-group { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+  .reminder-group-header { padding: 10px 12px; background: #f0faf9; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+  .reminder-group-title { font-size: 13px; font-weight: 600; }
+  .reminder-item { padding: 8px 12px; border-bottom: 1px solid #f0f4f8; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .reminder-item:last-child { border-bottom: none; }
+
+  /* Arrow hints */
+  .arrow { color: #37ab9d; }
+  .note { font-size: 11px; color: #a0aec0; margin-top: 6px; font-style: italic; }
+
+  /* Before/After */
+  .compare { display: flex; gap: 16px; align-items: flex-start; }
+  .compare-label { font-size: 11px; font-weight: 700; margin-bottom: 6px; text-align: center; }
+  .before-label { color: #e53e3e; }
+  .after-label { color: #37ab9d; }
+  .cross { color: #e53e3e; }
+  .check { color: #37ab9d; }
+
+  /* Section divider */
+  .divider { height: 1px; background: #e2e8f0; margin: 16px 0; }
+
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-bottom: 8px; }
+  .tag-applies { background: #ebf8f6; color: #276749; }
+
+  .footer { font-size: 12px; color: #a0aec0; margin-top: 32px; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>Issue #168 — 編集・削除ボタン統一</h1>
+<p class="subtitle">ワイヤーフレーム v1 | 承認後に実装へ進む</p>
+
+<!-- ============================
+  パターン概要
+============================= -->
+<div class="section">
+  <h2>統一パターン概要</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead>
+      <tr style="background:#f0faf9;">
+        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e2e8f0;">パターン</th>
+        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e2e8f0;">操作</th>
+        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e2e8f0;">適用画面</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:600;">A: ・・・メニュー</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">カード右上「⋯」→ドロップダウン（編集/削除）</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">投稿詳細・お知らせ詳細・予定詳細・TODOリスト詳細・アルバム詳細・コスト詳細・<br>リマインダーグループ</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:600;">B: スワイプ削除</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">行を左スワイプ →「削除」アクション表示</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">TODOリスト・リマインダー各項目</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:600;">C: エリアタップで編集</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">行全体タップ → 編集画面へ遷移</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">固定費一覧・リマインダー各項目（編集）</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 10px;font-weight:600;">D: ボタンなし</td>
+        <td style="padding:8px 10px;">編集・削除ボタンを除去</td>
+        <td style="padding:8px 10px;">投稿一覧</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================
+  パターンA: ・・・メニュー
+============================= -->
+<h2>パターン A — 「⋯」ドロップダウンメニュー（詳細画面）</h2>
+<div class="section">
+  <span class="tag tag-applies">適用: 投稿詳細 / お知らせ詳細 / 予定詳細 / TODO詳細 / アルバム詳細 / コスト詳細</span>
+  <div class="divider"></div>
+  <div class="grid-2">
+    <!-- 閉じた状態 -->
+    <div>
+      <h3>通常表示</h3>
+      <div class="phone">
+        <div class="phone-header">
+          ← 投稿詳細
+          <div class="dots-btn">⋯</div>
+        </div>
+        <div class="phone-body">
+          <div class="wf-card">
+            <div class="wf-card-header">
+              <div>
+                <div class="wf-card-title">タイトルテキスト</div>
+                <div class="wf-card-meta">山田太郎 · 2時間前</div>
+              </div>
+            </div>
+            <div class="wf-card-body">
+              投稿の内容がここに表示されます。長い場合は省略されます…
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="note">→ カード右上ではなく、ページヘッダー右端に「⋯」を配置する</p>
+    </div>
+    <!-- メニュー展開 -->
+    <div>
+      <h3>「⋯」クリック後</h3>
+      <div class="phone">
+        <div class="phone-header">
+          ← 投稿詳細
+          <div class="dots-btn" style="background:#e2e8f0;">⋯</div>
+        </div>
+        <div class="phone-body">
+          <div class="dropdown" style="margin-bottom:8px;">
+            <div class="dropdown-item">
+              <span>✏</span> 編集
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item danger">
+              <span>🗑</span> 削除
+            </div>
+          </div>
+          <div class="wf-card" style="opacity:0.4;">
+            <div class="wf-card-header">
+              <div>
+                <div class="wf-card-title">タイトルテキスト</div>
+                <div class="wf-card-meta">山田太郎 · 2時間前</div>
+              </div>
+            </div>
+            <div class="wf-card-body">投稿内容…</div>
+          </div>
+        </div>
+      </div>
+      <p class="note">→ ドロップダウンはheader右端直下に表示。削除は赤色テキスト</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <h3>リマインダーグループ（同じく「⋯」方式）</h3>
+  <div style="max-width:280px;">
+    <div class="phone">
+      <div class="phone-header">リマインダー</div>
+      <div class="phone-body">
+        <div class="reminder-group">
+          <div class="reminder-group-header">
+            <span class="reminder-group-title">朝のルーティン</span>
+            <div class="dots-btn">⋯</div>
+          </div>
+          <div class="reminder-item">⏰ 起床確認 · 毎日 07:00</div>
+          <div class="reminder-item">💊 薬を飲む · 毎日 08:00</div>
+        </div>
+        <div class="reminder-group">
+          <div class="reminder-group-header">
+            <span class="reminder-group-title">夜のルーティン</span>
+            <div class="dots-btn">⋯</div>
+          </div>
+          <div class="reminder-item">🛁 お風呂 · 毎日 21:00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">→ グループヘッダー右端に「⋯」。ドロップダウンで「グループ編集」「グループ削除」を表示</p>
+</div>
+
+<!-- ============================
+  パターンB: スワイプ削除
+============================= -->
+<h2>パターン B — 左スワイプで削除（TODOリスト / リマインダー各項目）</h2>
+<div class="section">
+  <div class="grid-2">
+    <!-- TODO -->
+    <div>
+      <span class="tag tag-applies">TODO一覧</span>
+      <h3 style="margin-top:8px;">通常表示</h3>
+      <div class="phone">
+        <div class="phone-header">TODO</div>
+        <div class="phone-body">
+          <div class="swipe-row-wrap">
+            <div class="swipe-row-action">
+              <div class="inner">
+                <span style="font-size:16px;">🗑</span>
+                <span>削除</span>
+              </div>
+            </div>
+            <div class="swipe-row">
+              <div class="checkbox"></div>
+              <span>牛乳を買う</span>
+            </div>
+          </div>
+          <div class="swipe-row-wrap">
+            <div class="swipe-row-action">
+              <div class="inner">
+                <span style="font-size:16px;">🗑</span>
+                <span>削除</span>
+              </div>
+            </div>
+            <div class="swipe-row">
+              <div class="checkbox"></div>
+              <span>請求書を確認する</span>
+            </div>
+          </div>
+          <div class="swipe-row-wrap">
+            <div class="swipe-row-action">
+              <div class="inner">
+                <span style="font-size:16px;">🗑</span>
+                <span>削除</span>
+              </div>
+            </div>
+            <div class="swipe-row">
+              <div class="checkbox checked" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">✓</div>
+              <span style="text-decoration:line-through;color:#a0aec0;">電球を交換した</span>
+            </div>
+          </div>
+          <p class="tap-hint">← 左スワイプで削除アクション</p>
+        </div>
+      </div>
+    </div>
+    <!-- スワイプ後 -->
+    <div>
+      <span class="tag tag-applies">TODO一覧</span>
+      <h3 style="margin-top:8px;">スワイプ後（削除アクション表示）</h3>
+      <div class="phone">
+        <div class="phone-header">TODO</div>
+        <div class="phone-body">
+          <div class="swipe-row-wrap">
+            <div class="swipe-row-action">
+              <div class="inner">
+                <span style="font-size:16px;">🗑</span>
+                <span>削除</span>
+              </div>
+            </div>
+            <div class="swipe-row revealed">
+              <div class="checkbox"></div>
+              <span>牛乳を買う</span>
+            </div>
+          </div>
+          <div class="swipe-row-wrap">
+            <div class="swipe-row-action" style="opacity:0;"></div>
+            <div class="swipe-row">
+              <div class="checkbox"></div>
+              <span>請求書を確認する</span>
+            </div>
+          </div>
+          <p class="tap-hint">赤背景の「削除」ボタンをタップで削除確定</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- リマインダー項目 -->
+  <span class="tag tag-applies">リマインダー各項目（エリアタップで編集 + 左スワイプで削除）</span>
+  <div class="grid-2" style="margin-top:8px;">
+    <div>
+      <h3>通常表示（タップで編集画面へ）</h3>
+      <div class="phone">
+        <div class="phone-header">リマインダー</div>
+        <div class="phone-body">
+          <div class="reminder-group">
+            <div class="reminder-group-header">
+              <span class="reminder-group-title">朝のルーティン</span>
+              <div class="dots-btn">⋯</div>
+            </div>
+            <!-- 項目はスワイプ行 -->
+            <div style="padding:4px 8px;">
+              <div class="swipe-row-wrap">
+                <div class="swipe-row-action">
+                  <div class="inner">
+                    <span style="font-size:14px;">🗑</span>
+                    <span>削除</span>
+                  </div>
+                </div>
+                <div class="swipe-row" style="border-radius:6px;border:none;border-bottom:1px solid #f0f4f8;">
+                  <span>⏰</span>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;">起床確認</div>
+                    <div style="font-size:10px;color:#a0aec0;">毎日 07:00</div>
+                  </div>
+                </div>
+              </div>
+              <div class="swipe-row-wrap">
+                <div class="swipe-row-action">
+                  <div class="inner">
+                    <span style="font-size:14px;">🗑</span>
+                    <span>削除</span>
+                  </div>
+                </div>
+                <div class="swipe-row" style="border-radius:6px;border:none;">
+                  <span>💊</span>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;">薬を飲む</div>
+                    <div style="font-size:10px;color:#a0aec0;">毎日 08:00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="tap-hint">各項目タップ → 編集画面 / 左スワイプ → 削除</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>項目スワイプ後</h3>
+      <div class="phone">
+        <div class="phone-header">リマインダー</div>
+        <div class="phone-body">
+          <div class="reminder-group">
+            <div class="reminder-group-header">
+              <span class="reminder-group-title">朝のルーティン</span>
+              <div class="dots-btn">⋯</div>
+            </div>
+            <div style="padding:4px 8px;">
+              <div class="swipe-row-wrap">
+                <div class="swipe-row-action">
+                  <div class="inner">
+                    <span style="font-size:14px;">🗑</span>
+                    <span>削除</span>
+                  </div>
+                </div>
+                <div class="swipe-row revealed" style="border-radius:6px;border:none;border-bottom:1px solid #f0f4f8;">
+                  <span>⏰</span>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;">起床確認</div>
+                    <div style="font-size:10px;color:#a0aec0;">毎日 07:00</div>
+                  </div>
+                </div>
+              </div>
+              <div class="swipe-row-wrap">
+                <div class="swipe-row-action" style="opacity:0;"></div>
+                <div class="swipe-row" style="border-radius:6px;border:none;">
+                  <span>💊</span>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;">薬を飲む</div>
+                    <div style="font-size:10px;color:#a0aec0;">毎日 08:00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+  パターンC: エリアタップ編集
+============================= -->
+<h2>パターン C — エリアタップで編集（固定費一覧）</h2>
+<div class="section">
+  <span class="tag tag-applies">固定費一覧</span>
+  <div class="grid-2" style="margin-top:8px;">
+    <div>
+      <h3>変更前（鉛筆アイコンあり）</h3>
+      <div class="phone">
+        <div class="phone-header">固定費</div>
+        <div class="phone-body">
+          <div class="list-row" style="cursor:default;">
+            <div>
+              <div class="list-row-name">家賃</div>
+              <div style="font-size:10px;color:#a0aec0;">太郎 → 花子</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="list-row-amount">¥50,000</span>
+              <span style="color:#a0aec0;font-size:14px;">✏</span>
+            </div>
+          </div>
+          <div class="list-row" style="cursor:default;">
+            <div>
+              <div class="list-row-name">光熱費</div>
+              <div style="font-size:10px;color:#a0aec0;">花子 → 太郎</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="list-row-amount">¥8,000</span>
+              <span style="color:#a0aec0;font-size:14px;">✏</span>
+            </div>
+          </div>
+          <p class="note" style="color:#e53e3e;">✗ アイコンが右端に存在する</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>変更後（行全体タップで編集）</h3>
+      <div class="phone">
+        <div class="phone-header">固定費</div>
+        <div class="phone-body">
+          <div class="list-row">
+            <div>
+              <div class="list-row-name">家賃</div>
+              <div style="font-size:10px;color:#a0aec0;">太郎 → 花子</div>
+            </div>
+            <div>
+              <span class="list-row-amount">¥50,000</span>
+            </div>
+          </div>
+          <div class="list-row">
+            <div>
+              <div class="list-row-name">光熱費</div>
+              <div style="font-size:10px;color:#a0aec0;">花子 → 太郎</div>
+            </div>
+            <div>
+              <span class="list-row-amount">¥8,000</span>
+            </div>
+          </div>
+          <p class="tap-hint">行全体タップ → 編集フォームへ遷移</p>
+          <p class="note" style="color:#37ab9d;">✓ アイコンを除去。行全体がタッチターゲット</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+  パターンD: 投稿一覧ボタン除去
+============================= -->
+<h2>パターン D — 編集・削除ボタン除去（投稿一覧）</h2>
+<div class="section">
+  <span class="tag tag-applies">投稿一覧</span>
+  <div class="grid-2" style="margin-top:8px;">
+    <div>
+      <h3>変更前（テキストリンクあり）</h3>
+      <div class="phone">
+        <div class="phone-header">投稿</div>
+        <div class="phone-body">
+          <div class="post-card">
+            <div class="post-card-title">今日の夕飯</div>
+            <div class="post-card-excerpt">カレーを作りました！みんな辛いの平気…</div>
+            <div class="post-card-footer">
+              <span class="post-card-meta">山田 · 2時間前</span>
+              <span style="display:flex;gap:8px;">
+                <span style="color:#37ab9d;font-size:10px;cursor:pointer;">編集</span>
+                <span style="color:#e53e3e;font-size:10px;cursor:pointer;">削除</span>
+              </span>
+            </div>
+          </div>
+          <p class="note" style="color:#e53e3e;">✗ 一覧に編集/削除リンクが存在する</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>変更後（ボタンなし・詳細から操作）</h3>
+      <div class="phone">
+        <div class="phone-header">投稿</div>
+        <div class="phone-body">
+          <div class="post-card">
+            <div class="post-card-title">今日の夕飯</div>
+            <div class="post-card-excerpt">カレーを作りました！みんな辛いの平気…</div>
+            <div class="post-card-footer">
+              <span class="post-card-meta">山田 · 2時間前</span>
+              <span class="post-card-like">♥ 3</span>
+            </div>
+          </div>
+          <div class="post-card">
+            <div class="post-card-title">週末の予定</div>
+            <div class="post-card-excerpt">土曜日に公園に行きませんか？天気…</div>
+            <div class="post-card-footer">
+              <span class="post-card-meta">花子 · 昨日</span>
+              <span class="post-card-like">♥ 1</span>
+            </div>
+          </div>
+          <p class="tap-hint">詳細画面の「⋯」から編集・削除</p>
+          <p class="note" style="color:#37ab9d;">✓ 一覧はシンプルに。操作は詳細画面へ</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+  実装スコープまとめ
+============================= -->
+<div class="section" style="background:#f0faf9;border:1px solid #c6f6f0;">
+  <h2 style="border-left-color:#276749;color:#276749;">実装スコープ一覧</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;">
+    <thead>
+      <tr style="background:#c6f6f0;">
+        <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #9ae6b4;">ファイル</th>
+        <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #9ae6b4;">変更内容</th>
+        <th style="padding:8px 10px;text-align:center;border-bottom:1px solid #9ae6b4;">パターン</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">PostListPage</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">一覧から編集・削除リンクを除去</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">D</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">PostDetailPage</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">ヘッダーのテキストリンク → 「⋯」メニュー</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">A</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">AnnounceDetailPage</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">絵文字ボタン → 「⋯」メニュー</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">A</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">ScheduleDetailPage</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">絵文字ボタン → 「⋯」メニュー</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">A</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">TodoDetailPage（詳細）</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">絵文字ボタン → 「⋯」メニュー</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">A</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">TodoListPage（一覧行）</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">左スワイプで削除アクション</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">B</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">AlbumDetailPage</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">ヘッダーのテキストリンク → 「⋯」メニュー</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">A</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">CostDetailPage</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">下部2ボタン → 「⋯」メニュー（ロック解除後も同様）</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">A</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">ReminderListPage（グループ）</td><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;">絵文字ボタン → 「⋯」メニュー</td><td style="padding:7px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">A</td></tr>
+      <tr><td style="padding:7px 10px;">ReminderListPage（項目）</td><td style="padding:7px 10px;">タップで編集 / 左スワイプで削除</td><td style="padding:7px 10px;text-align:center;">B + C</td></tr>
+      <tr><td style="padding:7px 10px;">KoteihiPage</td><td style="padding:7px 10px;">鉛筆アイコンを除去・行タップで編集画面へ遷移</td><td style="padding:7px 10px;text-align:center;">C</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">Issue #168 ワイヤーフレーム — 承認後に実装フェーズへ</div>
+
+</body>
+</html>

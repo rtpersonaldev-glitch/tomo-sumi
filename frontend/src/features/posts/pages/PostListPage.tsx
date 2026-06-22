@@ -9,7 +9,7 @@ import { getErrorMessage } from "@/utils/error";
 import { useHomeMembers } from "@/features/home/hooks/useHome";
 import { useAuthStore } from "@/store/authStore";
 import type { HomeMemberResponse } from "@/features/home/types";
-import { usePosts, useDeletePost, useToggleLike } from "../hooks/usePost";
+import { usePosts, useToggleLike } from "../hooks/usePost";
 import type { PostListResponse } from "../types";
 
 function stripHtml(html: string): string {
@@ -91,7 +91,6 @@ function ImageThumbnails({ urls }: { urls: string[] }) {
 function PostCard({
   post,
   members,
-  currentUserId,
   onToggleLike,
   isTogglingLike,
 }: {
@@ -102,20 +101,7 @@ function PostCard({
   isTogglingLike: boolean;
 }) {
   const navigate = useNavigate();
-  const deletePost = useDeletePost();
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const isOwn = currentUserId != null && post.created_by === currentUserId;
   const preview = stripHtml(post.content);
-
-  const handleDelete = async () => {
-    try {
-      await deletePost.mutateAsync(post.id);
-      toast.success("投稿を削除しました");
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-      setDeleteConfirm(false);
-    }
-  };
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm dark:shadow-none">
@@ -129,37 +115,11 @@ function PostCard({
           if (e.key === "Enter" || e.key === " ") navigate(`/posts/${post.id}`);
         }}
       >
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2">
-            <CreatorChip userId={post.created_by} members={members} />
-            <span className="text-xs text-muted-foreground">
-              · {format(parseISO(post.created_at), "M月d日", { locale: ja })}
-            </span>
-          </div>
-          {isOwn && (
-            <div
-              className="flex gap-1 shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                onClick={() => navigate(`/posts/${post.id}/edit`)}
-                className="text-xs text-primary hover:underline"
-                aria-label="投稿を編集"
-              >
-                編集
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm(true)}
-                disabled={deleteConfirm}
-                className="text-xs text-destructive hover:underline disabled:opacity-40"
-                aria-label="投稿を削除"
-              >
-                削除
-              </button>
-            </div>
-          )}
+        <div className="flex items-center gap-2 mb-2">
+          <CreatorChip userId={post.created_by} members={members} />
+          <span className="text-xs text-muted-foreground">
+            · {format(parseISO(post.created_at), "M月d日", { locale: ja })}
+          </span>
         </div>
 
         {preview && (
@@ -197,35 +157,6 @@ function PostCard({
           💬 {post.comment_count}
         </button>
       </div>
-
-      {deleteConfirm && (
-        <div className="border-t border-destructive/30 bg-destructive/5 px-4 py-3 space-y-2">
-          <p className="text-xs text-center text-destructive font-medium">
-            この投稿を削除しますか？この操作は元に戻せません。
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setDeleteConfirm(false)}
-              className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-            >
-              キャンセル
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deletePost.isPending}
-              className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center"
-            >
-              {deletePost.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-              ) : (
-                "削除する"
-              )}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
