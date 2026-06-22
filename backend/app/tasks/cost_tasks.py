@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from calendar import monthrange
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -9,10 +9,12 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.features.costs.seisan_calculator import CostEntry, build_balances, calculate_settlements
-from app.models.cost import AutoSeisan, Cost, Seikyusaki, Seisan, SeisanMeisai
+from app.models.announce import Announce, AnnounceRecipient
+from app.models.cost import AutoSeisan, Cost, Koteihi, Seikyusaki, Seisan, SeisanMeisai
 from app.models.home import HomeLink
 from app.models.user import User
 from app.tasks.celery_app import celery_app
+from app.utils.fcm import init_firebase, send_push_to_users
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,31 @@ async def run_settlement_for_home(
     )
     members = list(member_result.scalars().all())
     member_ids = [m.id for m in members]
+
+    # 固定費をその月のCostレコードに変換
+    koteihi_result = await db.execute(
+        select(Koteihi).where(Koteihi.home_id == home_id)
+    )
+    for k in koteihi_result.scalars().all():
+        if not k.from_user_id or not k.to_user_id:
+            continue
+        cost = Cost(
+            home_id=home_id,
+            purchase_date=today,
+            amount=k.amount,
+            payer_user_id=k.to_user_id,
+            category_id=k.category_id,
+            payment_method="",
+            memo=k.memo or "固定費",
+        )
+        db.add(cost)
+        await db.flush()
+        db.add(Seikyusaki(
+            cost_id=cost.id,
+            payer_user_id=k.from_user_id,
+            amount=k.amount,
+        ))
+    await db.flush()
 
     cost_result = await db.execute(
         select(Cost).where(Cost.home_id == home_id, Cost.seisan_id.is_(None))
@@ -95,6 +122,24 @@ async def run_settlement_for_home(
         seisan.id,
         len(transfers),
     )
+
+    if member_ids:
+        ann_title = f"「{title}」の清算が届いています"[:50]
+        ann = Announce(
+            home_id=home_id,
+            title=ann_title,
+            content="清算の明細を確認してください。",
+            priority="high",
+            end_date=today + timedelta(days=7),
+            link_url=f"/costs/seisan/{seisan.id}",
+        )
+        db.add(ann)
+        await db.flush()
+        for uid in member_ids:
+            db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
+        await db.flush()
+        await send_push_to_users(db, member_ids, ann_title, "清算の明細を確認してください。")
+
     return True
 
 
@@ -133,6 +178,8 @@ async def run_monthly_settlement_async(
 
 @celery_app.task
 def run_monthly_settlement() -> None:
+    init_firebase()
+
     async def _task() -> None:
         engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
         session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
