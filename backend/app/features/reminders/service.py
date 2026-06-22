@@ -1,4 +1,5 @@
 import datetime as dt
+import zoneinfo
 
 from fastapi import HTTPException
 from sqlalchemy import asc, select
@@ -8,6 +9,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.features.reminders.schemas import ReminderContentResponse, ReminderResponse
 from app.models.reminder import Reminder, ReminderContent
 from app.utils.activity_logger import log_activity
+
+_JST = zoneinfo.ZoneInfo("Asia/Tokyo")
+
+
+def _try_schedule_reminder(
+    content_id: int,
+    content_date: dt.date | None,
+    content_time: dt.time | None,
+    is_active: bool,
+) -> None:
+    """date・time・is_active が揃っていて未来の場合のみ eta タスクをスケジュール。"""
+    if not (is_active and content_date and content_time):
+        return
+    now_jst = dt.datetime.now(tz=_JST)
+    target_jst = dt.datetime(
+        content_date.year, content_date.month, content_date.day,
+        content_time.hour, content_time.minute, content_time.second,
+        tzinfo=_JST,
+    )
+    if target_jst <= now_jst:
+        return  # 過去の時刻はポーリング(send_reminder_notifications)が拾う
+    try:
+        from app.tasks.reminder_tasks import _schedule_single_reminder
+        _schedule_single_reminder(content_id, content_date, content_time)
+    except Exception:
+        pass  # ブローカー未接続(テスト環境等)は無視
 
 
 class ReminderService:
@@ -151,6 +178,7 @@ class ReminderService:
         content_date: dt.date | None,
         content_time: dt.time | None,
         repeat: str | None,
+        is_active: bool = True,
     ) -> ReminderContentResponse:
         await self._get_reminder_or_403(reminder_id, home_id)
         content = ReminderContent(
@@ -160,6 +188,7 @@ class ReminderService:
             date=content_date,
             time=content_time,
             repeat=repeat,
+            is_active=is_active,
             created_by=user_id,
         )
         self.db.add(content)
@@ -172,6 +201,7 @@ class ReminderService:
             "reminder_content",
             content.id,
         )
+        _try_schedule_reminder(content.id, content_date, content_time, is_active)
         return ReminderContentResponse.model_validate(content)
 
     async def get_content(
@@ -214,6 +244,7 @@ class ReminderService:
             "reminder_content",
             content_id,
         )
+        _try_schedule_reminder(content.id, content.date, content.time, content.is_active)
         return ReminderContentResponse.model_validate(content)
 
     async def toggle_content(
@@ -223,6 +254,9 @@ class ReminderService:
         content.is_active = not content.is_active
         content.updated_by = user_id
         await self.db.flush()
+        # True に戻した場合のみ再スケジュール
+        if content.is_active:
+            _try_schedule_reminder(content.id, content.date, content.time, True)
         return ReminderContentResponse.model_validate(content)
 
     async def delete_content(

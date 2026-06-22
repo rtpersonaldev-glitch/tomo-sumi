@@ -1,7 +1,14 @@
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import worker_init
 
 from app.core.config import settings
+
+
+@worker_init.connect
+def on_worker_init(**kwargs: object) -> None:
+    from app.utils.fcm import init_firebase
+    init_firebase()
 
 celery_app = Celery(
     "tomo_sumi",

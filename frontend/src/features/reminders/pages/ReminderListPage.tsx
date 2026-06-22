@@ -97,8 +97,8 @@ function GroupCard({
   const deleteReminder = useDeleteReminder();
   const deleteContent = useDeleteReminderContent();
 
-  const allActive =
-    reminder.contents.length > 0 && reminder.contents.every((c) => c.is_active);
+  const allComplete =
+    reminder.contents.length > 0 && reminder.contents.every((c) => !c.is_active);
 
   const handleDelete = async () => {
     try {
@@ -130,7 +130,7 @@ function GroupCard({
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-base leading-snug">{reminder.list_name}</span>
-            {allActive && reminder.contents.length > 0 && (
+            {allComplete && reminder.contents.length > 0 && (
               <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400">
                 ✓ 全完了
               </span>
@@ -176,16 +176,16 @@ function GroupCard({
                   type="button"
                   onClick={() => onToggle(item.id)}
                   disabled={isToggling}
-                  aria-label={item.is_active ? `${item.title} のチェックを外す` : `${item.title} をチェックする`}
-                  aria-pressed={item.is_active}
+                  aria-label={!item.is_active ? `${item.title} のチェックを外す` : `${item.title} をチェックする`}
+                  aria-pressed={!item.is_active}
                   className={cn(
                     "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
-                    item.is_active
+                    !item.is_active
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-background",
                   )}
                 >
-                  {item.is_active && (
+                  {!item.is_active && (
                     <span className="text-[11px] font-bold leading-none">✓</span>
                   )}
                 </button>
@@ -194,7 +194,7 @@ function GroupCard({
                   <p
                     className={cn(
                       "text-sm leading-snug",
-                      item.is_active && "line-through text-muted-foreground",
+                      !item.is_active && "line-through text-muted-foreground",
                     )}
                   >
                     {item.title}

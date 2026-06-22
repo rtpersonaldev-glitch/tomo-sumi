@@ -239,7 +239,7 @@ async def test_create_reminder_content(client: AsyncClient) -> None:
     assert data["title"] == "テスト内容"
     assert data["memo"] == "メモ"
     assert data["repeat"] == "daily"
-    assert data["is_active"] is False
+    assert data["is_active"] is True
 
 
 async def test_create_reminder_content_minimal(client: AsyncClient) -> None:
@@ -322,15 +322,15 @@ async def test_toggle_reminder_content(client: AsyncClient) -> None:
         f"/api/reminders/{reminder_id}/contents", json=_DEFAULT_CONTENT
     )
     content_id = content_resp.json()["id"]
-    assert content_resp.json()["is_active"] is False
+    assert content_resp.json()["is_active"] is True
 
     resp = await client.post(f"/api/reminders/contents/{content_id}/toggle")
     assert resp.status_code == 200
-    assert resp.json()["is_active"] is True
+    assert resp.json()["is_active"] is False
 
     resp2 = await client.post(f"/api/reminders/contents/{content_id}/toggle")
     assert resp2.status_code == 200
-    assert resp2.json()["is_active"] is False
+    assert resp2.json()["is_active"] is True
 
 
 # ─── アクティビティログ検証 ────────────────────────────────────────────────────

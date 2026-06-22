@@ -188,4 +188,5 @@ async def create_reminder_content(
         content_date=body.date,
         content_time=body.time,
         repeat=body.repeat,
+        is_active=body.is_active,
     )

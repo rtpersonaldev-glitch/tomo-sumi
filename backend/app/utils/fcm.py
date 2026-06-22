@@ -40,10 +40,11 @@ async def send_push_to_home(
     exclude_user_id: int | None = None,
 ) -> None:
     if _firebase_app is None:
+        logger.warning("Firebase未初期化のためプッシュ通知をスキップしました (home_id=%d)", home_id)
         return
 
     query = (
-        select(FCMToken.token)
+        select(FCMToken)
         .join(HomeLink, HomeLink.user_id == FCMToken.user_id)
         .where(
             HomeLink.home_id == home_id,
@@ -54,26 +55,41 @@ async def send_push_to_home(
         query = query.where(FCMToken.user_id != exclude_user_id)
 
     result = await db.execute(query)
-    tokens = list(result.scalars().all())
-    if not tokens:
+    token_rows = list(result.scalars().all())
+    if not token_rows:
         return
 
     messages = [
         messaging.Message(
-            notification=messaging.Notification(title=title, body=body),
-            token=token,
+            webpush=messaging.WebpushConfig(
+                notification=messaging.WebpushNotification(
+                    title=title,
+                    body=body,
+                    icon="/vite.svg",
+                )
+            ),
+            token=row.token,
         )
-        for token in tokens
+        for row in token_rows
     ]
 
     batch_response = messaging.send_each(messages, app=_firebase_app)
+    stale_ids: list[int] = []
     for i, resp in enumerate(batch_response.responses):
         if not resp.success:
+            err = str(resp.exception)
             logger.warning(
                 "FCM送信に失敗しました (token=%s): %s",
-                tokens[i],
-                resp.exception,
+                token_rows[i].token,
+                err,
             )
+            if "NOT_FOUND" in err or "UNREGISTERED" in err or "NotRegistered" in err:
+                stale_ids.append(token_rows[i].id)
+
+    if stale_ids:
+        from sqlalchemy import delete as sa_delete
+        await db.execute(sa_delete(FCMToken).where(FCMToken.id.in_(stale_ids)))
+        logger.info("無効なFCMトークンを削除しました: %d 件", len(stale_ids))
 
 
 async def send_push_to_users(
@@ -93,25 +109,39 @@ async def send_push_to_users(
         return
 
     result = await db.execute(
-        select(FCMToken.token).where(FCMToken.user_id.in_(target_ids))
+        select(FCMToken).where(FCMToken.user_id.in_(target_ids))
     )
-    tokens = list(result.scalars().all())
-    if not tokens:
+    token_rows = list(result.scalars().all())
+    if not token_rows:
         return
 
     messages = [
         messaging.Message(
-            notification=messaging.Notification(title=title, body=body),
-            token=token,
+            webpush=messaging.WebpushConfig(
+                notification=messaging.WebpushNotification(
+                    title=title,
+                    body=body,
+                    icon="/vite.svg",
+                )
+            ),
+            token=row.token,
         )
-        for token in tokens
+        for row in token_rows
     ]
 
     batch_response = messaging.send_each(messages, app=_firebase_app)
+    stale_ids: list[int] = []
     for i, resp in enumerate(batch_response.responses):
         if not resp.success:
+            err = str(resp.exception)
             logger.warning(
                 "FCM送信に失敗しました (token=%s): %s",
-                tokens[i],
-                resp.exception,
+                token_rows[i].token,
+                err,
             )
+            if "NOT_FOUND" in err or "UNREGISTERED" in err or "NotRegistered" in err:
+                stale_ids.append(token_rows[i].id)
+
+    if stale_ids:
+        from sqlalchemy import delete as sa_delete
+        await db.execute(sa_delete(FCMToken).where(FCMToken.id.in_(stale_ids)))
