@@ -1,16 +1,20 @@
 import io
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
 from PIL import Image
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 import app.utils.file_storage as fs
 from app.core.security import create_access_token
+from app.features.chat.service import ChatService
 from app.main import app
+from app.models.home import Home, HomeLink
+from app.models.user import User
 
 _SEQ = 0
 
@@ -166,5 +170,76 @@ def test_ws_close_no_home_in_token() -> None:
         ) as ws:
             ws.receive_json()
     assert exc.value.code == 4003
+
+
+# ─── プッシュ通知 ────────────────────────────────────────────────────────────
+
+_PUSH_SEQ = 0
+
+
+async def _make_user_and_home(db: AsyncSession) -> tuple[Home, User]:
+    global _PUSH_SEQ
+    _PUSH_SEQ += 1
+    home = Home(name=f"プッシュテストホーム{_PUSH_SEQ}")
+    db.add(home)
+    await db.flush()
+    user = User(
+        email=f"chat_push{_PUSH_SEQ}@example.com",
+        hashed_password="dummy",
+        nickname=f"テストユーザー{_PUSH_SEQ}",
+    )
+    db.add(user)
+    await db.flush()
+    db.add(HomeLink(user_id=user.id, home_id=home.id))
+    await db.flush()
+    return home, user
+
+
+async def test_save_message_sends_push(db: AsyncSession) -> None:
+    """テキストメッセージ送信時にプッシュ通知が送られる"""
+    home, user = await _make_user_and_home(db)
+
+    with patch("app.features.chat.service.send_push_to_home", new_callable=AsyncMock) as mock_push:
+        await ChatService(db).save_message(
+            home_id=home.id, user_id=user.id, message="こんにちは"
+        )
+
+    mock_push.assert_called_once()
+    _, kwargs = mock_push.call_args
+    assert kwargs["home_id"] == home.id
+    assert kwargs["exclude_user_id"] == user.id
+    assert "こんにちは" in kwargs["body"]
+    assert kwargs["title"] == user.nickname
+
+
+async def test_save_message_push_body_truncated(db: AsyncSession) -> None:
+    """100文字を超えるメッセージはbodyが100文字に切り詰められる"""
+    home, user = await _make_user_and_home(db)
+    long_msg = "あ" * 200
+
+    with patch("app.features.chat.service.send_push_to_home", new_callable=AsyncMock) as mock_push:
+        await ChatService(db).save_message(
+            home_id=home.id, user_id=user.id, message=long_msg
+        )
+
+    _, kwargs = mock_push.call_args
+    assert len(kwargs["body"]) == 100
+
+
+async def test_save_image_message_sends_push(db: AsyncSession) -> None:
+    """画像メッセージ送信時にプッシュ通知が送られる"""
+    home, user = await _make_user_and_home(db)
+
+    with patch("app.features.chat.service.send_push_to_home", new_callable=AsyncMock) as mock_push:
+        await ChatService(db).save_image_message(
+            home_id=home.id, user_id=user.id, image_path="chat_pictures/test.jpg"
+        )
+
+    mock_push.assert_called_once()
+    _, kwargs = mock_push.call_args
+    assert kwargs["home_id"] == home.id
+    assert kwargs["exclude_user_id"] == user.id
+    assert kwargs["body"] == "画像を送信しました"
+    assert kwargs["title"] == user.nickname
 
 

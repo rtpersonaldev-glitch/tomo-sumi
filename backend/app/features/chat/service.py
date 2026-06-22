@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.features.chat.schemas import ChatMessageResponse
 from app.models.chat import ChatMessage, ChatPicture, ChatRead
 from app.models.user import User
+from app.utils.fcm import send_push_to_home
 from app.utils.file_storage import get_media_url
 
 
@@ -21,13 +22,22 @@ class ChatService:
         await self.db.flush()
         await self.db.refresh(msg)
 
+        nickname = user.nickname if user else "メンバー"
+        await send_push_to_home(
+            self.db,
+            home_id=home_id,
+            title=nickname,
+            body=message[:100] if message else "メッセージを送信しました",
+            exclude_user_id=user_id,
+        )
+
         return {
             "id": msg.id,
             "type": "message",
             "message": msg.message,
             "image_url": None,
             "user_id": user_id,
-            "nickname": user.nickname if user else "",
+            "nickname": nickname,
             "icon_url": get_media_url(user.icon_path if user else None, settings.MEDIA_BASE_URL),
             "timestamp": msg.created_at.isoformat(),
         }
@@ -43,13 +53,22 @@ class ChatService:
         await self.db.flush()
         await self.db.refresh(msg)
 
+        nickname = user.nickname if user else "メンバー"
+        await send_push_to_home(
+            self.db,
+            home_id=home_id,
+            title=nickname,
+            body="画像を送信しました",
+            exclude_user_id=user_id,
+        )
+
         return {
             "id": msg.id,
             "type": "image",
             "message": None,
             "image_url": get_media_url(image_path, settings.MEDIA_BASE_URL),
             "user_id": user_id,
-            "nickname": user.nickname if user else "",
+            "nickname": nickname,
             "icon_url": get_media_url(user.icon_path if user else None, settings.MEDIA_BASE_URL),
             "timestamp": msg.created_at.isoformat(),
         }
