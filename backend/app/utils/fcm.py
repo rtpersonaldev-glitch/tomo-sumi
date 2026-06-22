@@ -40,6 +40,7 @@ async def send_push_to_home(
     exclude_user_id: int | None = None,
 ) -> None:
     if _firebase_app is None:
+        logger.warning("Firebase未初期化のためプッシュ通知をスキップしました (home_id=%d)", home_id)
         return
 
     query = (

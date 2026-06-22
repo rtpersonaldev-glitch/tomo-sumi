@@ -11,7 +11,7 @@ from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from app.models.reminder import Reminder, ReminderContent
 from app.tasks.celery_app import celery_app
-from app.utils.fcm import send_push_to_home
+from app.utils.fcm import init_firebase, send_push_to_home
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,7 @@ async def process_reminder_notifications(
 
 @celery_app.task
 def send_reminder_notifications() -> None:
+    init_firebase()
     async def _task() -> None:
         engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
         session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
