@@ -4,6 +4,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -171,51 +172,47 @@ export default function TodoEditPage() {
 
           <ul className="space-y-2" role="list">
             {fields.map((field, index) => (
-              <li key={field.id} className="flex items-center gap-2">
-                {/* Hidden fields to preserve check state */}
-                <input type="hidden" {...register(`contents.${index}.check_flag`)} />
-                <input type="hidden" {...register(`contents.${index}.checked_by`)} />
+              <li key={field.id}>
+                <SwipeToDeleteRow onDelete={() => remove(index)}>
+                  <div className="flex items-center gap-2">
+                    {/* Hidden fields to preserve check state */}
+                    <input type="hidden" {...register(`contents.${index}.check_flag`)} />
+                    <input type="hidden" {...register(`contents.${index}.checked_by`)} />
 
-                <input
-                  type="text"
-                  placeholder={`項目 ${index + 1}`}
-                  aria-label={`項目 ${index + 1}`}
-                  aria-invalid={!!errors.contents?.[index]?.content}
-                  className={cn(
-                    "flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring",
-                    errors.contents?.[index]?.content
-                      ? "border-destructive"
-                      : "border-input",
-                  )}
-                  {...register(`contents.${index}.content`)}
-                />
+                    <input
+                      type="text"
+                      placeholder={`項目 ${index + 1}`}
+                      aria-label={`項目 ${index + 1}`}
+                      aria-invalid={!!errors.contents?.[index]?.content}
+                      className={cn(
+                        "flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring",
+                        errors.contents?.[index]?.content
+                          ? "border-destructive"
+                          : "border-input",
+                      )}
+                      {...register(`contents.${index}.content`)}
+                    />
 
-                <button
-                  type="button"
-                  onClick={() => move(index, Math.max(0, index - 1))}
-                  disabled={index === 0}
-                  aria-label={`項目 ${index + 1} を上へ`}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-sm transition-colors hover:border-primary/40 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  onClick={() => move(index, Math.min(fields.length - 1, index + 1))}
-                  disabled={index === fields.length - 1}
-                  aria-label={`項目 ${index + 1} を下へ`}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-sm transition-colors hover:border-primary/40 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  aria-label={`項目 ${index + 1} を削除`}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-background text-sm text-destructive transition-colors hover:bg-destructive/10 dark:border-red-900"
-                >
-                  ✕
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => move(index, Math.max(0, index - 1))}
+                      disabled={index === 0}
+                      aria-label={`項目 ${index + 1} を上へ`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-sm transition-colors hover:border-primary/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(index, Math.min(fields.length - 1, index + 1))}
+                      disabled={index === fields.length - 1}
+                      aria-label={`項目 ${index + 1} を下へ`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-sm transition-colors hover:border-primary/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </SwipeToDeleteRow>
               </li>
             ))}
           </ul>

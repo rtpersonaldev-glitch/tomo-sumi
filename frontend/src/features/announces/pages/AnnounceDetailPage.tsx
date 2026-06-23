@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { DotsMenu } from "@/components/DotsMenu";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { toast } from "sonner";
@@ -77,8 +78,42 @@ export default function AnnounceDetailPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-xl font-semibold">お知らせ詳細</h1>
+        <h1 className="flex-1 text-xl font-semibold">お知らせ詳細</h1>
+        <DotsMenu
+          onEdit={() => navigate(`/announces/${announceId}/edit`)}
+          onDelete={() => setDeleteConfirm(true)}
+        />
       </div>
+
+      {/* Delete confirm */}
+      {deleteConfirm && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 space-y-2">
+          <p className="text-xs text-center text-destructive font-medium">
+            このお知らせを削除しますか？この操作は元に戻せません。
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(false)}
+              className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleteAnnounce.isPending}
+              className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center"
+            >
+              {deleteAnnounce.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+              ) : (
+                "削除する"
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content card */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm dark:shadow-none">
@@ -208,55 +243,6 @@ export default function AnnounceDetailPage() {
         </button>
       </div>
 
-      {/* Edit / Delete */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-sm dark:shadow-none">
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(`/announces/${announceId}/edit`)}
-            className="flex-1 rounded-lg border border-border py-2 text-sm font-medium transition-colors hover:border-primary/40"
-          >
-            ✏️ 編集
-          </button>
-          <button
-            type="button"
-            onClick={() => setDeleteConfirm(true)}
-            disabled={deleteConfirm}
-            className="flex-1 rounded-lg border border-red-200 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40 dark:border-red-900"
-          >
-            🗑️ 削除
-          </button>
-        </div>
-
-        {deleteConfirm && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
-            <p className="text-xs text-center text-destructive font-medium">
-              このお知らせを削除しますか？この操作は元に戻せません。
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm(false)}
-                className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleteAnnounce.isPending}
-                className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center"
-              >
-                {deleteAnnounce.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                ) : (
-                  "削除する"
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

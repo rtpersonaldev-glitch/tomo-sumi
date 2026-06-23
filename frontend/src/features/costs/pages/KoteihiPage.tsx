@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Pencil } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
 import { useKoteihi, useCostSettings, useUpdateAutoSeisan } from "../hooks/useCost";
@@ -119,9 +119,12 @@ export default function KoteihiPage() {
       ) : (
         <div className="space-y-2">
           {koteihiList.map((k) => (
-              <div
+              <button
                 key={k.id}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+                type="button"
+                onClick={() => navigate(`/costs/koteihi/${k.id}/edit`)}
+                className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm hover:border-primary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`${k.memo ?? "固定費"} を編集`}
               >
                 {/* From → To */}
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -145,16 +148,7 @@ export default function KoteihiPage() {
                 <span className="text-base font-bold text-primary shrink-0">
                   ¥{k.amount.toLocaleString()}
                 </span>
-
-                <button
-                  type="button"
-                  onClick={() => navigate(`/costs/koteihi/${k.id}/edit`)}
-                  className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="編集"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              </button>
             ))}
         </div>
       )}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
+import { DotsMenu } from "@/components/DotsMenu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -127,22 +128,10 @@ export default function AlbumDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="flex-1 text-xl font-semibold truncate">{album.title}</h1>
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => navigate(`/albums/${albumId}/edit`)}
-              className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-            >
-              編集
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeleteConfirm(true)}
-              className="text-sm text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-            >
-              削除
-            </button>
-          </div>
+          <DotsMenu
+            onEdit={() => navigate(`/albums/${albumId}/edit`)}
+            onDelete={() => setDeleteConfirm(true)}
+          />
         </div>
 
         {/* Delete confirm */}

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ArrowLeft, Loader2, Lock, Pencil, Receipt, Trash2, X } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Receipt, X } from "lucide-react";
+import { DotsMenu } from "@/components/DotsMenu";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/error";
 import { useCost, useDeleteCost } from "../hooks/useCost";
@@ -54,17 +55,18 @@ export default function CostDetailPage() {
   const { data: cost, isLoading } = useCost(costId);
   const deleteCost = useDeleteCost();
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const isLocked = cost?.seisan_id != null;
 
   const handleDelete = async () => {
-    if (!confirm("この支出を削除しますか？")) return;
     try {
       await deleteCost.mutateAsync(costId);
       toast.success("削除しました");
       navigate("/costs");
     } catch (err) {
       toast.error(getErrorMessage(err));
+      setDeleteConfirm(false);
     }
   };
 
@@ -96,7 +98,43 @@ export default function CostDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="flex-1 text-xl font-semibold">支出詳細</h1>
+          {!isLocked && (
+            <DotsMenu
+              onEdit={() => navigate(`/costs/${costId}/edit`)}
+              onDelete={() => setDeleteConfirm(true)}
+            />
+          )}
         </div>
+
+        {/* Delete confirm */}
+        {deleteConfirm && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 space-y-2">
+            <p className="text-xs text-center text-destructive font-medium">
+              この支出を削除しますか？この操作は元に戻せません。
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(false)}
+                className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteCost.isPending}
+                className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center"
+              >
+                {deleteCost.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                ) : (
+                  "削除する"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ロックバナー */}
         {isLocked && (
@@ -220,31 +258,6 @@ export default function CostDetailPage() {
           </div>
         )}
 
-        {/* アクション（下部のみ） */}
-        {!isLocked && (
-          <div className="mt-6 flex gap-3">
-            <Link
-              to={`/costs/${costId}/edit`}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Pencil className="h-4 w-4" />
-              編集
-            </Link>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleteCost.isPending}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-destructive py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {deleteCost.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              削除
-            </button>
-          </div>
-        )}
       </div>
 
       {/* レシート拡大 Lightbox */}
