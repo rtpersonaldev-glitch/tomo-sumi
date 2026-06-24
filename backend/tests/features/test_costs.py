@@ -891,3 +891,81 @@ async def test_reject_meisai_not_confirmed(client: AsyncClient, db: AsyncSession
     # 完了前に差し戻し → 400
     reject_resp = await client.post(f"/api/costs/seisan-meisai/{meisai_id}/reject")
     assert reject_resp.status_code == 400
+
+
+# ─── 固定費（Koteihi）の清算への反映 ────────────────────────────────────────
+
+
+async def test_create_seisan_includes_koteihi_directed(client: AsyncClient, db: AsyncSession) -> None:
+    """固定費（from/to 両方指定）が清算の残高計算に反映される"""
+    user1_id = await _register_and_login(
+        client, email="koteihi_u1@example.com", nickname="固定費受取者"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "koteihi_u2@example.com", "password": "TestPass123!", "nickname": "固定費支払者"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "koteihi_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    # 固定費: user2 が user1 に 10000 支払う
+    await client.post(
+        f"/api/costs/{home_id}/koteihi",
+        json={"amount": 10000, "from_user_id": user2_id, "to_user_id": user1_id, "memo": "家賃"},
+    )
+
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "固定費テスト清算", "settled_date": "2026-06-30"},
+    )
+    assert seisan_resp.status_code == 201
+    meisai = seisan_resp.json()["meisai"]
+    # user2 → user1 への 10000 の明細が生成されている
+    assert len(meisai) == 1
+    assert meisai[0]["from_user_id"] == user2_id
+    assert meisai[0]["to_user_id"] == user1_id
+    assert meisai[0]["amount"] == 10000
+
+
+async def test_create_seisan_includes_koteihi_with_costs(client: AsyncClient, db: AsyncSession) -> None:
+    """固定費と通常支出が両方ある場合、合算して清算の残高計算に反映される"""
+    user1_id = await _register_and_login(
+        client, email="koteihi2_u1@example.com", nickname="ユーザーX"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "koteihi2_u2@example.com", "password": "TestPass123!", "nickname": "ユーザーY"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "koteihi2_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    # 通常支出: user1 が 2000 払った（2人均等 → user2 が 1000 返す）
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "2000", "payer_user_id": str(user1_id)},
+    )
+    # 固定費: user2 → user1 へ 500（固定費分を追加）
+    await client.post(
+        f"/api/costs/{home_id}/koteihi",
+        json={"amount": 500, "from_user_id": user2_id, "to_user_id": user1_id, "memo": "固定費"},
+    )
+
+    seisan_resp = await client.post(
+        "/api/costs/seisan",
+        json={"title": "合算テスト清算", "settled_date": "2026-06-30"},
+    )
+    assert seisan_resp.status_code == 201
+    meisai = seisan_resp.json()["meisai"]
+    # user2 は通常支出 1000 + 固定費 500 = 合計 1500 を user1 に返す
+    assert len(meisai) == 1
+    assert meisai[0]["from_user_id"] == user2_id
+    assert meisai[0]["to_user_id"] == user1_id
+    assert meisai[0]["amount"] == 1500
