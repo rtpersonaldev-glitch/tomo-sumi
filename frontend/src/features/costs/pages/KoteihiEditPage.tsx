@@ -93,16 +93,16 @@ export default function KoteihiEditPage() {
     }
 
     const payload = {
-      category_id: categoryId ?? undefined,
+      category_id: categoryId ?? null,
       amount: amt,
-      from_user_id: fromUserId ?? undefined,
-      to_user_id: toUserId ?? undefined,
+      from_user_id: fromUserId ?? null,
+      to_user_id: toUserId ?? null,
       memo: memo.trim(),
     };
 
     try {
       if (isEdit && koteihiId) {
-        await updateKoteihi.mutateAsync({ id: koteihiId, data: payload });
+        await updateKoteihi.mutateAsync({ id: koteihiId, ...payload });
         toast.success("固定費を更新しました");
       } else {
         await createKoteihi.mutateAsync(payload);
