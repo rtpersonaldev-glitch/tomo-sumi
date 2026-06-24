@@ -47,7 +47,7 @@ export default function CostSummaryPage() {
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="px-4 py-4">
-        <h1 className="text-xl font-semibold">📊 家計集計</h1>
+        <h1 className="text-xl font-semibold">家計集計</h1>
       </div>
 
       <CostSubNav />
