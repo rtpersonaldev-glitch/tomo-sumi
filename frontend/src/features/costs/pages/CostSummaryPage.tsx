@@ -150,7 +150,7 @@ export default function CostSummaryPage() {
                     formatter={(value: number) => [`¥${value.toLocaleString()}`, "支払額"]}
                   />
                   <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
-                    {barData.map((entry, i) => (
+                    {barData.map((_entry, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Bar>

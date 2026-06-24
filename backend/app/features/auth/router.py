@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.security import create_access_token, create_refresh_token, verify_token
 from app.features.auth.schemas import (
+    ChangePasswordRequest,
     FCMTokenRequest,
     HomeResponse,
     LoginRequest,
@@ -167,6 +168,15 @@ async def toggle_notification(
     current_user.notification_flag = not current_user.notification_flag
     await db.flush()
     return SettingsResponse(notification_flag=current_user.notification_flag)
+
+
+@router.put("/password", status_code=204)
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await AuthService(db).change_password(current_user, body.current_password, body.new_password)
 
 
 @router.post("/fcm-token", status_code=204)

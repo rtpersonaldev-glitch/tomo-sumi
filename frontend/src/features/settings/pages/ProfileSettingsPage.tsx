@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
 import { useAuthStore } from "@/store/authStore";
-import { useUpdateProfile } from "../hooks/useSettings";
+import { useChangePassword, useUpdateProfile } from "../hooks/useSettings";
 
 /* ── Cropper Modal ────────────────────────────────────────────────── */
 
@@ -146,12 +146,17 @@ export default function ProfileSettingsPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const updateProfile = useUpdateProfile();
+  const changePassword = useChangePassword();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState(user?.nickname ?? "");
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [croppedFile, setCroppedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(user?.icon_url ?? null);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const hasChanges =
     nickname.trim() !== (user?.nickname ?? "") || croppedFile !== null;
@@ -173,6 +178,29 @@ export default function ProfileSettingsPage() {
     setCroppedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setCropperSrc(null);
+  };
+
+  const handlePasswordChange = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error("新しいパスワードが一致しません");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("パスワードは8文字以上で入力してください");
+      return;
+    }
+    try {
+      await changePassword.mutateAsync({
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      toast.success("パスワードを変更しました");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
   };
 
   const handleSubmit = async () => {
@@ -298,6 +326,58 @@ export default function ProfileSettingsPage() {
           {updateProfile.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           保存する
         </button>
+
+        {/* Password change */}
+        <div className="mt-6 rounded-xl border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-4 py-2.5">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              パスワード変更
+            </p>
+          </div>
+          <div className="space-y-3 p-4">
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="現在のパスワード"
+              autoComplete="current-password"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="現在のパスワード"
+            />
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="新しいパスワード（8文字以上）"
+              autoComplete="new-password"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="新しいパスワード"
+            />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="新しいパスワード（確認）"
+              autoComplete="new-password"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="新しいパスワード（確認）"
+            />
+            <button
+              type="button"
+              onClick={handlePasswordChange}
+              disabled={
+                changePassword.isPending ||
+                !currentPassword ||
+                !newPassword ||
+                !confirmPassword
+              }
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {changePassword.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              パスワードを変更する
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Cropper modal */}

@@ -1,0 +1,13 @@
+.env
+.env.*
+__pycache__/
+*.pyc
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+media/
+celerybeat-schedule
+celerybeat.pid
+firebase_service_account.json
+tests/

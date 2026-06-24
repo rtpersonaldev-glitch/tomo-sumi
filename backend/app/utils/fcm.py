@@ -28,8 +28,13 @@ def init_firebase() -> None:
     try:
         _firebase_app = firebase_admin.get_app()
     except ValueError:
-        cred = credentials.Certificate(str(path))
-        _firebase_app = firebase_admin.initialize_app(cred)
+        try:
+            cred = credentials.Certificate(str(path))
+            _firebase_app = firebase_admin.initialize_app(cred)
+        except Exception as exc:
+            logger.warning(
+                "Firebase初期化に失敗しました: %s — push notifications disabled", exc
+            )
 
 
 async def send_push_to_home(

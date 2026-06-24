@@ -310,3 +310,52 @@ async def test_full_auth_flow(client: AsyncClient, db: AsyncSession) -> None:
     # logout
     logout = await client.post("/api/auth/logout")
     assert logout.status_code == 200
+
+
+# ─── パスワード変更 ──────────────────────────────────────────────────────────────
+
+
+async def test_change_password_success(client: AsyncClient) -> None:
+    """正しい現在のパスワードで新パスワードに変更できる"""
+    await _register_and_login(client)
+    resp = await client.put(
+        "/api/auth/password",
+        json={"current_password": REGISTER_PAYLOAD["password"], "new_password": "NewPass123!"},
+    )
+    assert resp.status_code == 204
+
+    # 新パスワードでログインできる
+    login = await client.post(
+        "/api/auth/login",
+        json={"email": REGISTER_PAYLOAD["email"], "password": "NewPass123!"},
+    )
+    assert login.status_code == 200
+
+
+async def test_change_password_wrong_current(client: AsyncClient) -> None:
+    """現在のパスワードが違う場合は 400"""
+    await _register_and_login(client)
+    resp = await client.put(
+        "/api/auth/password",
+        json={"current_password": "WrongPassword!", "new_password": "NewPass123!"},
+    )
+    assert resp.status_code == 400
+
+
+async def test_change_password_too_short(client: AsyncClient) -> None:
+    """新パスワードが8文字未満の場合は 422"""
+    await _register_and_login(client)
+    resp = await client.put(
+        "/api/auth/password",
+        json={"current_password": REGISTER_PAYLOAD["password"], "new_password": "short"},
+    )
+    assert resp.status_code == 422
+
+
+async def test_change_password_unauthenticated(client: AsyncClient) -> None:
+    """未認証の場合は 401"""
+    resp = await client.put(
+        "/api/auth/password",
+        json={"current_password": "anypass", "new_password": "NewPass123!"},
+    )
+    assert resp.status_code == 401
