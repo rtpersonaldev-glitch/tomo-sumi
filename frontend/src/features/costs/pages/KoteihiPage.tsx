@@ -42,7 +42,7 @@ export default function KoteihiPage() {
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4">
-        <h1 className="text-xl font-semibold">🔁 固定費</h1>
+        <h1 className="text-xl font-semibold">固定費</h1>
         <button
           type="button"
           onClick={() => navigate("/costs/koteihi/new")}

@@ -37,7 +37,7 @@ export default function SeisanPage() {
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4">
-        <h1 className="text-xl font-semibold">🤝 清算管理</h1>
+        <h1 className="text-xl font-semibold">清算管理</h1>
         <button
           type="button"
           onClick={() => navigate("/costs/seisan/new")}
@@ -81,7 +81,6 @@ export default function SeisanPage() {
         </div>
       ) : list.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
-          <p className="mb-2 text-2xl">🤝</p>
           <p className="text-sm">
             {tab === "pending" ? "清算待ちの清算はありません" : "清算済みの清算はありません"}
           </p>

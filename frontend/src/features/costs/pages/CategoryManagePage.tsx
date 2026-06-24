@@ -25,7 +25,7 @@ export default function CategoryManagePage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="px-4 py-4">
-        <h1 className="text-xl font-semibold">🏷 カテゴリ管理</h1>
+        <h1 className="text-xl font-semibold">カテゴリ管理</h1>
       </div>
 
       <CostSubNav />
@@ -33,7 +33,7 @@ export default function CategoryManagePage() {
       <div className="px-4 py-4">
 
       <p className="mb-4 rounded-xl bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-        💡 カテゴリは支出作成・編集時に選択できます
+        カテゴリは支出作成・編集時に選択できます
       </p>
 
       {isLoading ? (

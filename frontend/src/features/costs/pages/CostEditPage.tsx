@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, ImageIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Calculator, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/error";
@@ -565,7 +565,7 @@ export default function CostEditPage() {
                 className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="電卓を開く"
               >
-                🧮
+                <Calculator className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>

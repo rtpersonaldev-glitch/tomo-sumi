@@ -4,11 +4,13 @@ import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Loader2,
   MessageSquare,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -56,7 +58,7 @@ function CompleteModal({ meisai, onClose, onConfirm, isPending }: CompleteModalP
             <span className="text-xs">{meisai.from_nickname}</span>
           </div>
           <div className="flex flex-col items-center">
-            <span className="text-lg">💳</span>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
             <span className="text-base font-bold">¥{meisai.amount.toLocaleString()}</span>
           </div>
           <div className="flex flex-col items-center gap-1">
@@ -149,7 +151,7 @@ function ReceiptConfirmModal({ meisai, onClose, onConfirm, isPending }: ReceiptC
             <span className="text-xs">{meisai.from_nickname}</span>
           </div>
           <div className="flex flex-col items-center">
-            <span className="text-lg">💳</span>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
             <span className="text-base font-bold">¥{meisai.amount.toLocaleString()}</span>
           </div>
           <div className="flex flex-col items-center gap-1">
@@ -236,7 +238,7 @@ function RejectModal({ meisai, onClose, onReject, isPending }: RejectModalProps)
             <span className="text-xs">{meisai.from_nickname}</span>
           </div>
           <div className="flex flex-col items-center">
-            <span className="text-lg">↩️</span>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
             <span className="text-base font-bold">¥{meisai.amount.toLocaleString()}</span>
           </div>
           <div className="flex flex-col items-center gap-1">
@@ -268,7 +270,7 @@ function RejectModal({ meisai, onClose, onReject, isPending }: RejectModalProps)
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              "↩️"
+              <RotateCcw className="h-4 w-4" />
             )}
             差し戻す
           </button>
@@ -318,7 +320,7 @@ function MeisaiCard({ m, currentUserId, onComplete, onConfirm, onReject, isConfi
         </div>
 
         <div className="flex flex-1 flex-col items-center gap-0.5">
-          <span className="text-xl">💳</span>
+          <ArrowRight className="h-5 w-5 text-muted-foreground" />
           <span className="text-[10px] text-muted-foreground">支払い</span>
           <span className={cn(
             "text-base font-bold",
@@ -373,7 +375,7 @@ function MeisaiCard({ m, currentUserId, onComplete, onConfirm, onReject, isConfi
                   disabled={isRejectPending || isConfirmPending}
                   className="flex items-center gap-1 rounded-lg border border-destructive/50 bg-card px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {isRejectPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "↩️"}
+                  {isRejectPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
                   差し戻す
                 </button>
                 <button

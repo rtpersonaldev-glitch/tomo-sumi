@@ -50,7 +50,7 @@ function CostCard({ cost }: { cost: CostResponse }) {
         )}
         {isLocked && (
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-            🔒 清算済み
+            清算済み
           </span>
         )}
       </div>
@@ -77,7 +77,7 @@ export default function CostListPage() {
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4">
-        <h1 className="text-xl font-semibold">💰 支出一覧</h1>
+        <h1 className="text-xl font-semibold">支出一覧</h1>
         <Link
           to="/costs/new"
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -98,7 +98,7 @@ export default function CostListPage() {
           className="rounded-full border border-border bg-card px-3 py-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="カテゴリで絞り込み"
         >
-          <option value="">🏷 全カテゴリ</option>
+          <option value="">全カテゴリ</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -110,7 +110,7 @@ export default function CostListPage() {
           className="rounded-full border border-border bg-card px-3 py-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="ユーザーで絞り込み"
         >
-          <option value="">👤 全員</option>
+          <option value="">全員</option>
           {homeUsers.map((u) => (
             <option key={u.id} value={u.id}>{u.nickname}</option>
           ))}
@@ -124,7 +124,6 @@ export default function CostListPage() {
         </div>
       ) : costs.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
-          <p className="mb-2 text-2xl">💸</p>
           <p className="text-sm">支出がありません</p>
         </div>
       ) : (
