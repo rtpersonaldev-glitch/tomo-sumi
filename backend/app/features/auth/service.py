@@ -71,6 +71,14 @@ class AuthService:
         await self.db.flush()
         return user
 
+    async def change_password(
+        self, user: User, current_password: str, new_password: str
+    ) -> None:
+        if not verify_password(current_password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="現在のパスワードが正しくありません")
+        user.hashed_password = hash_password(new_password)
+        await self.db.flush()
+
     async def register_fcm_token(self, user_id: int, token: str) -> None:
         result = await self.db.execute(select(FCMToken).where(FCMToken.token == token))
         if result.scalar_one_or_none():

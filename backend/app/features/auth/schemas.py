@@ -25,6 +25,18 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("パスワードは8文字以上で入力してください")
+        return v
+
+
 class FCMTokenRequest(BaseModel):
     token: str
 

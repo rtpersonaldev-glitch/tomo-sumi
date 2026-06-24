@@ -67,6 +67,12 @@ export const useToggleStatus = () => {
   });
 };
 
+export const useChangePassword = () =>
+  useMutation({
+    mutationFn: (data: { current_password: string; new_password: string }) =>
+      apiClient.put("/api/auth/password", data),
+  });
+
 export const useToggleNotification = () => {
   const setUser = useAuthStore((s) => s.setUser);
 
