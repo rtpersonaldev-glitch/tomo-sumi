@@ -100,7 +100,8 @@ jobs:
             set -e
             cd /opt/tomo-sumi
             git pull origin main
-            docker compose build
+            docker compose build frontend
+            docker compose build backend worker beat
             docker compose up -d
             docker compose exec -T backend alembic upgrade head
             echo "デプロイ完了"
