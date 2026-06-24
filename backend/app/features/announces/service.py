@@ -74,6 +74,7 @@ class AnnounceService:
         search: str | None = None,
         priority: str | None = None,
         ordering: str | None = None,
+        include_expired: bool = False,
     ) -> list[AnnounceResponse]:
         if home_id != current_home_id:
             raise HTTPException(status_code=403, detail="現在選択中のホームのみ参照できます")
@@ -86,6 +87,8 @@ class AnnounceService:
             )
             .where(Announce.home_id == home_id)
         )
+        if not include_expired:
+            query = query.where(Announce.end_date >= date.today())
         if search:
             query = query.where(
                 or_(

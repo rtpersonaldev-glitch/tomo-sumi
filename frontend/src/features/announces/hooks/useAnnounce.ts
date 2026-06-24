@@ -7,6 +7,7 @@ interface ListParams {
   search?: string;
   priority?: string;
   ordering?: string;
+  include_expired?: boolean;
 }
 
 export const useAnnounces = (params: ListParams = {}) => {
@@ -21,6 +22,7 @@ export const useAnnounces = (params: ListParams = {}) => {
             ...(params.search && { search: params.search }),
             ...(params.priority && { priority: params.priority }),
             ...(params.ordering && { ordering: params.ordering }),
+            ...(params.include_expired && { include_expired: params.include_expired }),
           },
         },
       );

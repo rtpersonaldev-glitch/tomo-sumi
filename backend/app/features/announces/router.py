@@ -40,6 +40,7 @@ async def list_announces(
     search: str | None = None,
     priority: str | None = None,
     ordering: str | None = None,
+    include_expired: bool = False,
     current_home: Home = Depends(get_current_home),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -51,6 +52,7 @@ async def list_announces(
         search=search,
         priority=priority,
         ordering=ordering,
+        include_expired=include_expired,
     )
 
 
