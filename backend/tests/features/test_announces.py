@@ -101,6 +101,40 @@ async def test_list_announces_priority_filter(client: AsyncClient) -> None:
     assert data[0]["priority"] == "high"
 
 
+async def test_list_announces_excludes_expired_by_default(client: AsyncClient) -> None:
+    """デフォルトでは期限切れのお知らせは表示されない"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    await client.post("/api/announces", json={**_DEFAULT_ANNOUNCE, "title": "有効"})
+    await client.post(
+        "/api/announces",
+        json={**_DEFAULT_ANNOUNCE, "title": "期限切れ", "end_date": "2000-01-01"},
+    )
+    resp = await client.get(f"/api/announces/{home_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["title"] == "有効"
+
+
+async def test_list_announces_include_expired(client: AsyncClient) -> None:
+    """include_expired=true で期限切れのお知らせも表示される"""
+    await _register_and_login(client)
+    home_id = await _create_and_select_home(client)
+    await client.post("/api/announces", json={**_DEFAULT_ANNOUNCE, "title": "有効"})
+    await client.post(
+        "/api/announces",
+        json={**_DEFAULT_ANNOUNCE, "title": "期限切れ", "end_date": "2000-01-01"},
+    )
+    resp = await client.get(f"/api/announces/{home_id}", params={"include_expired": "true"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 2
+    titles = {a["title"] for a in data}
+    assert "有効" in titles
+    assert "期限切れ" in titles
+
+
 async def test_list_announces_wrong_home(client: AsyncClient, db: AsyncSession) -> None:
     """他ホームのお知らせ一覧は 403"""
     await _register_and_login(client)

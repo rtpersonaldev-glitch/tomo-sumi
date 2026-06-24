@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, isBefore, parseISO, startOfToday } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useAnnounces } from "../hooks/useAnnounce";
@@ -29,11 +29,15 @@ function AnnounceCard({
   onClick: () => void;
 }) {
   const prio = PRIORITY_CONFIG[announce.priority];
+  const isExpired = isBefore(parseISO(announce.end_date), startOfToday());
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left rounded-xl border border-border bg-card p-4 space-y-2 hover:border-primary/40 transition-colors shadow-sm dark:shadow-none"
+      className={cn(
+        "w-full text-left rounded-xl border bg-card p-4 space-y-2 hover:border-primary/40 transition-colors shadow-sm dark:shadow-none",
+        isExpired ? "border-border/50 opacity-70" : "border-border",
+      )}
     >
       <div className="flex items-start gap-2">
         <span
@@ -44,6 +48,11 @@ function AnnounceCard({
         >
           {prio.label}
         </span>
+        {isExpired && (
+          <span className="inline-flex flex-shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
+            期限切れ
+          </span>
+        )}
         <span className="flex-1 text-sm font-semibold leading-snug line-clamp-2">
           {announce.title}
         </span>
@@ -93,6 +102,7 @@ export default function AnnounceListPage() {
   const [search, setSearch] = useState("");
   const [priority, setPriority] = useState("");
   const [ordering, setOrdering] = useState("");
+  const [includeExpired, setIncludeExpired] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 400);
@@ -103,6 +113,7 @@ export default function AnnounceListPage() {
     search: search || undefined,
     priority: priority || undefined,
     ordering: ordering || undefined,
+    ...(includeExpired && { include_expired: true }),
   });
 
   return (
@@ -149,6 +160,16 @@ export default function AnnounceListPage() {
             {p.label}
           </button>
         ))}
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={includeExpired}
+            onChange={(e) => setIncludeExpired(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-border accent-primary"
+            aria-label="期限切れのお知らせも表示する"
+          />
+          期限切れも表示
+        </label>
         <select
           value={ordering}
           onChange={(e) => setOrdering(e.target.value)}
