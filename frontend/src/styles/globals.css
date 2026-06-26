@@ -77,6 +77,18 @@
   }
 }
 
+/* iOSでの入力フォーカス時ズームを防ぐ
+   iOS Safariはfont-size < 16pxの入力欄にフォーカスすると自動ズームする。
+   タッチデバイス限定でfont-sizeを最低16pxに保証し、デスクトップ表示には影響しない。
+   @layerの外側に置くことでTailwindのutilityクラスより優先される。 */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+
 /* FullCalendar: デザインシステムのカラートークンで上書き（ダークモード対応） */
 .fc {
   --fc-border-color: hsl(var(--border));
