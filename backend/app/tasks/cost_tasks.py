@@ -33,7 +33,13 @@ async def run_settlement_for_home(
     members = list(member_result.scalars().all())
     member_ids = [m.id for m in members]
 
-    # 固定費をその月のCostレコードに変換
+    # 既存の未清算支出を先に取得
+    cost_result = await db.execute(
+        select(Cost).where(Cost.home_id == home_id, Cost.seisan_id.is_(None))
+    )
+    unsettled_costs: list[Cost] = list(cost_result.scalars().all())
+
+    # 固定費をその月のCostレコードに変換してリストに追加
     koteihi_result = await db.execute(
         select(Koteihi).where(Koteihi.home_id == home_id)
     )
@@ -56,12 +62,8 @@ async def run_settlement_for_home(
             payer_user_id=k.from_user_id,
             amount=k.amount,
         ))
+        unsettled_costs.append(cost)
     await db.flush()
-
-    cost_result = await db.execute(
-        select(Cost).where(Cost.home_id == home_id, Cost.seisan_id.is_(None))
-    )
-    unsettled_costs = list(cost_result.scalars().all())
 
     if not unsettled_costs:
         logger.info("ホーム %d: 未清算の支出なし、スキップ", home_id)

@@ -293,3 +293,37 @@ async def test_monthly_settlement_month_end_fallback(db: AsyncSession) -> None:
         result = await run_monthly_settlement_async(db, today=today)
 
     assert result == 1
+
+
+async def test_monthly_settlement_runs_with_only_koteihi(db: AsyncSession) -> None:
+    """支出なしで固定費のみの場合、自動清算が正常に実行される (#209)"""
+    home, users = await _setup_home_with_users(db, n_users=2)
+    payer, receiver = users[0], users[1]
+    today = date(2026, 6, 26)
+    db.add(AutoSeisan(home_id=home.id, execute_flag=True, seisan_day=26))
+    db.add(Koteihi(
+        home_id=home.id,
+        from_user_id=payer.id,
+        to_user_id=receiver.id,
+        amount=50000,
+        memo="家賃",
+    ))
+    await db.flush()
+
+    with patch("app.tasks.cost_tasks.send_push_to_users", new_callable=AsyncMock):
+        result = await run_monthly_settlement_async(db, today=today)
+
+    assert result == 1
+
+    seisan_result = await db.execute(select(Seisan).where(Seisan.home_id == home.id))
+    seisan = seisan_result.scalar_one()
+    assert seisan.title == "2026年6月 自動清算"
+
+    meisai_result = await db.execute(
+        select(SeisanMeisai).where(SeisanMeisai.seisan_id == seisan.id)
+    )
+    meisai_list = meisai_result.scalars().all()
+    assert len(meisai_list) == 1
+    assert meisai_list[0].from_user_id == payer.id
+    assert meisai_list[0].to_user_id == receiver.id
+    assert meisai_list[0].amount == 50000
