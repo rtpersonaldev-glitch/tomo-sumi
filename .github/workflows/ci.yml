@@ -99,7 +99,8 @@ jobs:
           script: |
             set -e
             cd /opt/tomo-sumi
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             docker compose build frontend
             docker compose build backend worker beat
             docker compose up -d
