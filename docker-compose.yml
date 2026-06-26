@@ -26,6 +26,7 @@ services:
       - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase_service_account.json
+      - MEDIA_BASE_URL=${MEDIA_BASE_URL}
     depends_on:
       db:
         condition: service_healthy
