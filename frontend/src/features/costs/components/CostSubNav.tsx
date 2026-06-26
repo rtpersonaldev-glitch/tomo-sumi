@@ -5,8 +5,8 @@ const NAV_ITEMS = [
   { label: "支出一覧", to: "/costs" },
   { label: "清算一覧", to: "/costs/seisan" },
   { label: "集計", to: "/costs/summary" },
-  { label: "カテゴリ", to: "/costs/categories" },
-  { label: "固定費", to: "/costs/koteihi" },
+  { label: "カテゴリ編集", to: "/costs/categories" },
+  { label: "自動精算", to: "/costs/koteihi" },
 ] as const;
 
 const SCROLL_KEY = "costSubNavScroll";
