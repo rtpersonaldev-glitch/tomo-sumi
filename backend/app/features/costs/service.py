@@ -566,22 +566,6 @@ class CostService:
                 )
             )
 
-        koteihi_result = await self.db.execute(
-            select(Koteihi).where(Koteihi.home_id == home_id)
-        )
-        for k in koteihi_result.scalars().all():
-            if k.to_user_id is None and k.from_user_id is None:
-                continue
-            if k.to_user_id is not None:
-                sei = [(k.from_user_id, k.amount)] if k.from_user_id is not None else []
-                entries.append(
-                    CostEntry(
-                        payer_user_id=k.to_user_id,
-                        total_amount=k.amount,
-                        seikyusaki=sei,
-                    )
-                )
-
         balances = build_balances(entries, member_ids)
         transfers = calculate_settlements(balances)
 
