@@ -23,7 +23,7 @@ from app.features.costs.schemas import (
     SummaryCategoryAmount,
     SummaryUserAmount,
 )
-from app.features.costs.seisan_calculator import CostEntry, build_balances, calculate_settlements
+from app.features.costs.seisan_calculator import CostEntry, build_pairwise_debts, calculate_pairwise_settlements
 from app.models.announce import Announce, AnnounceRecipient
 from app.models.cost import (
     AutoSeisan,
@@ -566,8 +566,8 @@ class CostService:
                 )
             )
 
-        balances = build_balances(entries, member_ids)
-        transfers = calculate_settlements(balances)
+        debts = build_pairwise_debts(entries, member_ids)
+        transfers = calculate_pairwise_settlements(debts)
 
         seisan = Seisan(
             home_id=home_id,

@@ -151,10 +151,10 @@ async def test_settlement_creates_seisan_three_members(db: AsyncSession) -> None
         select(SeisanMeisai).where(SeisanMeisai.seisan_id == seisan.id)
     )
     meisai_list = list(meisai_result.scalars().all())
-    # u3 が唯一の債務者 (-1500円)
+    # pairwise: u2→u1:500, u3→u1:1000, u3→u2:500 → 計3件、合計2000
     assert len(meisai_list) > 0
     total_transfer = sum(m.amount for m in meisai_list)
-    assert total_transfer == 1500
+    assert total_transfer == 2000
 
 
 # ─── run_monthly_settlement_async 統合テスト ──────────────────────────────────
