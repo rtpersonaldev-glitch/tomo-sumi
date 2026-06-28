@@ -893,11 +893,11 @@ async def test_reject_meisai_not_confirmed(client: AsyncClient, db: AsyncSession
     assert reject_resp.status_code == 400
 
 
-# ─── 固定費（Koteihi）の清算への反映 ────────────────────────────────────────
+# ─── 固定費（Koteihi）は手動清算に含まれない ────────────────────────────────
 
 
-async def test_create_seisan_includes_koteihi_directed(client: AsyncClient, db: AsyncSession) -> None:
-    """固定費（from/to 両方指定）が清算の残高計算に反映される"""
+async def test_create_seisan_excludes_koteihi(client: AsyncClient, db: AsyncSession) -> None:
+    """手動清算では固定費は計算に含まれない（通常支出のみが対象）"""
     user1_id = await _register_and_login(
         client, email="koteihi_u1@example.com", nickname="固定費受取者"
     )
@@ -912,7 +912,7 @@ async def test_create_seisan_includes_koteihi_directed(client: AsyncClient, db: 
     db.add(HomeLink(user_id=user2_id, home_id=home_id))
     await db.flush()
 
-    # 固定費: user2 が user1 に 10000 支払う
+    # 固定費のみ登録（通常支出なし）
     await client.post(
         f"/api/costs/{home_id}/koteihi",
         json={"amount": 10000, "from_user_id": user2_id, "to_user_id": user1_id, "memo": "家賃"},
@@ -923,16 +923,12 @@ async def test_create_seisan_includes_koteihi_directed(client: AsyncClient, db: 
         json={"title": "固定費テスト清算", "settled_date": "2026-06-30"},
     )
     assert seisan_resp.status_code == 201
-    meisai = seisan_resp.json()["meisai"]
-    # user2 → user1 への 10000 の明細が生成されている
-    assert len(meisai) == 1
-    assert meisai[0]["from_user_id"] == user2_id
-    assert meisai[0]["to_user_id"] == user1_id
-    assert meisai[0]["amount"] == 10000
+    # 通常支出がないので明細は空
+    assert seisan_resp.json()["meisai"] == []
 
 
-async def test_create_seisan_includes_koteihi_with_costs(client: AsyncClient, db: AsyncSession) -> None:
-    """固定費と通常支出が両方ある場合、合算して清算の残高計算に反映される"""
+async def test_create_seisan_with_costs_excludes_koteihi(client: AsyncClient, db: AsyncSession) -> None:
+    """手動清算は通常支出のみを対象とし、固定費は計算に加算されない"""
     user1_id = await _register_and_login(
         client, email="koteihi2_u1@example.com", nickname="ユーザーX"
     )
@@ -952,7 +948,7 @@ async def test_create_seisan_includes_koteihi_with_costs(client: AsyncClient, db
         "/api/costs",
         data={"purchase_date": "2026-06-01", "amount": "2000", "payer_user_id": str(user1_id)},
     )
-    # 固定費: user2 → user1 へ 500（固定費分を追加）
+    # 固定費も登録されているが清算には含まれない
     await client.post(
         f"/api/costs/{home_id}/koteihi",
         json={"amount": 500, "from_user_id": user2_id, "to_user_id": user1_id, "memo": "固定費"},
@@ -964,8 +960,8 @@ async def test_create_seisan_includes_koteihi_with_costs(client: AsyncClient, db
     )
     assert seisan_resp.status_code == 201
     meisai = seisan_resp.json()["meisai"]
-    # user2 は通常支出 1000 + 固定費 500 = 合計 1500 を user1 に返す
+    # 通常支出 2000 の均等割りのみ → user2 が 1000 を user1 に返す（固定費 500 は含まない）
     assert len(meisai) == 1
     assert meisai[0]["from_user_id"] == user2_id
     assert meisai[0]["to_user_id"] == user1_id
-    assert meisai[0]["amount"] == 1500
+    assert meisai[0]["amount"] == 1000

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
-from app.features.costs.seisan_calculator import CostEntry, build_balances, calculate_settlements
+from app.features.costs.seisan_calculator import CostEntry, build_pairwise_debts, calculate_pairwise_settlements
 from app.models.announce import Announce, AnnounceRecipient
 from app.models.cost import AutoSeisan, Cost, Koteihi, Seikyusaki, Seisan, SeisanMeisai
 from app.models.home import HomeLink
@@ -90,8 +90,8 @@ async def run_settlement_for_home(
             )
         )
 
-    balances = build_balances(entries, member_ids)
-    transfers = calculate_settlements(balances)
+    debts = build_pairwise_debts(entries, member_ids)
+    transfers = calculate_pairwise_settlements(debts)
 
     title = f"{today.year}年{today.month}月 自動清算"
     seisan = Seisan(

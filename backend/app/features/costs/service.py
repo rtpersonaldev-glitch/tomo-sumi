@@ -23,7 +23,7 @@ from app.features.costs.schemas import (
     SummaryCategoryAmount,
     SummaryUserAmount,
 )
-from app.features.costs.seisan_calculator import CostEntry, build_balances, calculate_settlements
+from app.features.costs.seisan_calculator import CostEntry, build_pairwise_debts, calculate_pairwise_settlements
 from app.models.announce import Announce, AnnounceRecipient
 from app.models.cost import (
     AutoSeisan,
@@ -566,24 +566,8 @@ class CostService:
                 )
             )
 
-        koteihi_result = await self.db.execute(
-            select(Koteihi).where(Koteihi.home_id == home_id)
-        )
-        for k in koteihi_result.scalars().all():
-            if k.to_user_id is None and k.from_user_id is None:
-                continue
-            if k.to_user_id is not None:
-                sei = [(k.from_user_id, k.amount)] if k.from_user_id is not None else []
-                entries.append(
-                    CostEntry(
-                        payer_user_id=k.to_user_id,
-                        total_amount=k.amount,
-                        seikyusaki=sei,
-                    )
-                )
-
-        balances = build_balances(entries, member_ids)
-        transfers = calculate_settlements(balances)
+        debts = build_pairwise_debts(entries, member_ids)
+        transfers = calculate_pairwise_settlements(debts)
 
         seisan = Seisan(
             home_id=home_id,
