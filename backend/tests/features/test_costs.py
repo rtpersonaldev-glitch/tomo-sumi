@@ -965,3 +965,119 @@ async def test_create_seisan_with_costs_excludes_koteihi(client: AsyncClient, db
     assert meisai[0]["from_user_id"] == user2_id
     assert meisai[0]["to_user_id"] == user1_id
     assert meisai[0]["amount"] == 1000
+
+
+# ─── Seisan Merge ─────────────────────────────────────────────────────────────
+
+
+async def test_merge_seisan_basic(client: AsyncClient, db: AsyncSession) -> None:
+    """2件の清算を結合すると新しい清算が作成され旧清算は削除される"""
+    user1_id = await _register_and_login(
+        client, email="merge_u1@example.com", nickname="ユーザー1"
+    )
+    home_id = await _create_and_select_home(client)
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "merge_u2@example.com", "password": "TestPass123!", "nickname": "U2"},
+    )
+    user2_result = await db.execute(select(User).where(User.email == "merge_u2@example.com"))
+    user2_id = user2_result.scalar_one().id
+    db.add(HomeLink(user_id=user2_id, home_id=home_id))
+    await db.flush()
+
+    # 清算1: user1 が 2000 支払い
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-05-01", "amount": "2000", "payer_user_id": str(user1_id)},
+    )
+    s1 = await client.post(
+        "/api/costs/seisan",
+        json={"title": "5月清算", "settled_date": "2026-05-31"},
+    )
+    assert s1.status_code == 201
+    seisan1_id = s1.json()["id"]
+
+    # 清算2: user1 が 4000 支払い
+    await client.post(
+        "/api/costs",
+        data={"purchase_date": "2026-06-01", "amount": "4000", "payer_user_id": str(user1_id)},
+    )
+    s2 = await client.post(
+        "/api/costs/seisan",
+        json={"title": "6月清算", "settled_date": "2026-06-30"},
+    )
+    assert s2.status_code == 201
+    seisan2_id = s2.json()["id"]
+
+    # 結合
+    merge_resp = await client.post(
+        "/api/costs/seisan/merge",
+        json={
+            "seisan_ids": [seisan1_id, seisan2_id],
+            "title": "5〜6月合算清算",
+            "settled_date": "2026-06-30",
+        },
+    )
+    assert merge_resp.status_code == 201
+    merged = merge_resp.json()
+
+    # 結合後の清算タイトルが正しい
+    assert merged["title"] == "5〜6月合算清算"
+    # 明細: 2000+4000=6000 → 均等割り → user2 が 3000 を user1 に返す
+    assert len(merged["meisai"]) == 1
+    assert merged["meisai"][0]["from_user_id"] == user2_id
+    assert merged["meisai"][0]["to_user_id"] == user1_id
+    assert merged["meisai"][0]["amount"] == 3000
+    # 旧清算が削除されている
+    assert (await client.get(f"/api/costs/seisan/{seisan1_id}")).status_code == 404
+    assert (await client.get(f"/api/costs/seisan/{seisan2_id}")).status_code == 404
+    # 支出が新清算に紐づいている
+    cost_ids = [c["id"] for c in merged["costs"]]
+    assert len(cost_ids) == 2
+
+
+async def test_merge_seisan_requires_two_or_more(client: AsyncClient) -> None:
+    """1件のみ指定した場合は 400 を返す"""
+    await _register_and_login(client, email="merge_val1@example.com")
+    await _create_and_select_home(client)
+    s1 = await client.post(
+        "/api/costs/seisan",
+        json={"title": "テスト清算", "settled_date": "2026-06-30"},
+    )
+    seisan1_id = s1.json()["id"]
+    resp = await client.post(
+        "/api/costs/seisan/merge",
+        json={"seisan_ids": [seisan1_id], "title": "結合", "settled_date": "2026-06-30"},
+    )
+    assert resp.status_code == 422  # pydantic min_length=2 validation
+
+
+async def test_merge_seisan_wrong_home(client: AsyncClient, db: AsyncSession) -> None:
+    """他ホームの清算を指定した場合は 403 を返す"""
+    user1_id = await _register_and_login(client, email="merge_wh1@example.com")
+    home1_id = await _create_and_select_home(client, name="ホーム1")
+    s1 = await client.post(
+        "/api/costs/seisan",
+        json={"title": "ホーム1清算", "settled_date": "2026-06-30"},
+    )
+    seisan1_id = s1.json()["id"]
+
+    # ホーム2を作成してログイン
+    home2_id = await _create_and_select_home(client, name="ホーム2")
+    s2 = await client.post(
+        "/api/costs/seisan",
+        json={"title": "ホーム2清算", "settled_date": "2026-06-30"},
+    )
+    seisan2_id = s2.json()["id"]
+
+    # ホーム2にログイン中に、ホーム1の清算を含めて結合を試みる
+    resp = await client.post(
+        "/api/costs/seisan/merge",
+        json={
+            "seisan_ids": [seisan1_id, seisan2_id],
+            "title": "不正結合",
+            "settled_date": "2026-06-30",
+        },
+    )
+    assert resp.status_code == 403

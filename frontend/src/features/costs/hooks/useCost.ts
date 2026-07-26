@@ -308,6 +308,21 @@ export const useCreateSeisan = () => {
   });
 };
 
+export const useMergeSeisan = () => {
+  const qc = useQueryClient();
+  const homeId = useAuthStore((s) => s.home?.id);
+  return useMutation({
+    mutationFn: async (body: { seisan_ids: number[]; title: string; settled_date: string }) => {
+      const { data } = await apiClient.post<SeisanResponse>("/api/costs/seisan/merge", body);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["seisan-pending", homeId] });
+      qc.invalidateQueries({ queryKey: ["costs", homeId] });
+    },
+  });
+};
+
 export const useCompleteMeisai = () => {
   const qc = useQueryClient();
   return useMutation({

@@ -654,6 +654,132 @@ class CostService:
             raise HTTPException(status_code=403, detail="この清算へのアクセス権限がありません")
         return await self._build_seisan_response(seisan)
 
+    async def merge_seisan(
+        self,
+        home_id: int,
+        current_home_id: int,
+        user_id: int,
+        seisan_ids: list[int],
+        title: str,
+        settled_date: date,
+    ) -> SeisanResponse:
+        if home_id != current_home_id:
+            raise HTTPException(status_code=403, detail="現在選択中のホームのみ操作できます")
+        if len(seisan_ids) < 2:
+            raise HTTPException(status_code=400, detail="結合には2件以上の清算が必要です")
+
+        seisans: list[Seisan] = []
+        for sid in seisan_ids:
+            s = await self.db.get(Seisan, sid)
+            if not s:
+                raise HTTPException(status_code=404, detail=f"清算 {sid} が見つかりません")
+            if s.home_id != home_id:
+                raise HTTPException(status_code=403, detail=f"清算 {sid} へのアクセス権限がありません")
+            if s.complete_flag:
+                raise HTTPException(status_code=400, detail=f"清算 {sid} は完了済みのため結合できません")
+            seisans.append(s)
+
+        # 結合対象の全 Cost を収集
+        costs_result = await self.db.execute(
+            select(Cost).where(Cost.seisan_id.in_(seisan_ids))
+        )
+        target_costs = list(costs_result.scalars().all())
+
+        # 旧 SeisanMeisai を削除
+        for s in seisans:
+            meisai_result = await self.db.execute(
+                select(SeisanMeisai).where(SeisanMeisai.seisan_id == s.id)
+            )
+            for m in meisai_result.scalars().all():
+                await self.db.delete(m)
+
+        # costs の FK を外してから旧 Seisan を削除
+        for cost in target_costs:
+            cost.seisan_id = None
+        await self.db.flush()
+
+        for s in seisans:
+            await self.db.delete(s)
+        await self.db.flush()
+
+        # 再計算
+        members = await self._get_home_members(home_id)
+        member_ids = [m.id for m in members]
+
+        entries: list[CostEntry] = []
+        for cost in target_costs:
+            if not cost.payer_user_id:
+                continue
+            seikyusaki_list = await self._get_seikyusaki(cost.id)
+            sei_pairs = [
+                (s.payer_user_id, s.amount)
+                for s in seikyusaki_list
+                if s.payer_user_id is not None
+            ]
+            entries.append(
+                CostEntry(
+                    payer_user_id=cost.payer_user_id,
+                    total_amount=cost.amount,
+                    seikyusaki=sei_pairs,
+                )
+            )
+
+        debts = build_pairwise_debts(entries, member_ids)
+        transfers = calculate_pairwise_settlements(debts)
+
+        new_seisan = Seisan(
+            home_id=home_id,
+            title=title,
+            complete_flag=False,
+            settled_date=settled_date,
+            created_by=user_id,
+        )
+        self.db.add(new_seisan)
+        await self.db.flush()
+
+        announce_user_ids: set[int] = set()
+        for from_uid, to_uid, amount in transfers:
+            self.db.add(
+                SeisanMeisai(
+                    seisan_id=new_seisan.id,
+                    from_user_id=from_uid,
+                    to_user_id=to_uid,
+                    amount=amount,
+                    complete_flag=False,
+                    created_by=user_id,
+                )
+            )
+            announce_user_ids.add(from_uid)
+            announce_user_ids.add(to_uid)
+
+        for cost in target_costs:
+            cost.seisan_id = new_seisan.id
+
+        await self.db.flush()
+
+        if announce_user_ids:
+            ann = Announce(
+                home_id=home_id,
+                title=f"「{new_seisan.title}」の清算が届いています"[:50],
+                content="清算の明細を確認してください。",
+                priority="high",
+                end_date=date.today() + timedelta(days=7),
+                link_url=f"/costs/seisan/{new_seisan.id}",
+                created_by=user_id,
+            )
+            self.db.add(ann)
+            await self.db.flush()
+            for uid in announce_user_ids:
+                self.db.add(AnnounceRecipient(announce_id=ann.id, user_id=uid))
+            await self.db.flush()
+            await send_push_to_users(
+                self.db, announce_user_ids, ann.title, ann.content, exclude_user_id=user_id
+            )
+
+        await self.db.refresh(new_seisan)
+        await log_activity(self.db, home_id, user_id, "清算を結合しました", "seisan", new_seisan.id)
+        return await self._build_seisan_response(new_seisan)
+
     # ─── SeisanMeisai ─────────────────────────────────────────────────────────
 
     async def _check_seisan_complete(self, seisan: Seisan) -> None:
