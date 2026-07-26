@@ -170,3 +170,9 @@ class SeisanResponse(BaseModel):
 class SeisanCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=50)
     settled_date: date
+
+
+class MergeSeisanRequest(BaseModel):
+    seisan_ids: list[int] = Field(..., min_length=2)
+    title: str = Field(..., min_length=1, max_length=50)
+    settled_date: date

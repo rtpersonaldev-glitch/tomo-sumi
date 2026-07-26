@@ -17,6 +17,7 @@ from app.features.costs.schemas import (
     KoteihiCreateRequest,
     KoteihiResponse,
     KoteihiUpdateRequest,
+    MergeSeisanRequest,
     SeisanCreateRequest,
     SeisanListResponse,
     SeisanMeisaiResponse,
@@ -30,6 +31,23 @@ router = APIRouter()
 
 
 # ─── 固定パス（パス競合を避けるため先に登録） ────────────────────────────────
+
+
+@router.post("/seisan/merge", response_model=SeisanResponse, status_code=201)
+async def merge_seisan(
+    body: MergeSeisanRequest,
+    current_home: Home = Depends(get_current_home),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SeisanResponse:
+    return await CostService(db).merge_seisan(
+        home_id=current_home.id,
+        current_home_id=current_home.id,
+        user_id=current_user.id,
+        seisan_ids=body.seisan_ids,
+        title=body.title,
+        settled_date=body.settled_date,
+    )
 
 
 @router.post("/seisan", response_model=SeisanResponse, status_code=201)
